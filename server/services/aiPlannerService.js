@@ -81,11 +81,19 @@ GOALS:
 - Date: ${goals.eventDate || 'No specific date'}
 - Type: ${goals.eventType || 'Endurance'}
 - Priority: ${goals.priority || 'Medium'}
+- Duration: ${goals.duration || 4} weeks
 
 CONSTRAINTS:
 - Available days per week: ${constraints?.daysPerWeek || 5}
 - Max hours per week: ${constraints?.maxHoursPerWeek || 10}
 - Indoor/outdoor preference: ${constraints?.preference || 'Both'}
+
+IMPORTANT PERIODIZATION REQUIREMENTS:
+- Plan must be exactly ${goals.duration || 4} weeks long
+- Final week (Week ${goals.duration || 4}) MUST be a taper week with 40-50% reduced volume
+- Taper week should maintain intensity but significantly reduce duration
+- Peak training should occur 2 weeks before the event
+- Include proper progression: Base → Build → Peak → Taper
 
 Generate a structured training plan with:
 1. Weekly overview (volume, intensity distribution)
@@ -182,19 +190,27 @@ Return as JSON with structure:
     const planWeeks = [];
     
     for (let w = 0; w < weeks; w++) {
-      const isRecoveryWeek = (w + 1) % 4 === 0;
+      const isTaperWeek = (w + 1) === weeks; // Last week is taper
+      const isRecoveryWeek = (w + 1) % 4 === 0 && !isTaperWeek;
       const weekSessions = [];
       
       for (let d = 0; d < daysPerWeek; d++) {
         const sessionType = sessionTypes[d % sessionTypes.length];
-        const duration = isRecoveryWeek ? sessionType.duration * 0.7 : sessionType.duration;
+        let duration = sessionType.duration;
+        
+        // Apply volume reductions
+        if (isTaperWeek) {
+          duration = duration * 0.5; // 50% reduction for taper
+        } else if (isRecoveryWeek) {
+          duration = duration * 0.7; // 30% reduction for recovery weeks
+        }
         
         weekSessions.push({
           day: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][d],
           type: sessionType.type,
           duration: Math.round(duration),
-          title: `${sessionType.type} Ride`,
-          description: sessionType.description,
+          title: isTaperWeek ? `Taper ${sessionType.type}` : `${sessionType.type} Ride`,
+          description: isTaperWeek ? `Short ${sessionType.description} - maintaining intensity, reducing volume` : sessionType.description,
           targets: ftp ? `${Math.round(ftp * 0.75)}-${Math.round(ftp * 0.95)}W` : 'Moderate effort',
           indoor: false,
         });
@@ -202,7 +218,7 @@ Return as JSON with structure:
 
       planWeeks.push({
         weekNumber: w + 1,
-        focus: isRecoveryWeek ? 'Recovery' : 'Build',
+        focus: isTaperWeek ? 'Taper - Race Prep' : isRecoveryWeek ? 'Recovery' : 'Build',
         totalHours: Math.round(weekSessions.reduce((sum, s) => sum + s.duration, 0) / 60),
         sessions: weekSessions,
       });

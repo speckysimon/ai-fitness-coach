@@ -2,6 +2,49 @@
 
 All notable changes to AI Fitness Coach will be documented in this file.
 
+## [1.2.0] - 2025-09-30
+
+### 🎉 Training Plan Enhancements
+
+#### **Smart Date-Based Planning**
+- **Start Date Field**: Replace manual duration with start date picker
+- **Automatic Duration Calculation**: Plan length calculated from start date to event date
+- **Session Dates**: Every session shows exact date (e.g., "Monday, Oct 6")
+- **Chronological Order**: Sessions flow in proper date sequence
+
+#### **Proper Periodization & Tapering**
+- **Automatic Taper Week**: Final week always includes 50% volume reduction
+- **Race-Day Freshness**: Proper taper ensures peak performance on event day
+- **Scientific Periodization**: Base → Build → Peak → Taper progression
+- **AI Instructions Updated**: GPT-4 now explicitly includes taper in plans
+
+#### **Celebration & Progress**
+- **Confetti Animation**: Full-screen celebration when 100% of plan completed
+- **Visual Progress**: Animated progress bar shows completion percentage
+- **Session Completion**: Mark sessions complete with persistent tracking
+
+#### **Calendar Integration**
+- **Add to Calendar Button**: Prominent green button to sync all sessions
+- **Smart Sync**: Creates Google Calendar events with proper dates and times
+- **Detailed Events**: Each event includes type, duration, targets, and description
+- **Always Visible**: Button shows helpful message if Google not connected
+
+#### **UI Improvements**
+- **Regenerate Plan Button**: Easy plan regeneration with progress reset
+- **Better Date Display**: Sessions show formatted dates (e.g., "Sep 30")
+- **Improved Layout**: Cleaner button arrangement and visual hierarchy
+
+### 🐛 Bug Fixes
+- Fixed date calculation to ensure chronological order
+- Fixed missing icon imports (Clock, CalendarPlus, RefreshCw)
+- Fixed session date parsing for proper timezone handling
+- Corrected week-based date calculations
+
+### 📚 Documentation
+- Added training plan sources (Coggan, Friel, Bompa, Seiler)
+- Documented taper methodology
+- Explained periodization principles
+
 ## [1.1.0] - 2025-09-30
 
 ### 🎉 Major Feature Release

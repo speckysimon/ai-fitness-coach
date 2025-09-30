@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Calendar as CalendarIcon, Sparkles, Send, CheckCircle, Circle, TrendingUp, Clock } from 'lucide-react';
+import { Target, Calendar as CalendarIcon, Sparkles, Send, CheckCircle, Circle, TrendingUp, Clock, RefreshCw, CalendarPlus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import SessionHoverModal from '../components/SessionHoverModal';
+import confetti from 'canvas-confetti';
 
 const PlanGenerator = ({ stravaTokens, googleTokens }) => {
   const [activities, setActivities] = useState([]);
@@ -15,9 +16,9 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
   const [formData, setFormData] = useState({
     eventName: '',
     eventDate: '',
+    startDate: new Date().toISOString().split('T')[0], // Today's date
     eventType: 'Endurance',
     priority: 'High',
-    duration: 4,
     daysPerWeek: 5,
     maxHoursPerWeek: 10,
     preference: 'Both',
@@ -42,6 +43,46 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
     };
     setCompletedSessions(newCompleted);
     localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
+    
+    // Check if plan is now 100% complete and trigger confetti
+    if (plan) {
+      const total = plan.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
+      const completed = Object.values(newCompleted).filter(Boolean).length;
+      if (completed === total && newCompleted[key]) {
+        triggerConfetti();
+      }
+    }
+  };
+
+  const triggerConfetti = () => {
+    const duration = 3000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+    function randomInRange(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    const interval = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+      });
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+      });
+    }, 250);
   };
 
   const calculateProgress = () => {
@@ -81,9 +122,53 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const addDatesToSessions = (planData, startDate) => {
+    const start = new Date(startDate + 'T00:00:00'); // Ensure proper date parsing
+    const dayMap = {
+      'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4,
+      'Friday': 5, 'Saturday': 6, 'Sunday': 0
+    };
+
+    planData.weeks.forEach((week, weekIdx) => {
+      // Calculate the start of this week (Monday)
+      const weekStartDate = new Date(start);
+      weekStartDate.setDate(start.getDate() + (weekIdx * 7));
+      
+      // Adjust to Monday of this week if start date isn't Monday
+      const startDayOfWeek = weekStartDate.getDay();
+      const daysUntilMonday = startDayOfWeek === 0 ? 1 : (1 - startDayOfWeek + 7) % 7;
+      if (weekIdx === 0 && startDayOfWeek !== 1) {
+        // For first week, keep the start date as-is
+      } else if (weekIdx > 0) {
+        weekStartDate.setDate(weekStartDate.getDate() + daysUntilMonday);
+      }
+      
+      week.sessions.forEach(session => {
+        const targetDay = dayMap[session.day];
+        const sessionDate = new Date(weekStartDate);
+        
+        // Calculate days from Monday (1) to target day
+        const daysFromMonday = targetDay === 0 ? 6 : targetDay - 1; // Sunday is 6 days from Monday
+        sessionDate.setDate(weekStartDate.getDate() + daysFromMonday);
+        
+        session.date = sessionDate.toISOString().split('T')[0];
+        session.dateObj = sessionDate;
+      });
+    });
+
+    return planData;
+  };
+
   const generatePlan = async () => {
     setLoading(true);
     try {
+      // Calculate duration in weeks from start date to event date
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.eventDate);
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const duration = Math.max(1, Math.ceil(diffDays / 7)); // At least 1 week
+      
       const response = await fetch('/api/training/plan/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,7 +179,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
             eventDate: formData.eventDate,
             eventType: formData.eventType,
             priority: formData.priority,
-            duration: parseInt(formData.duration),
+            duration, // Pass calculated duration
           },
           constraints: {
             daysPerWeek: parseInt(formData.daysPerWeek),
@@ -105,10 +190,18 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
       });
 
       const planData = await response.json();
-      setPlan(planData);
+      
+      // Add dates to all sessions
+      const planWithDates = addDatesToSessions(planData, formData.startDate);
+      
+      setPlan(planWithDates);
       
       // Save plan to localStorage for persistence
-      localStorage.setItem('training_plan', JSON.stringify(planData));
+      localStorage.setItem('training_plan', JSON.stringify(planWithDates));
+      
+      // Clear completed sessions for new plan
+      setCompletedSessions({});
+      localStorage.removeItem('completed_sessions');
     } catch (error) {
       console.error('Error generating plan:', error);
       alert('Failed to generate training plan. Please try again.');
@@ -122,18 +215,29 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
 
     setSyncing(true);
     try {
-      // Convert plan sessions to calendar events
+      // Convert plan sessions to calendar events with proper dates
       const events = plan.weeks.flatMap((week) =>
         week.sessions.map((session) => {
-          const startTime = new Date(session.date);
-          startTime.setHours(7, 0, 0); // Default to 7 AM
+          // Use the calculated date from the session
+          const startTime = new Date(session.date + 'T07:00:00'); // 7 AM local time
           
           const endTime = new Date(startTime);
           endTime.setMinutes(endTime.getMinutes() + session.duration);
 
+          // Build detailed description with zone info
+          const description = `${session.description}
+
+📊 Training Details:
+• Type: ${session.type}
+• Duration: ${session.duration} minutes
+• Targets: ${session.targets}
+• Day: ${session.day}
+
+💡 Click for full workout details in AI Fitness Coach app`;
+
           return {
-            title: `🎯 ${session.title}`,
-            description: `${session.description}\n\nTargets: ${session.targets}\n\nType: ${session.type}`,
+            title: `🚴 ${session.title}`,
+            description: description,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -148,10 +252,15 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
       });
 
       const result = await response.json();
-      alert(`Successfully synced ${result.length} training sessions to Google Calendar!`);
+      
+      if (result.success) {
+        alert(`✅ Successfully added ${events.length} training sessions to Google Calendar!\n\nCheck your calendar to see all scheduled workouts.`);
+      } else {
+        throw new Error(result.error || 'Unknown error');
+      }
     } catch (error) {
       console.error('Error syncing to calendar:', error);
-      alert('Failed to sync to calendar. Please try again.');
+      alert('❌ Failed to sync to calendar. Please try again or check your Google Calendar permissions.');
     } finally {
       setSyncing(false);
     }
@@ -239,15 +348,13 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Plan Duration (weeks)
+                Start Date
               </label>
               <input
-                type="number"
-                name="duration"
-                value={formData.duration}
+                type="date"
+                name="startDate"
+                value={formData.startDate}
                 onChange={handleInputChange}
-                min="2"
-                max="16"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -361,21 +468,40 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
                 <CardTitle>Your Training Plan</CardTitle>
                 <CardDescription>{plan.planSummary}</CardDescription>
               </div>
-              {googleTokens && (
-                <Button onClick={syncToCalendar} disabled={syncing}>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => {
+                    if (!googleTokens) {
+                      alert('Please connect Google Calendar in Settings first to sync your training plan.');
+                      return;
+                    }
+                    syncToCalendar();
+                  }} 
+                  disabled={syncing} 
+                  variant="default"
+                  className="bg-green-600 hover:bg-green-700"
+                >
                   {syncing ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <Sparkles className="w-4 h-4 mr-2 animate-spin" />
                       Syncing...
                     </>
                   ) : (
                     <>
-                      <Send className="w-4 h-4 mr-2" />
-                      Sync to Calendar
+                      <CalendarPlus className="w-4 h-4 mr-2" />
+                      Add to Calendar
                     </>
                   )}
                 </Button>
-              )}
+                <Button onClick={() => {
+                  if (confirm('Are you sure you want to regenerate the plan? This will clear your current progress.')) {
+                    generatePlan();
+                  }
+                }} variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Regenerate Plan
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -440,6 +566,14 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
                                     {session.duration} min
                                   </span>
                                   <span>{session.day}</span>
+                                  {session.date && (
+                                    <span className="font-medium">
+                                      {new Date(session.date).toLocaleDateString('en-US', { 
+                                        month: 'short', 
+                                        day: 'numeric' 
+                                      })}
+                                    </span>
+                                  )}
                                   <span className="text-blue-600 font-medium">Click for details</span>
                                 </div>
                               </div>
