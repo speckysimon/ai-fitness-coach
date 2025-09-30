@@ -1,0 +1,378 @@
+import React, { useState, useEffect } from 'react';
+import { Target, Calendar as CalendarIcon, Sparkles, Send } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+
+const PlanGenerator = ({ stravaTokens, googleTokens }) => {
+  const [activities, setActivities] = useState([]);
+  const [plan, setPlan] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [formData, setFormData] = useState({
+    eventName: '',
+    eventDate: '',
+    eventType: 'Endurance',
+    priority: 'High',
+    duration: 4,
+    daysPerWeek: 5,
+    maxHoursPerWeek: 10,
+    preference: 'Both',
+  });
+
+  useEffect(() => {
+    if (stravaTokens) {
+      loadActivities();
+    }
+  }, [stravaTokens]);
+
+  const loadActivities = async () => {
+    try {
+      const sixWeeksAgo = Math.floor(Date.now() / 1000) - (6 * 7 * 24 * 60 * 60);
+      const response = await fetch(
+        `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${sixWeeksAgo}&per_page=100`
+      );
+      const data = await response.json();
+      setActivities(data);
+    } catch (error) {
+      console.error('Error loading activities:', error);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const generatePlan = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/training/plan/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activities,
+          goals: {
+            eventName: formData.eventName,
+            eventDate: formData.eventDate,
+            eventType: formData.eventType,
+            priority: formData.priority,
+            duration: parseInt(formData.duration),
+          },
+          constraints: {
+            daysPerWeek: parseInt(formData.daysPerWeek),
+            maxHoursPerWeek: parseInt(formData.maxHoursPerWeek),
+            preference: formData.preference,
+          },
+        }),
+      });
+
+      const planData = await response.json();
+      setPlan(planData);
+    } catch (error) {
+      console.error('Error generating plan:', error);
+      alert('Failed to generate training plan. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const syncToCalendar = async () => {
+    if (!googleTokens || !plan) return;
+
+    setSyncing(true);
+    try {
+      // Convert plan sessions to calendar events
+      const events = plan.weeks.flatMap((week) =>
+        week.sessions.map((session) => {
+          const startTime = new Date(session.date);
+          startTime.setHours(7, 0, 0); // Default to 7 AM
+          
+          const endTime = new Date(startTime);
+          endTime.setMinutes(endTime.getMinutes() + session.duration);
+
+          return {
+            title: `🎯 ${session.title}`,
+            description: `${session.description}\n\nTargets: ${session.targets}\n\nType: ${session.type}`,
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          };
+        })
+      );
+
+      const response = await fetch('/api/google/calendar/events/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokens: googleTokens, events }),
+      });
+
+      const result = await response.json();
+      alert(`Successfully synced ${result.length} training sessions to Google Calendar!`);
+    } catch (error) {
+      console.error('Error syncing to calendar:', error);
+      alert('Failed to sync to calendar. Please try again.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8 max-w-6xl">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">AI Training Plan Generator</h1>
+        <p className="text-gray-600 mt-1">Create a personalized training plan based on your goals and history</p>
+      </div>
+
+      {/* Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="w-5 h-5" />
+            Training Goals
+          </CardTitle>
+          <CardDescription>Tell us about your target event and preferences</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Event Name
+              </label>
+              <input
+                type="text"
+                name="eventName"
+                value={formData.eventName}
+                onChange={handleInputChange}
+                placeholder="e.g., Spring Century Ride"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Event Date
+              </label>
+              <input
+                type="date"
+                name="eventDate"
+                value={formData.eventDate}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Event Type
+              </label>
+              <select
+                name="eventType"
+                value={formData.eventType}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="Endurance">Endurance</option>
+                <option value="Gran Fondo">Gran Fondo</option>
+                <option value="Criterium">Criterium</option>
+                <option value="Time Trial">Time Trial</option>
+                <option value="General Fitness">General Fitness</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Priority
+              </label>
+              <select
+                name="priority"
+                value={formData.priority}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="High">High (A-race)</option>
+                <option value="Medium">Medium (B-race)</option>
+                <option value="Low">Low (C-race)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Plan Duration (weeks)
+              </label>
+              <input
+                type="number"
+                name="duration"
+                value={formData.duration}
+                onChange={handleInputChange}
+                min="2"
+                max="16"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Days per Week
+              </label>
+              <input
+                type="number"
+                name="daysPerWeek"
+                value={formData.daysPerWeek}
+                onChange={handleInputChange}
+                min="3"
+                max="7"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Max Hours per Week
+              </label>
+              <input
+                type="number"
+                name="maxHoursPerWeek"
+                value={formData.maxHoursPerWeek}
+                onChange={handleInputChange}
+                min="3"
+                max="20"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Indoor/Outdoor Preference
+              </label>
+              <select
+                name="preference"
+                value={formData.preference}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="Both">Both</option>
+                <option value="Outdoor">Outdoor Only</option>
+                <option value="Indoor">Indoor Only</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <Button
+              onClick={generatePlan}
+              disabled={loading || !formData.eventName}
+              className="w-full md:w-auto"
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Generating Plan...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate AI Training Plan
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Generated Plan */}
+      {plan && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Your Training Plan</CardTitle>
+                <CardDescription>{plan.planSummary}</CardDescription>
+              </div>
+              {googleTokens && (
+                <Button onClick={syncToCalendar} disabled={syncing}>
+                  {syncing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Sync to Calendar
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-8">
+              {plan.weeks.map((week) => (
+                <div key={week.weekNumber} className="border-l-4 border-blue-500 pl-6">
+                  <div className="mb-4">
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Week {week.weekNumber}: {week.focus}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Total: {week.totalHours}h
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    {week.sessions.map((session, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="text-sm font-medium text-gray-500">
+                                {session.day}
+                              </span>
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                session.type === 'Recovery' ? 'bg-green-100 text-green-700' :
+                                session.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
+                                session.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
+                                session.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {session.type}
+                              </span>
+                              <span className="text-sm text-gray-600">
+                                {session.duration} min
+                              </span>
+                            </div>
+                            <h4 className="font-medium text-gray-900 mb-1">
+                              {session.title}
+                            </h4>
+                            <p className="text-sm text-gray-600 mb-2">
+                              {session.description}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Targets: {session.targets}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {plan.notes && (
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">Coach Notes</h4>
+                <p className="text-sm text-blue-700">{plan.notes}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+export default PlanGenerator;

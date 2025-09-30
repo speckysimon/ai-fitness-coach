@@ -1,0 +1,118 @@
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
+import Setup from './pages/Setup';
+import PlanGenerator from './pages/PlanGenerator';
+import Calendar from './pages/Calendar';
+import Settings from './pages/Settings';
+import Layout from './components/Layout';
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [stravaTokens, setStravaTokens] = useState(null);
+  const [googleTokens, setGoogleTokens] = useState(null);
+
+  useEffect(() => {
+    // Check for stored tokens
+    const storedStravaTokens = localStorage.getItem('strava_tokens');
+    const storedGoogleTokens = localStorage.getItem('google_tokens');
+
+    if (storedStravaTokens) {
+      setStravaTokens(JSON.parse(storedStravaTokens));
+      setIsAuthenticated(true);
+    }
+
+    if (storedGoogleTokens) {
+      setGoogleTokens(JSON.parse(storedGoogleTokens));
+    }
+  }, []);
+
+  const handleStravaAuth = (tokens) => {
+    setStravaTokens(tokens);
+    localStorage.setItem('strava_tokens', JSON.stringify(tokens));
+    setIsAuthenticated(true);
+  };
+
+  const handleGoogleAuth = (tokens) => {
+    setGoogleTokens(tokens);
+    localStorage.setItem('google_tokens', JSON.stringify(tokens));
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('strava_tokens');
+    localStorage.removeItem('google_tokens');
+    setStravaTokens(null);
+    setGoogleTokens(null);
+    setIsAuthenticated(false);
+  };
+
+  return (
+    <Router>
+      <Routes>
+        <Route
+          path="/setup"
+          element={
+            <Setup
+              onStravaAuth={handleStravaAuth}
+              onGoogleAuth={handleGoogleAuth}
+              stravaTokens={stravaTokens}
+              googleTokens={googleTokens}
+            />
+          }
+        />
+        <Route
+          path="/*"
+          element={
+            isAuthenticated ? (
+              <Layout onLogout={handleLogout}>
+                <Routes>
+                  <Route
+                    path="/"
+                    element={
+                      <Dashboard
+                        stravaTokens={stravaTokens}
+                        googleTokens={googleTokens}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/plan"
+                    element={
+                      <PlanGenerator
+                        stravaTokens={stravaTokens}
+                        googleTokens={googleTokens}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/calendar"
+                    element={
+                      <Calendar
+                        stravaTokens={stravaTokens}
+                        googleTokens={googleTokens}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <Settings
+                        stravaTokens={stravaTokens}
+                        googleTokens={googleTokens}
+                        onLogout={handleLogout}
+                      />
+                    }
+                  />
+                </Routes>
+              </Layout>
+            ) : (
+              <Navigate to="/setup" replace />
+            )
+          }
+        />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
