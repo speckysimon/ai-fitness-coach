@@ -3,12 +3,14 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-reac
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
+import ActivityDetailModal from '../components/ActivityDetailModal';
 
 const Calendar = ({ stravaTokens, googleTokens }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [activities, setActivities] = useState([]);
   const [plannedSessions, setPlannedSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedActivity, setSelectedActivity] = useState(null);
 
   useEffect(() => {
     loadCalendarData();
@@ -17,18 +19,35 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
   const loadCalendarData = async () => {
     setLoading(true);
     try {
-      // Load Strava activities for the month
-      const monthStart = startOfMonth(currentMonth);
-      const monthEnd = endOfMonth(currentMonth);
+      // Try to use cached activities first
+      const cachedActivities = localStorage.getItem('cached_activities');
       
-      const after = Math.floor(monthStart.getTime() / 1000);
-      const before = Math.floor(monthEnd.getTime() / 1000);
+      if (cachedActivities) {
+        const allActivities = JSON.parse(cachedActivities);
+        // Filter for current month
+        const monthStart = startOfMonth(currentMonth);
+        const monthEnd = endOfMonth(currentMonth);
+        
+        const monthActivities = allActivities.filter(a => {
+          const activityDate = new Date(a.date);
+          return activityDate >= monthStart && activityDate <= monthEnd;
+        });
+        
+        setActivities(monthActivities);
+      } else if (stravaTokens) {
+        // Fallback: fetch from API if no cache
+        const monthStart = startOfMonth(currentMonth);
+        const monthEnd = endOfMonth(currentMonth);
+        
+        const after = Math.floor(monthStart.getTime() / 1000);
+        const before = Math.floor(monthEnd.getTime() / 1000);
 
-      const response = await fetch(
-        `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${after}&before=${before}&per_page=100`
-      );
-      const data = await response.json();
-      setActivities(data);
+        const response = await fetch(
+          `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${after}&before=${before}&per_page=100`
+        );
+        const data = await response.json();
+        setActivities(data);
+      }
 
       // Load planned sessions from local storage (in production, this would come from a database)
       const storedPlan = localStorage.getItem('training_plan');
@@ -152,8 +171,9 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                         {dayActivities.map((activity, idx) => (
                           <div
                             key={`activity-${idx}`}
-                            className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded truncate border border-green-500"
+                            className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded truncate border border-green-500 cursor-pointer hover:bg-green-200 transition-colors"
                             title={activity.name}
+                            onClick={() => setSelectedActivity(activity)}
                           >
                             ✓ {activity.type}
                           </div>
@@ -214,6 +234,14 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Activity Detail Modal */}
+      {selectedActivity && (
+        <ActivityDetailModal
+          activity={selectedActivity}
+          onClose={() => setSelectedActivity(null)}
+        />
+      )}
     </div>
   );
 };

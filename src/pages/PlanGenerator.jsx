@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Calendar as CalendarIcon, Sparkles, Send } from 'lucide-react';
+import { Target, Calendar as CalendarIcon, Sparkles, Send, CheckCircle, Circle, TrendingUp, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import SessionHoverModal from '../components/SessionHoverModal';
 
 const PlanGenerator = ({ stravaTokens, googleTokens }) => {
   const [activities, setActivities] = useState([]);
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [ftp, setFtp] = useState(null);
+  const [completedSessions, setCompletedSessions] = useState({});
+  const [hoveredSession, setHoveredSession] = useState(null);
   const [formData, setFormData] = useState({
     eventName: '',
     eventDate: '',
@@ -23,7 +27,32 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
     if (stravaTokens) {
       loadActivities();
     }
+    // Load completed sessions from localStorage
+    const saved = localStorage.getItem('completed_sessions');
+    if (saved) {
+      setCompletedSessions(JSON.parse(saved));
+    }
   }, [stravaTokens]);
+
+  const toggleSessionComplete = (weekNum, sessionIdx) => {
+    const key = `${weekNum}-${sessionIdx}`;
+    const newCompleted = {
+      ...completedSessions,
+      [key]: !completedSessions[key]
+    };
+    setCompletedSessions(newCompleted);
+    localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
+  };
+
+  const calculateProgress = () => {
+    if (!plan) return { completed: 0, total: 0, percentage: 0 };
+    
+    const total = plan.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
+    const completed = Object.values(completedSessions).filter(Boolean).length;
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
+    return { completed, total, percentage };
+  };
 
   const loadActivities = async () => {
     try {
@@ -33,6 +62,15 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
       );
       const data = await response.json();
       setActivities(data);
+
+      // Calculate FTP for power targets
+      const ftpResponse = await fetch('/api/analytics/ftp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activities: data }),
+      });
+      const ftpData = await ftpResponse.json();
+      setFtp(ftpData.ftp);
     } catch (error) {
       console.error('Error loading activities:', error);
     }
@@ -68,6 +106,9 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
 
       const planData = await response.json();
       setPlan(planData);
+      
+      // Save plan to localStorage for persistence
+      localStorage.setItem('training_plan', JSON.stringify(planData));
     } catch (error) {
       console.error('Error generating plan:', error);
       alert('Failed to generate training plan. Please try again.');
@@ -283,6 +324,36 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
 
       {/* Generated Plan */}
       {plan && (
+        <>
+        {/* Progress Tracker */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                  Training Plan Progress
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {calculateProgress().completed} of {calculateProgress().total} sessions completed
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-bold text-blue-600">
+                  {calculateProgress().percentage}%
+                </div>
+                <p className="text-xs text-gray-500">Complete</p>
+              </div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div 
+                className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+                style={{ width: `${calculateProgress().percentage}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -319,44 +390,84 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
                       Total: {week.totalHours}h
                     </p>
                   </div>
-                  <div className="space-y-3">
-                    {week.sessions.map((session, idx) => (
-                      <div
-                        key={idx}
-                        className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <span className="text-sm font-medium text-gray-500">
-                                {session.day}
-                              </span>
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                session.type === 'Recovery' ? 'bg-green-100 text-green-700' :
-                                session.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
-                                session.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
-                                session.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                {session.type}
-                              </span>
-                              <span className="text-sm text-gray-600">
-                                {session.duration} min
-                              </span>
+                  <div className="space-y-2">
+                    {week.sessions.map((session, idx) => {
+                      const sessionKey = `${week.weekNumber}-${idx}`;
+                      const isCompleted = completedSessions[sessionKey];
+                      
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-4 border-2 rounded-lg transition-all cursor-pointer ${
+                            isCompleted 
+                              ? 'border-green-500 bg-green-50' 
+                              : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
+                          }`}
+                          onClick={() => setHoveredSession(session)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 flex-1">
+                              <div className={`w-2 h-12 rounded ${
+                                session.type === 'Recovery' ? 'bg-green-500' :
+                                session.type === 'Endurance' ? 'bg-blue-500' :
+                                session.type === 'Tempo' ? 'bg-yellow-500' :
+                                session.type === 'Threshold' ? 'bg-orange-500' :
+                                session.type === 'VO2Max' ? 'bg-red-500' :
+                                'bg-purple-500'
+                              }`} />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className={`font-semibold ${isCompleted ? 'text-green-900 line-through' : 'text-gray-900'}`}>
+                                    {session.title}
+                                  </h4>
+                                  <span className={`px-2 py-0.5 text-xs rounded font-medium ${
+                                    session.type === 'Recovery' ? 'bg-green-100 text-green-700' :
+                                    session.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
+                                    session.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
+                                    session.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
+                                    session.type === 'VO2Max' ? 'bg-red-100 text-red-700' :
+                                    'bg-purple-100 text-purple-700'
+                                  }`}>
+                                    {session.type}
+                                  </span>
+                                </div>
+                                <p className={`text-sm mt-1 ${isCompleted ? 'text-green-700' : 'text-gray-600'}`}>
+                                  {session.description}
+                                </p>
+                                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {session.duration} min
+                                  </span>
+                                  <span>{session.day}</span>
+                                  <span className="text-blue-600 font-medium">Click for details</span>
+                                </div>
+                              </div>
                             </div>
-                            <h4 className="font-medium text-gray-900 mb-1">
-                              {session.title}
-                            </h4>
-                            <p className="text-sm text-gray-600 mb-2">
-                              {session.description}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Targets: {session.targets}
-                            </p>
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSessionComplete(week.weekNumber, idx);
+                              }}
+                              variant={isCompleted ? "default" : "outline"}
+                              className={`ml-4 ${isCompleted ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                            >
+                              {isCompleted ? (
+                                <>
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Completed
+                                </>
+                              ) : (
+                                <>
+                                  <Circle className="w-4 h-4 mr-2" />
+                                  Mark Complete
+                                </>
+                              )}
+                            </Button>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -370,6 +481,16 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
             )}
           </CardContent>
         </Card>
+
+        {/* Session Detail Modal */}
+        {hoveredSession && (
+          <SessionHoverModal
+            session={hoveredSession}
+            ftp={ftp}
+            onClose={() => setHoveredSession(null)}
+          />
+        )}
+        </>
       )}
     </div>
   );

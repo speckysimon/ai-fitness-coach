@@ -1,14 +1,93 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Activity, Clock, Mountain, Zap, Calendar as CalendarIcon } from 'lucide-react';
+import { TrendingUp, Activity, Clock, Mountain, Zap, Calendar as CalendarIcon, ArrowRight, Home } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatDuration, formatDistance } from '../lib/utils';
+import ActivityDetailModal from '../components/ActivityDetailModal';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = ({ stravaTokens }) => {
+  const navigate = useNavigate();
   const [activities, setActivities] = useState([]);
   const [metrics, setMetrics] = useState(null);
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+
+  // Calculate TSS for a single activity
+  const calculateTSS = (activity, ftp) => {
+    if (!activity.duration) return 0;
+
+    const durationHours = activity.duration / 3600;
+
+    // If we have power data and FTP
+    if (activity.normalizedPower && ftp) {
+      const intensityFactor = activity.normalizedPower / ftp;
+      return Math.round(durationHours * intensityFactor * intensityFactor * 100);
+    }
+
+    // Estimate from heart rate if available
+    if (activity.avgHeartRate) {
+      const estimatedIntensity = activity.avgHeartRate / 170;
+      return Math.round(durationHours * estimatedIntensity * estimatedIntensity * 100);
+    }
+
+    // Fallback: estimate from duration and type
+    const typeMultipliers = {
+      'Ride': 1.0,
+      'VirtualRide': 1.0,
+      'Run': 1.2,
+      'Workout': 0.8,
+      'default': 0.7,
+    };
+
+    const multiplier = typeMultipliers[activity.type] || typeMultipliers.default;
+    return Math.round(durationHours * 60 * multiplier);
+  };
+
+  const getActivityIcon = (activity) => {
+    const isZwift = activity.name?.toLowerCase().includes('zwift');
+    const isIndoor = activity.trainer || activity.type === 'VirtualRide';
+    
+    // Zwift activities get special treatment
+    if (isZwift) {
+      return (
+        <div className="relative">
+          <div className="text-orange-600 font-bold text-lg">Z</div>
+          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-orange-500 rounded-full"></div>
+        </div>
+      );
+    }
+    
+    // Indoor activities
+    if (isIndoor) {
+      return <Home className="w-5 h-5 text-purple-600" />;
+    }
+    
+    // Outdoor activities by type
+    switch (activity.type) {
+      case 'Ride':
+        return <Mountain className="w-5 h-5 text-blue-600" />;
+      case 'Run':
+        return <Activity className="w-5 h-5 text-green-600" />;
+      case 'Swim':
+        return <div className="text-cyan-600 text-xl">🏊</div>;
+      case 'Workout':
+        return <div className="text-red-600 text-xl">💪</div>;
+      default:
+        return <Activity className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
+  const getLoadColor = (tss) => {
+    // Traffic light system based on TSS
+    if (tss >= 150) return 'border-l-red-500 bg-red-50'; // Very hard
+    if (tss >= 100) return 'border-l-orange-500 bg-orange-50'; // Hard
+    if (tss >= 50) return 'border-l-yellow-500 bg-yellow-50'; // Moderate
+    if (tss > 0) return 'border-l-green-500 bg-green-50'; // Easy
+    return 'border-l-gray-300 bg-white'; // No TSS data
+  };
 
   useEffect(() => {
     if (stravaTokens) {
@@ -18,6 +97,23 @@ const Dashboard = ({ stravaTokens }) => {
 
   const loadDashboardData = async () => {
     setLoading(true);
+    
+    // Try to load from cache first
+    const cachedActivities = localStorage.getItem('cached_activities');
+    const cachedMetrics = localStorage.getItem('cached_metrics');
+    const cachedTrends = localStorage.getItem('cached_trends');
+    const cacheTimestamp = localStorage.getItem('cache_timestamp');
+    
+    // Use cache if it's less than 5 minutes old
+    const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
+    if (cacheAge < 5 * 60 * 1000 && cachedActivities && cachedMetrics && cachedTrends) {
+      setActivities(JSON.parse(cachedActivities));
+      setMetrics(JSON.parse(cachedMetrics));
+      setTrends(JSON.parse(cachedTrends));
+      setLoading(false);
+      return;
+    }
+    
     try {
       // Fetch activities from last 6 weeks
       const sixWeeksAgo = Math.floor(Date.now() / 1000) - (6 * 7 * 24 * 60 * 60);
@@ -26,20 +122,26 @@ const Dashboard = ({ stravaTokens }) => {
       );
       const activitiesData = await activitiesResponse.json();
       
-      // Sort activities by date, most recent first
-      const sortedActivities = activitiesData.sort((a, b) => 
-        new Date(b.date) - new Date(a.date)
-      );
-      
-      setActivities(sortedActivities);
-
-      // Calculate FTP
+      // Calculate FTP first (needed for TSS calculation)
       const ftpResponse = await fetch('/api/analytics/ftp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ activities: activitiesData }),
       });
       const ftpData = await ftpResponse.json();
+      
+      // Calculate TSS for each activity
+      const activitiesWithTSS = activitiesData.map(activity => ({
+        ...activity,
+        tss: calculateTSS(activity, ftpData.ftp)
+      }));
+      
+      // Sort activities by date, most recent first
+      const sortedActivities = activitiesWithTSS.sort((a, b) => 
+        new Date(b.date) - new Date(a.date)
+      );
+      
+      setActivities(sortedActivities);
 
       // Calculate training load
       const loadResponse = await fetch('/api/analytics/load', {
@@ -59,6 +161,12 @@ const Dashboard = ({ stravaTokens }) => {
       });
       const trendsData = await trendsResponse.json();
       setTrends(trendsData);
+      
+      // Cache the data
+      localStorage.setItem('cached_activities', JSON.stringify(sortedActivities));
+      localStorage.setItem('cached_metrics', JSON.stringify({ ftp: ftpData.ftp, ...loadData }));
+      localStorage.setItem('cached_trends', JSON.stringify(trendsData));
+      localStorage.setItem('cache_timestamp', Date.now().toString());
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -212,19 +320,32 @@ const Dashboard = ({ stravaTokens }) => {
       {/* Recent Activities */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Activities</CardTitle>
-          <CardDescription>Your last 10 workouts</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Recent Activities</CardTitle>
+              <CardDescription>Your last 10 workouts</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/activities')}
+              className="flex items-center gap-2"
+            >
+              View All
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {activities.slice(0, 10).map((activity) => (
               <div
                 key={activity.id}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer border-l-4 ${getLoadColor(activity.tss)}`}
+                onClick={() => setSelectedActivity(activity)}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Activity className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                    {getActivityIcon(activity)}
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900">{activity.name}</h4>
@@ -252,12 +373,26 @@ const Dashboard = ({ stravaTokens }) => {
                       <div className="text-xs text-gray-500">Elevation</div>
                     </div>
                   )}
+                  {activity.tss > 0 && (
+                    <div className="text-right">
+                      <div className="font-medium text-blue-600">{activity.tss}</div>
+                      <div className="text-xs text-gray-500">TSS</div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {/* Activity Detail Modal */}
+      {selectedActivity && (
+        <ActivityDetailModal
+          activity={selectedActivity}
+          onClose={() => setSelectedActivity(null)}
+        />
+      )}
     </div>
   );
 };

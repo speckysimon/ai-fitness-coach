@@ -1,6 +1,6 @@
 {
   "name": "ai-fitness-coach",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "AI-assisted training coach with Strava integration and Google Calendar sync",
   "type": "module",
   "scripts": {

@@ -2,6 +2,76 @@
 
 All notable changes to AI Fitness Coach will be documented in this file.
 
+## [1.1.0] - 2025-09-30
+
+### 🎉 Major Feature Release
+
+#### **Enhanced Training Plan Generator**
+- **Interactive Session Details**: Click any session to view comprehensive modal with:
+  - Detailed zone breakdowns (time in each power/HR zone)
+  - Specific wattage targets based on your FTP
+  - Zwift workout recommendations matched to session type
+  - Main set descriptions and key training points
+- **Progress Tracking**: Visual progress bar showing completed vs total sessions
+- **Session Completion**: Mark sessions as complete with persistent tracking
+- **Visual Improvements**: Color-coded sessions, completion status, hover effects
+
+#### **All Activities Page**
+- Complete activity browser with search and filtering
+- Sort by date, distance, or duration
+- TSS displayed on every activity
+- Summary statistics (total distance, time, elevation)
+- Click activities for detailed modal view
+
+#### **FTP History Page**
+- Track FTP progression over time with interactive graphs
+- Adjustable time ranges (8, 12, 16, 24 weeks, or "This Year")
+- Weekly FTP calculations with trend analysis
+- Change tracking (watts and percentage)
+
+#### **Methodology Page**
+- Comprehensive scientific documentation
+- 15+ peer-reviewed academic sources
+- Detailed explanations of all calculations:
+  - TSS (Training Stress Score)
+  - FTP (Functional Threshold Power)
+  - Training load zones
+  - Normalized Power
+  - AI training plan generation
+- Data privacy and transparency information
+
+#### **Activity Enhancements**
+- **Smart Icons**: 
+  - Zwift activities show orange "Z" badge
+  - Indoor rides show house icon
+  - Outdoor rides show mountain icon
+  - Activity type specific icons
+- **Load-Based Color Coding**: Traffic light system on activity borders
+  - 🟢 Green (1-49 TSS): Easy/Recovery
+  - 🟡 Yellow (50-99 TSS): Moderate
+  - 🟠 Orange (100-149 TSS): Hard
+  - 🔴 Red (150+ TSS): Very Hard
+- **TSS Calculation**: All activities show Training Stress Score
+- **Activity Detail Modal**: Click any activity for comprehensive stats
+
+#### **Data & Performance**
+- Smart caching system (5-minute cache for dashboard data)
+- Activities persist across page navigation
+- FTP auto-calculated from recent power data
+- Session completion tracking in localStorage
+
+### 🐛 Bug Fixes
+- Fixed missing icon imports in Plan Generator
+- Improved data loading and error handling
+- Fixed activity sorting (most recent first)
+
+### 🎨 UI/UX Improvements
+- Consistent color coding across all pages
+- Hover effects and visual feedback
+- Responsive layouts
+- Loading states and progress indicators
+- Modal overlays for detailed views
+
 ## [1.0.1] - 2025-09-30
 
 ### 🐛 Bug Fixes

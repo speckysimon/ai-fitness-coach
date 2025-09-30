@@ -5,6 +5,9 @@ import Setup from './pages/Setup';
 import PlanGenerator from './pages/PlanGenerator';
 import Calendar from './pages/Calendar';
 import Settings from './pages/Settings';
+import FTPHistory from './pages/FTPHistory';
+import AllActivities from './pages/AllActivities';
+import Methodology from './pages/Methodology';
 import Layout from './components/Layout';
 
 function App() {
@@ -76,6 +79,22 @@ function App() {
                     }
                   />
                   <Route
+                    path="/ftp"
+                    element={
+                      <FTPHistory
+                        stravaTokens={stravaTokens}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/activities"
+                    element={
+                      <AllActivities
+                        stravaTokens={stravaTokens}
+                      />
+                    }
+                  />
+                  <Route
                     path="/plan"
                     element={
                       <PlanGenerator
@@ -92,6 +111,10 @@ function App() {
                         googleTokens={googleTokens}
                       />
                     }
+                  />
+                  <Route
+                    path="/methodology"
+                    element={<Methodology />}
                   />
                   <Route
                     path="/settings"
