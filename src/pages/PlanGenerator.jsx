@@ -217,7 +217,15 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
   };
 
   const syncToCalendar = async () => {
-    if (!googleTokens || !plan) return;
+    if (!googleTokens) {
+      alert('❌ Google Calendar not connected\n\nPlease connect your Google Calendar in Settings first to sync your training plan.');
+      return;
+    }
+    
+    if (!plan) {
+      alert('❌ No training plan available\n\nPlease generate a training plan first before syncing to calendar.');
+      return;
+    }
 
     setSyncing(true);
     try {
@@ -257,16 +265,21 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
         body: JSON.stringify({ tokens: googleTokens, events }),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      }
+
       const result = await response.json();
       
       if (result.success) {
         alert(`✅ Successfully added ${events.length} training sessions to Google Calendar!\n\nCheck your calendar to see all scheduled workouts.`);
       } else {
-        throw new Error(result.error || 'Unknown error');
+        throw new Error(result.error || 'Unknown error occurred while syncing');
       }
     } catch (error) {
       console.error('Error syncing to calendar:', error);
-      alert('❌ Failed to sync to calendar. Please try again or check your Google Calendar permissions.');
+      alert(`❌ Failed to sync to calendar\n\n${error.message}\n\nPlease try again or check your Google Calendar permissions in Settings.`);
     } finally {
       setSyncing(false);
     }
@@ -476,13 +489,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
               </div>
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => {
-                    if (!googleTokens) {
-                      alert('Please connect Google Calendar in Settings first to sync your training plan.');
-                      return;
-                    }
-                    syncToCalendar();
-                  }} 
+                  onClick={syncToCalendar} 
                   disabled={syncing} 
                   variant="default"
                   className="bg-green-600 hover:bg-green-700"

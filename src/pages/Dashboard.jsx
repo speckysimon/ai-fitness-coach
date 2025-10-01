@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Activity, Clock, Mountain, Zap, Calendar as CalendarIcon, ArrowRight, Home, RefreshCw, LogOut, Bell } from 'lucide-react';
+import { TrendingUp, Activity, Clock, Mountain, Zap, Calendar as CalendarIcon, ArrowRight, Home, RefreshCw, LogOut, Bell, Trophy, Edit2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatDuration, formatDistance } from '../lib/utils';
 import ActivityDetailModal from '../components/ActivityDetailModal';
 import SessionHoverModal from '../components/SessionHoverModal';
+import EditActivityModal from '../components/EditActivityModal';
+import { isActivityRace } from '../lib/raceUtils';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard = ({ stravaTokens, onLogout }) => {
@@ -17,11 +19,14 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
+  const [editingActivity, setEditingActivity] = useState(null);
   const [error, setError] = useState(null);
   const [hasData, setHasData] = useState(false);
   const [upcomingWorkout, setUpcomingWorkout] = useState(null);
   const [volumePeriod, setVolumePeriod] = useState(6); // weeks
   const [tssPeriod, setTssPeriod] = useState(6); // weeks for TSS chart
+  const [currentTokens, setCurrentTokens] = useState(stravaTokens);
+  const [raceActivities, setRaceActivities] = useState({});
 
   // Calculate TSS for a single activity
   const calculateTSS = (activity, ftp) => {
@@ -99,14 +104,59 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
 
   useEffect(() => {
     if (stravaTokens) {
+      setCurrentTokens(stravaTokens);
       loadDashboardData(false);
     }
   }, [stravaTokens]);
+
+  // Load race tags when activities change
+  useEffect(() => {
+    const raceTags = JSON.parse(localStorage.getItem('race_tags') || '{}');
+    setRaceActivities(raceTags);
+  }, [activities]);
 
   // Load upcoming workout when metrics are available
   useEffect(() => {
     loadUpcomingWorkout();
   }, [metrics]);
+
+  // Refresh Strava access token if expired
+  const refreshAccessToken = async () => {
+    if (!currentTokens?.refresh_token) {
+      throw new Error('No refresh token available');
+    }
+
+    try {
+      const response = await fetch('/api/strava/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: currentTokens.refresh_token }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.requiresReauth) {
+          throw new Error('REAUTH_REQUIRED');
+        }
+        throw new Error(errorData.error || 'Failed to refresh token');
+      }
+
+      const data = await response.json();
+      const newTokens = {
+        ...currentTokens,
+        ...data.tokens,
+      };
+
+      // Update tokens in state and localStorage
+      setCurrentTokens(newTokens);
+      localStorage.setItem('strava_tokens', JSON.stringify(newTokens));
+
+      return newTokens;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      throw error;
+    }
+  };
 
   const loadUpcomingWorkout = () => {
     const storedPlan = localStorage.getItem('training_plan');
@@ -199,15 +249,56 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     }
     
     try {
+      let tokensToUse = currentTokens;
+
+      // Check if token is expired (expires_at is in seconds)
+      const now = Math.floor(Date.now() / 1000);
+      if (tokensToUse.expires_at && tokensToUse.expires_at < now) {
+        console.log('Token expired, refreshing...');
+        try {
+          tokensToUse = await refreshAccessToken();
+        } catch (refreshError) {
+          if (refreshError.message === 'REAUTH_REQUIRED') {
+            throw new Error('Your Strava session has expired. Please log out and log in again.');
+          }
+          throw refreshError;
+        }
+      }
+
       // Fetch activities from last 6 weeks
       const sixWeeksAgo = Math.floor(Date.now() / 1000) - (6 * 7 * 24 * 60 * 60);
       const activitiesResponse = await fetch(
-        `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${sixWeeksAgo}&per_page=100`
+        `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100`
       );
       
       // Check if token is invalid or expired
       if (activitiesResponse.status === 401 || activitiesResponse.status === 403) {
-        throw new Error('Your Strava session has expired. Please log out and log in again.');
+        console.log('Got 401/403, attempting token refresh...');
+        try {
+          tokensToUse = await refreshAccessToken();
+          // Retry the request with new token
+          const retryResponse = await fetch(
+            `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100`
+          );
+          
+          if (!retryResponse.ok) {
+            throw new Error('Failed to fetch activities after token refresh');
+          }
+          
+          const activitiesData = await retryResponse.json();
+          if (activitiesData.error) {
+            throw new Error(activitiesData.error);
+          }
+          
+          // Continue with the rest of the function using activitiesData
+          await processActivitiesData(activitiesData, tokensToUse);
+          return;
+        } catch (refreshError) {
+          if (refreshError.message === 'REAUTH_REQUIRED') {
+            throw new Error('Your Strava session has expired. Please log out and log in again.');
+          }
+          throw new Error('Failed to refresh your Strava connection. Please try logging out and back in.');
+        }
       }
       
       if (!activitiesResponse.ok) {
@@ -221,58 +312,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         throw new Error(activitiesData.error);
       }
       
-      // Calculate FTP first (needed for TSS calculation)
-      const ftpResponse = await fetch('/api/analytics/ftp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activities: activitiesData }),
-      });
-      
-      if (!ftpResponse.ok) {
-        throw new Error('Failed to calculate FTP');
-      }
-      
-      const ftpData = await ftpResponse.json();
-      
-      // Calculate TSS for each activity
-      const activitiesWithTSS = activitiesData.map(activity => ({
-        ...activity,
-        tss: calculateTSS(activity, ftpData.ftp)
-      }));
-      
-      // Sort activities by date, most recent first
-      const sortedActivities = activitiesWithTSS.sort((a, b) => 
-        new Date(b.date) - new Date(a.date)
-      );
-      
-      setActivities(sortedActivities);
-
-      // Calculate training load
-      const loadResponse = await fetch('/api/analytics/load', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activities: activitiesData, ftp: ftpData.ftp }),
-      });
-      const loadData = await loadResponse.json();
-
-      setMetrics({ ftp: ftpData.ftp, ...loadData });
-
-      // Get trends - always fetch 6 weeks, we'll filter in UI, pass FTP for TSS calculation
-      const trendsResponse = await fetch('/api/analytics/trends', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activities: activitiesData, weeks: 6, ftp: ftpData.ftp }),
-      });
-      const trendsData = await trendsResponse.json();
-      console.log('Trends data received:', trendsData);
-      setTrends(trendsData);
-      
-      // Cache the data
-      localStorage.setItem('cached_activities', JSON.stringify(sortedActivities));
-      localStorage.setItem('cached_metrics', JSON.stringify({ ftp: ftpData.ftp, ...loadData }));
-      localStorage.setItem('cached_trends', JSON.stringify(trendsData));
-      localStorage.setItem('cache_timestamp', Date.now().toString());
-      setHasData(true);
+      await processActivitiesData(activitiesData, tokensToUse);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       setError(error.message || 'Failed to load dashboard data');
@@ -281,6 +321,61 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const processActivitiesData = async (activitiesData, tokensToUse) => {
+    // Calculate FTP first (needed for TSS calculation)
+    const ftpResponse = await fetch('/api/analytics/ftp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activities: activitiesData }),
+    });
+    
+    if (!ftpResponse.ok) {
+      throw new Error('Failed to calculate FTP');
+    }
+    
+    const ftpData = await ftpResponse.json();
+    
+    // Calculate TSS for each activity
+    const activitiesWithTSS = activitiesData.map(activity => ({
+      ...activity,
+      tss: calculateTSS(activity, ftpData.ftp)
+    }));
+    
+    // Sort activities by date, most recent first
+    const sortedActivities = activitiesWithTSS.sort((a, b) => 
+      new Date(b.date) - new Date(a.date)
+    );
+    
+    setActivities(sortedActivities);
+
+    // Calculate training load
+    const loadResponse = await fetch('/api/analytics/load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activities: activitiesData, ftp: ftpData.ftp }),
+    });
+    const loadData = await loadResponse.json();
+
+    setMetrics({ ftp: ftpData.ftp, ...loadData });
+
+    // Get trends - always fetch 6 weeks, we'll filter in UI, pass FTP for TSS calculation
+    const trendsResponse = await fetch('/api/analytics/trends', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activities: activitiesData, weeks: 6, ftp: ftpData.ftp }),
+    });
+    const trendsData = await trendsResponse.json();
+    console.log('Trends data received:', trendsData);
+    setTrends(trendsData);
+    
+    // Cache the data
+    localStorage.setItem('cached_activities', JSON.stringify(sortedActivities));
+    localStorage.setItem('cached_metrics', JSON.stringify({ ftp: ftpData.ftp, ...loadData }));
+    localStorage.setItem('cached_trends', JSON.stringify(trendsData));
+    localStorage.setItem('cache_timestamp', Date.now().toString());
+    setHasData(true);
   };
 
   const handleForceRefresh = () => {
@@ -691,51 +786,76 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {activities.slice(0, 10).map((activity) => (
-              <div
-                key={activity.id}
-                className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer border-l-4 ${getLoadColor(activity.tss)}`}
-                onClick={() => setSelectedActivity(activity)}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                    {getActivityIcon(activity)}
+            {activities.slice(0, 10).map((activity) => {
+              const isRace = raceActivities[activity.id];
+              return (
+                <div
+                  key={activity.id}
+                  className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all border-l-4 ${getLoadColor(activity.tss)} ${isRace ? 'bg-yellow-50 border-yellow-300' : ''}`}
+                >
+                  <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => setSelectedActivity(activity)}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isRace ? 'bg-yellow-100' : 'bg-blue-50'}`}>
+                      {isRace ? (
+                        <Trophy className="w-5 h-5 text-yellow-600" />
+                      ) : (
+                        getActivityIcon(activity)
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-gray-900">{activity.name}</h4>
+                        {isRace && (
+                          <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded">
+                            RACE
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        {new Date(activity.date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">{activity.name}</h4>
-                    <p className="text-sm text-gray-500">
-                      {new Date(activity.date).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-6 text-sm text-gray-600">
+                      <div className="text-right">
+                        <div className="font-medium">{formatDuration(activity.duration)}</div>
+                        <div className="text-xs text-gray-500">Duration</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium">{formatDistance(activity.distance)}</div>
+                        <div className="text-xs text-gray-500">Distance</div>
+                      </div>
+                      {activity.elevation > 0 && (
+                        <div className="text-right">
+                          <div className="font-medium">{Math.round(activity.elevation)}m</div>
+                          <div className="text-xs text-gray-500">Elevation</div>
+                        </div>
+                      )}
+                      {activity.tss > 0 && (
+                        <div className="text-right">
+                          <div className="font-medium text-blue-600">{activity.tss}</div>
+                          <div className="text-xs text-gray-500">TSS</div>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingActivity(activity);
+                      }}
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit activity"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-6 text-sm text-gray-600">
-                  <div className="text-right">
-                    <div className="font-medium">{formatDuration(activity.duration)}</div>
-                    <div className="text-xs text-gray-500">Duration</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-medium">{formatDistance(activity.distance)}</div>
-                    <div className="text-xs text-gray-500">Distance</div>
-                  </div>
-                  {activity.elevation > 0 && (
-                    <div className="text-right">
-                      <div className="font-medium">{Math.round(activity.elevation)}m</div>
-                      <div className="text-xs text-gray-500">Elevation</div>
-                    </div>
-                  )}
-                  {activity.tss > 0 && (
-                    <div className="text-right">
-                      <div className="font-medium text-blue-600">{activity.tss}</div>
-                      <div className="text-xs text-gray-500">TSS</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -754,6 +874,19 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
           session={selectedSession}
           ftp={metrics?.ftp}
           onClose={() => setSelectedSession(null)}
+        />
+      )}
+
+      {/* Edit Activity Modal */}
+      {editingActivity && (
+        <EditActivityModal
+          activity={editingActivity}
+          onClose={() => setEditingActivity(null)}
+          onSave={() => {
+            // Reload race tags
+            const raceTags = JSON.parse(localStorage.getItem('race_tags') || '{}');
+            setRaceActivities(raceTags);
+          }}
         />
       )}
     </div>

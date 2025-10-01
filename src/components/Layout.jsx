@@ -1,17 +1,19 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Calendar, Target, Settings, LogOut, Zap, List, BookOpen, TrendingUp, Package } from 'lucide-react';
+import { Activity, Calendar, Target, Settings, LogOut, Zap, List, BookOpen, TrendingUp, Package, Trophy, User } from 'lucide-react';
 
 const Layout = ({ children, onLogout }) => {
   const location = useLocation();
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Activity },
+    { name: 'Rider Profile', href: '/rider-profile', icon: User },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
     { name: 'Plan Generator', href: '/plan', icon: Target },
     { name: 'Form & Fitness', href: '/form', icon: TrendingUp },
     { name: 'FTP History', href: '/ftp', icon: Zap },
     { name: 'All Activities', href: '/activities', icon: List },
+    { name: 'Race Analytics', href: '/race-analytics', icon: Trophy },
     { name: 'Methodology', href: '/methodology', icon: BookOpen },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];

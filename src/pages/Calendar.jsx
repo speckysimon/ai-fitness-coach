@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Trophy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
@@ -14,10 +14,17 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
   const [ftp, setFtp] = useState(null);
+  const [raceActivities, setRaceActivities] = useState({});
 
   useEffect(() => {
     loadCalendarData();
   }, [currentMonth, stravaTokens]);
+
+  // Load race tags when activities change
+  useEffect(() => {
+    const raceTags = JSON.parse(localStorage.getItem('race_tags') || '{}');
+    setRaceActivities(raceTags);
+  }, [activities]);
 
   const loadCalendarData = async () => {
     setLoading(true);
@@ -178,16 +185,28 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                       </div>
                       <div className="space-y-1">
                         {/* Completed activities */}
-                        {dayActivities.map((activity, idx) => (
-                          <div
-                            key={`activity-${idx}`}
-                            className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded truncate border border-green-500 cursor-pointer hover:bg-green-200 transition-colors"
-                            title={activity.name}
-                            onClick={() => setSelectedActivity(activity)}
-                          >
-                            ✓ {activity.type}
-                          </div>
-                        ))}
+                        {dayActivities.map((activity, idx) => {
+                          const isRace = raceActivities[activity.id];
+                          return (
+                            <div
+                              key={`activity-${idx}`}
+                              className={`text-xs px-2 py-1 rounded truncate border cursor-pointer transition-colors flex items-center gap-1 ${
+                                isRace 
+                                  ? 'bg-yellow-100 text-yellow-700 border-yellow-500 hover:bg-yellow-200' 
+                                  : 'bg-green-100 text-green-700 border-green-500 hover:bg-green-200'
+                              }`}
+                              title={activity.name}
+                              onClick={() => setSelectedActivity(activity)}
+                            >
+                              {isRace ? (
+                                <Trophy className="w-3 h-3 flex-shrink-0" />
+                              ) : (
+                                <span>✓</span>
+                              )}
+                              <span className="truncate">{activity.type}</span>
+                            </div>
+                          );
+                        })}
                         {/* Planned sessions */}
                         {dayPlanned.map((session, idx) => (
                           <div

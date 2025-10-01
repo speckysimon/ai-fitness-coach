@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Filter, Search, Calendar, TrendingUp, Home, Mountain } from 'lucide-react';
+import { Activity, Filter, Search, Calendar, TrendingUp, Home, Mountain, Trophy, Edit2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import ActivityDetailModal from '../components/ActivityDetailModal';
+import EditActivityModal from '../components/EditActivityModal';
 import { formatDuration, formatDistance, formatDate } from '../lib/utils';
 
 const AllActivities = ({ stravaTokens }) => {
   const [activities, setActivities] = useState([]);
   const [filteredActivities, setFilteredActivities] = useState([]);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [editingActivity, setEditingActivity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All');
+  const [showRacesOnly, setShowRacesOnly] = useState(false);
   const [sortBy, setSortBy] = useState('date'); // date, distance, duration
   const [ftp, setFtp] = useState(null);
+  const [raceActivities, setRaceActivities] = useState({});
 
   // Calculate TSS for a single activity
   const calculateTSS = (activity, ftp) => {
@@ -52,9 +56,15 @@ const AllActivities = ({ stravaTokens }) => {
     }
   }, [stravaTokens]);
 
+  // Load race tags when component mounts
+  useEffect(() => {
+    const raceTags = JSON.parse(localStorage.getItem('race_tags') || '{}');
+    setRaceActivities(raceTags);
+  }, []);
+
   useEffect(() => {
     filterAndSortActivities();
-  }, [activities, searchTerm, filterType, sortBy]);
+  }, [activities, searchTerm, filterType, sortBy, showRacesOnly, raceActivities]);
 
   const loadAllActivities = async () => {
     setLoading(true);
@@ -63,43 +73,82 @@ const AllActivities = ({ stravaTokens }) => {
       const yearStart = new Date(new Date().getFullYear(), 0, 1);
       const after = Math.floor(yearStart.getTime() / 1000);
       
+      console.log('Fetching activities from:', yearStart.toLocaleDateString());
+      
       const response = await fetch(
         `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${after}&per_page=200`
       );
-      const data = await response.json();
       
-      // Calculate FTP
-      const ftpResponse = await fetch('/api/analytics/ftp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activities: data }),
-      });
-      const ftpData = await ftpResponse.json();
-      setFtp(ftpData.ftp);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Received activities:', data.length);
+      
+      if (!data || data.length === 0) {
+        console.log('No activities returned from API');
+        setActivities([]);
+        setFilteredActivities([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Calculate FTP (non-blocking - don't fail if this errors)
+      let currentFtp = null;
+      try {
+        const ftpResponse = await fetch('/api/analytics/ftp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activities: data }),
+        });
+        
+        if (ftpResponse.ok) {
+          const ftpData = await ftpResponse.json();
+          currentFtp = ftpData.ftp;
+          setFtp(ftpData.ftp);
+        } else {
+          console.warn('FTP calculation failed, continuing without it');
+        }
+      } catch (ftpError) {
+        console.warn('FTP calculation error:', ftpError);
+        // Continue without FTP
+      }
       
       // Add TSS to each activity
       const activitiesWithTSS = data.map(activity => ({
         ...activity,
-        tss: calculateTSS(activity, ftpData.ftp)
+        tss: calculateTSS(activity, currentFtp)
       }));
       
       // Sort by date, most recent first
       const sortedData = activitiesWithTSS.sort((a, b) => new Date(b.date) - new Date(a.date));
       
+      console.log('Setting activities:', sortedData.length);
       setActivities(sortedData);
-      setFilteredActivities(sortedData);
+      setFilteredActivities(sortedData); // Set initial filtered activities immediately
     } catch (error) {
       console.error('Error loading activities:', error);
+      setActivities([]);
+      setFilteredActivities([]);
     } finally {
       setLoading(false);
     }
   };
 
   const filterAndSortActivities = () => {
+    console.log('Filtering activities. Total:', activities.length);
     let filtered = [...activities];
+
+    // Apply race filter
+    if (showRacesOnly) {
+      console.log('Race filter ON');
+      filtered = filtered.filter(activity => raceActivities[activity.id]);
+    }
 
     // Apply search filter
     if (searchTerm) {
+      console.log('Search filter:', searchTerm);
       filtered = filtered.filter(activity =>
         activity.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -107,6 +156,7 @@ const AllActivities = ({ stravaTokens }) => {
 
     // Apply type filter
     if (filterType !== 'All') {
+      console.log('Type filter:', filterType);
       filtered = filtered.filter(activity => activity.type === filterType);
     }
 
@@ -123,6 +173,7 @@ const AllActivities = ({ stravaTokens }) => {
       }
     });
 
+    console.log('Filtered activities:', filtered.length);
     setFilteredActivities(filtered);
   };
 
@@ -241,47 +292,76 @@ const AllActivities = ({ stravaTokens }) => {
       {/* Filters and Search */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search activities..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Search activities..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Type Filter */}
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-gray-500" />
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {getActivityTypes().map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sort */}
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-gray-500" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="date">Date (Newest)</option>
+                  <option value="distance">Distance</option>
+                  <option value="duration">Duration</option>
+                </select>
               </div>
             </div>
 
-            {/* Type Filter */}
+            {/* Race Filter Button */}
             <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-500" />
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              <button
+                onClick={() => setShowRacesOnly(!showRacesOnly)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                  showRacesOnly
+                    ? 'bg-yellow-500 text-white border-yellow-600 hover:bg-yellow-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-yellow-500 hover:bg-yellow-50'
+                }`}
               >
-                {getActivityTypes().map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sort */}
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-gray-500" />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="date">Date (Newest)</option>
-                <option value="distance">Distance</option>
-                <option value="duration">Duration</option>
-              </select>
+                <Trophy className="w-5 h-5" />
+                <span className="font-medium">
+                  {showRacesOnly ? 'Showing Races Only' : 'Show Races Only'}
+                </span>
+                {showRacesOnly && Object.keys(raceActivities).length > 0 && (
+                  <span className="ml-1 px-2 py-0.5 bg-yellow-600 text-white text-xs rounded-full">
+                    {Object.keys(raceActivities).length}
+                  </span>
+                )}
+              </button>
+              {showRacesOnly && (
+                <span className="text-sm text-gray-600">
+                  Showing {filteredActivities.length} race{filteredActivities.length !== 1 ? 's' : ''}
+                </span>
+              )}
             </div>
           </div>
         </CardContent>
@@ -296,53 +376,78 @@ const AllActivities = ({ stravaTokens }) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {filteredActivities.map((activity) => (
-              <div
-                key={activity.id}
-                onClick={() => setSelectedActivity(activity)}
-                className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer border-l-4 ${getLoadColor(activity.tss)}`}
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                    {getActivityIcon(activity)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 truncate">{activity.name}</h4>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-sm text-gray-500 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(activity.date)}
-                      </span>
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
-                        {activity.type}
-                      </span>
+            {filteredActivities.map((activity) => {
+              const isRace = raceActivities[activity.id];
+              return (
+                <div
+                  key={activity.id}
+                  className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all border-l-4 ${getLoadColor(activity.tss)} ${isRace ? 'bg-yellow-50 border-yellow-300' : ''}`}
+                >
+                  <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => setSelectedActivity(activity)}>
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isRace ? 'bg-yellow-100' : 'bg-blue-50'}`}>
+                      {isRace ? (
+                        <Trophy className="w-6 h-6 text-yellow-600" />
+                      ) : (
+                        getActivityIcon(activity)
+                      )}
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-gray-900 truncate">{activity.name}</h4>
+                        {isRace && (
+                          <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded">
+                            RACE
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-sm text-gray-500 flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(activity.date)}
+                        </span>
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                          {activity.type}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-6 text-sm text-gray-600">
+                      <div className="text-right">
+                        <div className="font-medium">{formatDuration(activity.duration)}</div>
+                        <div className="text-xs text-gray-500">Duration</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium">{formatDistance(activity.distance)}</div>
+                        <div className="text-xs text-gray-500">Distance</div>
+                      </div>
+                      {activity.elevation > 0 && (
+                        <div className="text-right">
+                          <div className="font-medium">{Math.round(activity.elevation)}m</div>
+                          <div className="text-xs text-gray-500">Elevation</div>
+                        </div>
+                      )}
+                      {activity.tss > 0 && (
+                        <div className="text-right">
+                          <div className="font-medium text-blue-600">{activity.tss}</div>
+                          <div className="text-xs text-gray-500">TSS</div>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingActivity(activity);
+                      }}
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit activity"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-6 text-sm text-gray-600">
-                  <div className="text-right">
-                    <div className="font-medium">{formatDuration(activity.duration)}</div>
-                    <div className="text-xs text-gray-500">Duration</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-medium">{formatDistance(activity.distance)}</div>
-                    <div className="text-xs text-gray-500">Distance</div>
-                  </div>
-                  {activity.elevation > 0 && (
-                    <div className="text-right">
-                      <div className="font-medium">{Math.round(activity.elevation)}m</div>
-                      <div className="text-xs text-gray-500">Elevation</div>
-                    </div>
-                  )}
-                  {activity.tss > 0 && (
-                    <div className="text-right">
-                      <div className="font-medium text-blue-600">{activity.tss}</div>
-                      <div className="text-xs text-gray-500">TSS</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {filteredActivities.length === 0 && (
               <div className="text-center py-12 text-gray-500">
@@ -359,6 +464,19 @@ const AllActivities = ({ stravaTokens }) => {
         <ActivityDetailModal
           activity={selectedActivity}
           onClose={() => setSelectedActivity(null)}
+        />
+      )}
+
+      {/* Edit Activity Modal */}
+      {editingActivity && (
+        <EditActivityModal
+          activity={editingActivity}
+          onClose={() => setEditingActivity(null)}
+          onSave={() => {
+            // Reload race tags
+            const raceTags = JSON.parse(localStorage.getItem('race_tags') || '{}');
+            setRaceActivities(raceTags);
+          }}
         />
       )}
     </div>

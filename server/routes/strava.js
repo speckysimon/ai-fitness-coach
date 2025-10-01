@@ -96,4 +96,30 @@ router.get('/athlete/stats', async (req, res) => {
   }
 });
 
+// Refresh access token
+router.post('/refresh', async (req, res) => {
+  const { refresh_token } = req.body;
+  
+  if (!refresh_token) {
+    return res.status(400).json({ error: 'Refresh token required' });
+  }
+
+  try {
+    const tokens = await stravaService.refreshToken(refresh_token);
+    res.json({ success: true, tokens });
+  } catch (error) {
+    console.error('Error refreshing token:', error.response?.data || error.message);
+    
+    // Check if it's an authorization error (invalid refresh token)
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      return res.status(401).json({ 
+        error: 'Invalid refresh token. Please log in again.',
+        requiresReauth: true 
+      });
+    }
+    
+    res.status(500).json({ error: 'Failed to refresh token' });
+  }
+});
+
 export default router;

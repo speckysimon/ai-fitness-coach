@@ -7,6 +7,8 @@ import Calendar from './pages/Calendar';
 import Settings from './pages/Settings';
 import FTPHistory from './pages/FTPHistory';
 import AllActivities from './pages/AllActivities';
+import RaceAnalytics from './pages/RaceAnalytics';
+import RiderProfile from './pages/RiderProfile';
 import Methodology from './pages/Methodology';
 import Form from './pages/Form';
 import ChangelogPage from './pages/ChangelogPage';
@@ -93,6 +95,22 @@ function App() {
                     path="/activities"
                     element={
                       <AllActivities
+                        stravaTokens={stravaTokens}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/race-analytics"
+                    element={
+                      <RaceAnalytics
+                        stravaTokens={stravaTokens}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/rider-profile"
+                    element={
+                      <RiderProfile
                         stravaTokens={stravaTokens}
                       />
                     }

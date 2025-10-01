@@ -73,6 +73,10 @@ class StravaService {
       description: activity.description,
       trainer: activity.trainer,
       commute: activity.commute,
+      // Map data
+      map: activity.map,
+      startLatlng: activity.start_latlng,
+      endLatlng: activity.end_latlng,
     };
   }
 

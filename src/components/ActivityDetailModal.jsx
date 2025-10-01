@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Clock, TrendingUp, Mountain, Zap, Heart, Activity as ActivityIcon } from 'lucide-react';
 import { formatDuration, formatDistance } from '../lib/utils';
+import RouteMap from './RouteMap';
 
 const ActivityDetailModal = ({ activity, onClose }) => {
   if (!activity) return null;
@@ -85,6 +86,14 @@ const ActivityDetailModal = ({ activity, onClose }) => {
             </div>
           )}
         </div>
+
+        {/* Route Map */}
+        {activity.map?.summary_polyline && (
+          <div className="px-6 pb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Route</h3>
+            <RouteMap activity={activity} />
+          </div>
+        )}
 
         {/* Detailed Stats */}
         <div className="px-6 pb-6">
