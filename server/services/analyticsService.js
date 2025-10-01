@@ -143,7 +143,7 @@ class AnalyticsService {
   }
 
   // Get trend analysis over multiple weeks
-  getTrends(activities, weeks = 6) {
+  getTrends(activities, weeks = 6, ftp = null) {
     const now = new Date();
     const trends = [];
 
@@ -159,6 +159,14 @@ class AnalyticsService {
       const totalTime = weekActivities.reduce((sum, a) => sum + (a.duration || 0), 0);
       const totalDistance = weekActivities.reduce((sum, a) => sum + (a.distance || 0), 0);
       const totalElevation = weekActivities.reduce((sum, a) => sum + (a.elevation || 0), 0);
+      
+      // Calculate TSS for the week if FTP is provided
+      let totalTSS = 0;
+      if (ftp) {
+        totalTSS = weekActivities.reduce((sum, a) => {
+          return sum + this.calculateActivityTSS(a, ftp);
+        }, 0);
+      }
 
       trends.unshift({
         week: weekStart.toISOString().split('T')[0],
@@ -166,10 +174,41 @@ class AnalyticsService {
         time: Math.round(totalTime / 3600),
         distance: Math.round(totalDistance / 1000),
         elevation: Math.round(totalElevation),
+        tss: Math.round(totalTSS),
       });
     }
 
     return trends;
+  }
+  
+  // Calculate TSS for a single activity
+  calculateActivityTSS(activity, ftp) {
+    if (!activity.duration) return 0;
+    
+    const durationHours = activity.duration / 3600;
+    
+    // If we have power data and FTP
+    if (activity.normalizedPower && ftp) {
+      const intensityFactor = activity.normalizedPower / ftp;
+      return durationHours * intensityFactor * intensityFactor * 100;
+    }
+    
+    // Estimate from heart rate if available
+    if (activity.avgHeartRate) {
+      const estimatedIntensity = activity.avgHeartRate / 170;
+      return durationHours * estimatedIntensity * estimatedIntensity * 100;
+    }
+    
+    // Fallback: estimate from duration and type
+    const typeMultipliers = {
+      'Ride': 1.0,
+      'VirtualRide': 1.0,
+      'Run': 1.2,
+      'Workout': 0.8,
+    };
+    
+    const multiplier = typeMultipliers[activity.type] || 0.7;
+    return durationHours * 60 * multiplier;
   }
 
   // Calculate days until goal event

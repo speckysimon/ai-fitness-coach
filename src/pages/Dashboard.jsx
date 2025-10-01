@@ -1,19 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Activity, Clock, Mountain, Zap, Calendar as CalendarIcon, ArrowRight, Home } from 'lucide-react';
+import { TrendingUp, Activity, Clock, Mountain, Zap, Calendar as CalendarIcon, ArrowRight, Home, RefreshCw, LogOut, Bell } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatDuration, formatDistance } from '../lib/utils';
 import ActivityDetailModal from '../components/ActivityDetailModal';
+import SessionHoverModal from '../components/SessionHoverModal';
 import { useNavigate } from 'react-router-dom';
 
-const Dashboard = ({ stravaTokens }) => {
+const Dashboard = ({ stravaTokens, onLogout }) => {
   const navigate = useNavigate();
   const [activities, setActivities] = useState([]);
   const [metrics, setMetrics] = useState(null);
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [error, setError] = useState(null);
+  const [hasData, setHasData] = useState(false);
+  const [upcomingWorkout, setUpcomingWorkout] = useState(null);
+  const [volumePeriod, setVolumePeriod] = useState(6); // weeks
+  const [tssPeriod, setTssPeriod] = useState(6); // weeks for TSS chart
 
   // Calculate TSS for a single activity
   const calculateTSS = (activity, ftp) => {
@@ -91,27 +99,103 @@ const Dashboard = ({ stravaTokens }) => {
 
   useEffect(() => {
     if (stravaTokens) {
-      loadDashboardData();
+      loadDashboardData(false);
     }
   }, [stravaTokens]);
 
-  const loadDashboardData = async () => {
-    setLoading(true);
-    
-    // Try to load from cache first
-    const cachedActivities = localStorage.getItem('cached_activities');
-    const cachedMetrics = localStorage.getItem('cached_metrics');
-    const cachedTrends = localStorage.getItem('cached_trends');
-    const cacheTimestamp = localStorage.getItem('cache_timestamp');
-    
-    // Use cache if it's less than 5 minutes old
-    const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
-    if (cacheAge < 5 * 60 * 1000 && cachedActivities && cachedMetrics && cachedTrends) {
-      setActivities(JSON.parse(cachedActivities));
-      setMetrics(JSON.parse(cachedMetrics));
-      setTrends(JSON.parse(cachedTrends));
-      setLoading(false);
+  // Load upcoming workout when metrics are available
+  useEffect(() => {
+    loadUpcomingWorkout();
+  }, [metrics]);
+
+  const loadUpcomingWorkout = () => {
+    const storedPlan = localStorage.getItem('training_plan');
+    if (!storedPlan) {
+      setUpcomingWorkout(null);
       return;
+    }
+
+    const plan = JSON.parse(storedPlan);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get all sessions with dates
+    const allSessions = plan.weeks.flatMap(week => week.sessions);
+    
+    // Find the next upcoming session (today or future)
+    const upcomingSessions = allSessions
+      .filter(session => {
+        if (!session.date) return false;
+        const sessionDate = new Date(session.date);
+        sessionDate.setHours(0, 0, 0, 0);
+        return sessionDate >= today;
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    if (upcomingSessions.length > 0) {
+      const session = upcomingSessions[0];
+      // Calculate estimated TSS for the session
+      const estimatedTSS = calculateSessionTSS(session, metrics?.ftp);
+      setUpcomingWorkout({ ...session, estimatedTSS });
+    } else {
+      setUpcomingWorkout(null);
+    }
+  };
+
+  // Calculate estimated TSS for a planned session
+  const calculateSessionTSS = (session, ftp) => {
+    if (!session.duration) return 0;
+    
+    const durationHours = session.duration / 60; // session duration is in minutes
+    
+    // Estimate based on session type
+    const typeIntensityFactors = {
+      'Recovery': 0.5,
+      'Endurance': 0.65,
+      'Tempo': 0.85,
+      'Threshold': 0.95,
+      'VO2Max': 1.1,
+      'Intervals': 1.0,
+    };
+    
+    const intensityFactor = typeIntensityFactors[session.type] || 0.7;
+    return Math.round(durationHours * intensityFactor * intensityFactor * 100);
+  };
+
+  // Get TSS badge color
+  const getTSSBadgeColor = (tss) => {
+    if (!tss) return 'bg-gray-100 text-gray-700';
+    if (tss >= 150) return 'bg-red-100 text-red-700 border-red-300';
+    if (tss >= 100) return 'bg-orange-100 text-orange-700 border-orange-300';
+    if (tss >= 50) return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+    return 'bg-green-100 text-green-700 border-green-300';
+  };
+
+  const loadDashboardData = async (forceRefresh = false) => {
+    if (forceRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    setError(null);
+    
+    // Try to load from cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cachedActivities = localStorage.getItem('cached_activities');
+      const cachedMetrics = localStorage.getItem('cached_metrics');
+      const cachedTrends = localStorage.getItem('cached_trends');
+      const cacheTimestamp = localStorage.getItem('cache_timestamp');
+      
+      // Use cache if it's less than 5 minutes old
+      const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
+      if (cacheAge < 5 * 60 * 1000 && cachedActivities && cachedMetrics && cachedTrends) {
+        setActivities(JSON.parse(cachedActivities));
+        setMetrics(JSON.parse(cachedMetrics));
+        setTrends(JSON.parse(cachedTrends));
+        setHasData(true);
+        setLoading(false);
+        return;
+      }
     }
     
     try {
@@ -120,7 +204,22 @@ const Dashboard = ({ stravaTokens }) => {
       const activitiesResponse = await fetch(
         `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${sixWeeksAgo}&per_page=100`
       );
+      
+      // Check if token is invalid or expired
+      if (activitiesResponse.status === 401 || activitiesResponse.status === 403) {
+        throw new Error('Your Strava session has expired. Please log out and log in again.');
+      }
+      
+      if (!activitiesResponse.ok) {
+        throw new Error(`Failed to fetch activities: ${activitiesResponse.statusText}`);
+      }
+      
       const activitiesData = await activitiesResponse.json();
+      
+      // Check if response is an error object
+      if (activitiesData.error) {
+        throw new Error(activitiesData.error);
+      }
       
       // Calculate FTP first (needed for TSS calculation)
       const ftpResponse = await fetch('/api/analytics/ftp', {
@@ -128,6 +227,11 @@ const Dashboard = ({ stravaTokens }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ activities: activitiesData }),
       });
+      
+      if (!ftpResponse.ok) {
+        throw new Error('Failed to calculate FTP');
+      }
+      
       const ftpData = await ftpResponse.json();
       
       // Calculate TSS for each activity
@@ -153,13 +257,14 @@ const Dashboard = ({ stravaTokens }) => {
 
       setMetrics({ ftp: ftpData.ftp, ...loadData });
 
-      // Get trends
+      // Get trends - always fetch 6 weeks, we'll filter in UI, pass FTP for TSS calculation
       const trendsResponse = await fetch('/api/analytics/trends', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activities: activitiesData, weeks: 6 }),
+        body: JSON.stringify({ activities: activitiesData, weeks: 6, ftp: ftpData.ftp }),
       });
       const trendsData = await trendsResponse.json();
+      console.log('Trends data received:', trendsData);
       setTrends(trendsData);
       
       // Cache the data
@@ -167,19 +272,71 @@ const Dashboard = ({ stravaTokens }) => {
       localStorage.setItem('cached_metrics', JSON.stringify({ ftp: ftpData.ftp, ...loadData }));
       localStorage.setItem('cached_trends', JSON.stringify(trendsData));
       localStorage.setItem('cache_timestamp', Date.now().toString());
+      setHasData(true);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      setError(error.message || 'Failed to load dashboard data');
+      // Keep hasData true if we had cached data before the error
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  if (loading) {
+  const handleForceRefresh = () => {
+    loadDashboardData(true);
+  };
+
+  // Get filtered trends based on selected period
+  const getFilteredTrendsVolume = () => {
+    if (!trends || trends.length === 0) return [];
+    return trends.slice(-volumePeriod);
+  };
+
+  const getFilteredTrendsTSS = () => {
+    if (!trends || trends.length === 0) return [];
+    return trends.slice(-tssPeriod);
+  };
+
+  // Get color for load line based on TSS value
+  const getLoadLineColor = (value) => {
+    if (!value) return '#9ca3af'; // gray for no data
+    if (value >= 600) return '#ef4444'; // red for very high
+    if (value >= 400) return '#f97316'; // orange for high
+    if (value >= 200) return '#eab308'; // yellow for moderate
+    return '#22c55e'; // green for low
+  };
+
+  if (loading && !hasData) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your training data...</p>
+          {!error && (
+            <>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading your training data...</p>
+            </>
+          )}
+          {error && (
+            <div className="mt-4 max-w-md mx-auto">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-4">
+                <p className="text-red-800 font-medium mb-2">⚠️ Unable to Load Data</p>
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={handleForceRefresh} variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry
+                </Button>
+                {error.includes('expired') && onLogout && (
+                  <Button onClick={onLogout} variant="default">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Re-authenticate
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -187,11 +344,122 @@ const Dashboard = ({ stravaTokens }) => {
 
   return (
     <div className="space-y-8">
+      {/* Error Banner */}
+      {error && hasData && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-red-600">⚠️</div>
+            <div>
+              <p className="text-red-800 font-medium">Failed to refresh data</p>
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleForceRefresh} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+            {error.includes('expired') && onLogout && (
+              <Button onClick={onLogout} variant="default" size="sm">
+                <LogOut className="w-4 h-4 mr-2" />
+                Re-authenticate
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Your training overview and progress</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">Your training overview and progress</p>
+        </div>
+        <Button
+          onClick={handleForceRefresh}
+          disabled={refreshing}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </Button>
       </div>
+      
+      {/* Upcoming Workout Card - Centered */}
+      {upcomingWorkout && (
+        <Card 
+          className="max-w-2xl mx-auto border-2 border-blue-200 shadow-lg cursor-pointer hover:shadow-xl hover:border-blue-300 transition-all"
+          onClick={() => setSelectedSession(upcomingWorkout)}
+        >
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              {/* Notification Icon */}
+              <div className="flex-shrink-0">
+                <div className="relative">
+                  <Bell className="w-8 h-8 text-red-500" />
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                </div>
+              </div>
+              
+              {/* Workout Details */}
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900">{upcomingWorkout.title}</h3>
+                  <span className={`px-2 py-1 text-xs rounded font-medium ${
+                    upcomingWorkout.type === 'Recovery' ? 'bg-green-100 text-green-700' :
+                    upcomingWorkout.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
+                    upcomingWorkout.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
+                    upcomingWorkout.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
+                    upcomingWorkout.type === 'VO2Max' ? 'bg-red-100 text-red-700' :
+                    'bg-purple-100 text-purple-700'
+                  }`}>
+                    {upcomingWorkout.type}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">{upcomingWorkout.description}</p>
+                <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    {upcomingWorkout.duration} min
+                  </span>
+                  <span className="flex items-center gap-1 font-medium text-blue-600">
+                    <CalendarIcon className="w-4 h-4" />
+                    {new Date(upcomingWorkout.date).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric',
+                      weekday: 'short'
+                    })}
+                  </span>
+                  {upcomingWorkout.estimatedTSS > 0 && (
+                    <span className={`flex items-center gap-1 px-2 py-1 rounded font-semibold border ${getTSSBadgeColor(upcomingWorkout.estimatedTSS)}`}>
+                      <TrendingUp className="w-4 h-4" />
+                      {upcomingWorkout.estimatedTSS} TSS
+                    </span>
+                  )}
+                  <span className="text-blue-600 font-medium">Click for details</span>
+                </div>
+              </div>
+              
+              {/* Action Button */}
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate('/plan');
+                }}
+                variant="default"
+                className="flex-shrink-0"
+              >
+                View Plan
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -261,12 +529,29 @@ const Dashboard = ({ stravaTokens }) => {
         {/* Weekly Volume Trend */}
         <Card>
           <CardHeader>
-            <CardTitle>Training Volume (6 weeks)</CardTitle>
-            <CardDescription>Weekly training hours</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Training Volume</CardTitle>
+                <CardDescription>Weekly training hours</CardDescription>
+              </div>
+              <div className="flex gap-1">
+                {[1, 2, 4, 6].map((weeks) => (
+                  <Button
+                    key={weeks}
+                    onClick={() => setVolumePeriod(weeks)}
+                    variant={volumePeriod === weeks ? 'default' : 'outline'}
+                    size="sm"
+                    className="text-xs px-2 py-1 h-7"
+                  >
+                    {weeks}w
+                  </Button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={trends}>
+              <LineChart data={getFilteredTrendsVolume()}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="week" 
@@ -275,28 +560,70 @@ const Dashboard = ({ stravaTokens }) => {
                 <YAxis />
                 <Tooltip 
                   labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                  formatter={(value) => [`${value} hours`, 'Training Time']}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="time" 
                   stroke="#3b82f6" 
-                  strokeWidth={2}
+                  strokeWidth={3}
                   name="Hours"
+                  dot={{ fill: '#3b82f6', r: 4 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Weekly Activities */}
+        {/* Weekly Training Load (TSS) */}
         <Card>
           <CardHeader>
-            <CardTitle>Activity Count (6 weeks)</CardTitle>
-            <CardDescription>Number of workouts per week</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Training Load (TSS)</CardTitle>
+                <CardDescription>Weekly training stress score</CardDescription>
+              </div>
+              <div className="flex gap-1">
+                {[1, 2, 4, 6].map((weeks) => (
+                  <Button
+                    key={weeks}
+                    onClick={() => setTssPeriod(weeks)}
+                    variant={tssPeriod === weeks ? 'default' : 'outline'}
+                    size="sm"
+                    className="text-xs px-2 py-1 h-7"
+                  >
+                    {weeks}w
+                  </Button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
+            <div className="mb-3 flex items-center gap-4 text-xs flex-wrap">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="text-gray-600">Low (&lt;200)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <span className="text-gray-600">Moderate (200-400)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                <span className="text-gray-600">High (400-600)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <span className="text-gray-600">Very High (&gt;600)</span>
+              </div>
+            </div>
+            {getFilteredTrendsTSS().length === 0 || !getFilteredTrendsTSS().some(t => t.tss > 0) ? (
+              <div className="flex items-center justify-center h-[300px] text-gray-500">
+                <p>No TSS data available. Complete more activities to see training load trends.</p>
+              </div>
+            ) : (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={trends}>
+              <LineChart data={getFilteredTrendsTSS()}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="week" 
@@ -305,14 +632,41 @@ const Dashboard = ({ stravaTokens }) => {
                 <YAxis />
                 <Tooltip 
                   labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                  formatter={(value, name, props) => {
+                    const tss = props.payload.tss || 0;
+                    let loadLevel = 'Low';
+                    if (tss >= 600) loadLevel = 'Very High';
+                    else if (tss >= 400) loadLevel = 'High';
+                    else if (tss >= 200) loadLevel = 'Moderate';
+                    return [`${value} TSS (${loadLevel})`, 'Training Load'];
+                  }}
                 />
-                <Bar 
-                  dataKey="activities" 
-                  fill="#8b5cf6" 
-                  name="Activities"
+                <Line 
+                  type="monotone" 
+                  dataKey="tss" 
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  name="TSS"
+                  dot={(props) => {
+                    const { cx, cy, payload } = props;
+                    if (!payload || payload.tss === undefined) return null;
+                    const color = getLoadLineColor(payload.tss);
+                    return (
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={6}
+                        fill={color}
+                        stroke="white"
+                        strokeWidth={2}
+                      />
+                    );
+                  }}
+                  activeDot={{ r: 8 }}
                 />
-              </BarChart>
+              </LineChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -391,6 +745,15 @@ const Dashboard = ({ stravaTokens }) => {
         <ActivityDetailModal
           activity={selectedActivity}
           onClose={() => setSelectedActivity(null)}
+        />
+      )}
+      
+      {/* Session Detail Modal */}
+      {selectedSession && (
+        <SessionHoverModal
+          session={selectedSession}
+          ftp={metrics?.ftp}
+          onClose={() => setSelectedSession(null)}
         />
       )}
     </div>

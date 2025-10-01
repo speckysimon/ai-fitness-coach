@@ -56,14 +56,14 @@ router.post('/weekly-summary', async (req, res) => {
 
 // Get trend analysis
 router.post('/trends', async (req, res) => {
-  const { activities, weeks = 6 } = req.body;
+  const { activities, weeks = 6, ftp } = req.body;
   
   if (!activities || !Array.isArray(activities)) {
     return res.status(400).json({ error: 'Activities array required' });
   }
 
   try {
-    const trends = analyticsService.getTrends(activities, weeks);
+    const trends = analyticsService.getTrends(activities, weeks, ftp);
     res.json(trends);
   } catch (error) {
     console.error('Error calculating trends:', error.message);

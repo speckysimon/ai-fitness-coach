@@ -8,6 +8,8 @@ import Settings from './pages/Settings';
 import FTPHistory from './pages/FTPHistory';
 import AllActivities from './pages/AllActivities';
 import Methodology from './pages/Methodology';
+import Form from './pages/Form';
+import ChangelogPage from './pages/ChangelogPage';
 import Layout from './components/Layout';
 
 function App() {
@@ -75,6 +77,7 @@ function App() {
                       <Dashboard
                         stravaTokens={stravaTokens}
                         googleTokens={googleTokens}
+                        onLogout={handleLogout}
                       />
                     }
                   />
@@ -115,6 +118,18 @@ function App() {
                   <Route
                     path="/methodology"
                     element={<Methodology />}
+                  />
+                  <Route
+                    path="/form"
+                    element={
+                      <Form
+                        stravaTokens={stravaTokens}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/changelog"
+                    element={<ChangelogPage />}
                   />
                   <Route
                     path="/settings"

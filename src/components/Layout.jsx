@@ -1,16 +1,17 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Calendar, Target, Settings, LogOut, Zap, List, BookOpen } from 'lucide-react';
+import { Activity, Calendar, Target, Settings, LogOut, Zap, List, BookOpen, TrendingUp, Package } from 'lucide-react';
 
 const Layout = ({ children, onLogout }) => {
   const location = useLocation();
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Activity },
-    { name: 'All Activities', href: '/activities', icon: List },
-    { name: 'FTP History', href: '/ftp', icon: Zap },
-    { name: 'Plan Generator', href: '/plan', icon: Target },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
+    { name: 'Plan Generator', href: '/plan', icon: Target },
+    { name: 'Form & Fitness', href: '/form', icon: TrendingUp },
+    { name: 'FTP History', href: '/ftp', icon: Zap },
+    { name: 'All Activities', href: '/activities', icon: List },
     { name: 'Methodology', href: '/methodology', icon: BookOpen },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
@@ -52,6 +53,17 @@ const Layout = ({ children, onLogout }) => {
               );
             })}
           </nav>
+
+          {/* Version & Changelog */}
+          <div className="px-4 py-3 border-t border-gray-200">
+            <Link
+              to="/changelog"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <Package className="w-4 h-4" />
+              <span>v1.3.0</span>
+            </Link>
+          </div>
 
           {/* Logout */}
           <div className="px-4 py-4 border-t border-gray-200">

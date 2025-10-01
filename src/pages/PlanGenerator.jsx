@@ -33,6 +33,12 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
     if (saved) {
       setCompletedSessions(JSON.parse(saved));
     }
+    
+    // Load existing plan from localStorage
+    const savedPlan = localStorage.getItem('training_plan');
+    if (savedPlan) {
+      setPlan(JSON.parse(savedPlan));
+    }
   }, [stravaTokens]);
 
   const toggleSessionComplete = (weekNum, sessionIdx) => {

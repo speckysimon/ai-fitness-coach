@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
 import ActivityDetailModal from '../components/ActivityDetailModal';
+import SessionHoverModal from '../components/SessionHoverModal';
 
 const Calendar = ({ stravaTokens, googleTokens }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -11,6 +12,8 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
   const [plannedSessions, setPlannedSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [ftp, setFtp] = useState(null);
 
   useEffect(() => {
     loadCalendarData();
@@ -55,6 +58,13 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
         const plan = JSON.parse(storedPlan);
         const sessions = plan.weeks.flatMap(week => week.sessions);
         setPlannedSessions(sessions);
+      }
+      
+      // Load FTP for session details
+      const cachedMetrics = localStorage.getItem('cached_metrics');
+      if (cachedMetrics) {
+        const metrics = JSON.parse(cachedMetrics);
+        setFtp(metrics.ftp);
       }
     } catch (error) {
       console.error('Error loading calendar data:', error);
@@ -182,8 +192,9 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                         {dayPlanned.map((session, idx) => (
                           <div
                             key={`planned-${idx}`}
-                            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded truncate border border-blue-500"
+                            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded truncate border border-blue-500 cursor-pointer hover:bg-blue-200 transition-colors"
                             title={session.title}
+                            onClick={() => setSelectedSession(session)}
                           >
                             📅 {session.type}
                           </div>
@@ -240,6 +251,15 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
         <ActivityDetailModal
           activity={selectedActivity}
           onClose={() => setSelectedActivity(null)}
+        />
+      )}
+      
+      {/* Session Detail Modal */}
+      {selectedSession && (
+        <SessionHoverModal
+          session={selectedSession}
+          ftp={ftp}
+          onClose={() => setSelectedSession(null)}
         />
       )}
     </div>
