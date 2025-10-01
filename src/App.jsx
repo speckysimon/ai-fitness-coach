@@ -9,6 +9,7 @@ import FTPHistory from './pages/FTPHistory';
 import AllActivities from './pages/AllActivities';
 import RaceAnalytics from './pages/RaceAnalytics';
 import RiderProfile from './pages/RiderProfile';
+import RaceDayPredictor from './pages/RaceDayPredictor';
 import Methodology from './pages/Methodology';
 import Form from './pages/Form';
 import ChangelogPage from './pages/ChangelogPage';
@@ -111,6 +112,14 @@ function App() {
                     path="/rider-profile"
                     element={
                       <RiderProfile
+                        stravaTokens={stravaTokens}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/race-day-predictor"
+                    element={
+                      <RaceDayPredictor
                         stravaTokens={stravaTokens}
                       />
                     }

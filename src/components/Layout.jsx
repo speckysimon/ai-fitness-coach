@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Calendar, Target, Settings, LogOut, Zap, List, BookOpen, TrendingUp, Package, Trophy, User } from 'lucide-react';
+import { Activity, Calendar, Target, Settings, LogOut, Zap, List, BookOpen, TrendingUp, Package, Trophy, User, Crosshair } from 'lucide-react';
 
 const Layout = ({ children, onLogout }) => {
   const location = useLocation();
@@ -8,6 +8,7 @@ const Layout = ({ children, onLogout }) => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Activity },
     { name: 'Rider Profile', href: '/rider-profile', icon: User },
+    { name: 'Race Day Predictor', href: '/race-day-predictor', icon: Crosshair },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
     { name: 'Plan Generator', href: '/plan', icon: Target },
     { name: 'Form & Fitness', href: '/form', icon: TrendingUp },

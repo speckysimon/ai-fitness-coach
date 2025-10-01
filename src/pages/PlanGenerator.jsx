@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Calendar as CalendarIcon, Sparkles, Send, CheckCircle, Circle, TrendingUp, Clock, RefreshCw, CalendarPlus } from 'lucide-react';
+import { Target, Calendar as CalendarIcon, Sparkles, Send, CheckCircle, Circle, TrendingUp, Clock, RefreshCw, CalendarPlus, Award, Info, Zap as ZapIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import SessionHoverModal from '../components/SessionHoverModal';
+import ConfirmModal from '../components/ConfirmModal';
+import ActivityMatchModal from '../components/ActivityMatchModal';
+import { 
+  calculateTrainingFocus, 
+  calculateRiderTypeProgress, 
+  getProgressStatus, 
+  getMotivationalMessage 
+} from '../lib/trainingPlanMapping';
+import {
+  matchActivitiesToPlan,
+  mergeCompletions,
+  getCompletionStatus
+} from '../lib/activityMatching';
 import confetti from 'canvas-confetti';
 
 const PlanGenerator = ({ stravaTokens, googleTokens }) => {
@@ -12,7 +25,12 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
   const [syncing, setSyncing] = useState(false);
   const [ftp, setFtp] = useState(null);
   const [completedSessions, setCompletedSessions] = useState({});
+  const [automaticMatches, setAutomaticMatches] = useState({});
   const [hoveredSession, setHoveredSession] = useState(null);
+  const [matchModalSession, setMatchModalSession] = useState(null);
+  const [matchModalSessionKey, setMatchModalSessionKey] = useState(null);
+  const [planLoadedFromStorage, setPlanLoadedFromStorage] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [formData, setFormData] = useState({
     eventName: '',
     eventDate: '',
@@ -38,26 +56,79 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
     const savedPlan = localStorage.getItem('training_plan');
     if (savedPlan) {
       setPlan(JSON.parse(savedPlan));
+      setPlanLoadedFromStorage(true);
     }
   }, [stravaTokens]);
 
+  // Auto-match activities to plan when either changes
+  useEffect(() => {
+    if (plan && activities.length > 0) {
+      const matches = matchActivitiesToPlan(plan, activities);
+      setAutomaticMatches(matches);
+    }
+  }, [plan, activities]);
+
   const toggleSessionComplete = (weekNum, sessionIdx) => {
     const key = `${weekNum}-${sessionIdx}`;
+    const currentCompletion = completedSessions[key];
+    const match = automaticMatches[key];
+    
+    // Toggle completion with new object format
     const newCompleted = {
       ...completedSessions,
-      [key]: !completedSessions[key]
+      [key]: currentCompletion && currentCompletion.completed ? null : {
+        completed: true,
+        automatic: false,
+        manualOverride: false,
+        activity: match && match.matched ? match.activity : null,
+        alignmentScore: match && match.matched ? match.alignmentScore : 100,
+        reason: 'Manually marked complete'
+      }
     };
+    
     setCompletedSessions(newCompleted);
     localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
     
     // Check if plan is now 100% complete and trigger confetti
     if (plan) {
       const total = plan.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
-      const completed = Object.values(newCompleted).filter(Boolean).length;
+      const completed = Object.values(newCompleted).filter(c => c && c.completed).length;
       if (completed === total && newCompleted[key]) {
         triggerConfetti();
       }
     }
+  };
+
+  const handleManualActivitySelect = (sessionKey, activity) => {
+    const newCompleted = {
+      ...completedSessions,
+      [sessionKey]: {
+        completed: true,
+        automatic: false,
+        manualOverride: true,
+        activity: activity,
+        alignmentScore: 70, // Manual overrides get 70% weight
+        reason: 'Manually selected activity'
+      }
+    };
+    
+    setCompletedSessions(newCompleted);
+    localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
+  };
+
+  const handleRemoveMatch = (sessionKey) => {
+    const newCompleted = {
+      ...completedSessions,
+      [sessionKey]: null
+    };
+    
+    setCompletedSessions(newCompleted);
+    localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
+  };
+
+  const openMatchModal = (session, sessionKey) => {
+    setMatchModalSession(session);
+    setMatchModalSessionKey(sessionKey);
   };
 
   const triggerConfetti = () => {
@@ -92,13 +163,19 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
   };
 
   const calculateProgress = () => {
-    if (!plan) return { completed: 0, total: 0, percentage: 0 };
+    if (!plan) return { completed: 0, total: 0, percentage: 0, autoMatched: 0, manual: 0 };
     
     const total = plan.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
-    const completed = Object.values(completedSessions).filter(Boolean).length;
+    
+    // Merge manual and automatic completions
+    const merged = mergeCompletions(completedSessions, automaticMatches);
+    const completed = Object.values(merged).filter(c => c && c.completed).length;
+    const autoMatched = Object.values(merged).filter(c => c && c.completed && c.automatic).length;
+    const manual = Object.values(merged).filter(c => c && c.completed && !c.automatic).length;
+    
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     
-    return { completed, total, percentage };
+    return { completed, total, percentage, autoMatched, manual };
   };
 
   const loadActivities = async () => {
@@ -165,7 +242,13 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
     return planData;
   };
 
-  const generatePlan = async () => {
+  const generatePlan = async (skipConfirmation = false) => {
+    // Check if a plan already exists and prompt user
+    if (plan && !skipConfirmation) {
+      setShowConfirmModal(true);
+      return; // Wait for user confirmation via modal
+    }
+    
     setLoading(true);
     try {
       // Calculate duration in weeks from start date to event date
@@ -200,10 +283,14 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
       // Add dates to all sessions
       const planWithDates = addDatesToSessions(planData, formData.startDate);
       
+      // Add event type to plan for rider type tracking
+      planWithDates.eventType = formData.eventType;
+      
       setPlan(planWithDates);
       
       // Save plan to localStorage for persistence
       localStorage.setItem('training_plan', JSON.stringify(planWithDates));
+      setPlanLoadedFromStorage(false); // This is a newly generated plan
       
       // Clear completed sessions for new plan
       setCompletedSessions({});
@@ -463,6 +550,15 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
                 <p className="text-sm text-gray-600 mt-1">
                   {calculateProgress().completed} of {calculateProgress().total} sessions completed
                 </p>
+                <div className="flex items-center gap-3 mt-2 text-xs">
+                  <span className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded">
+                    <ZapIcon className="w-3 h-3" />
+                    {calculateProgress().autoMatched} auto-matched
+                  </span>
+                  <span className="flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded">
+                    {calculateProgress().manual} manual
+                  </span>
+                </div>
               </div>
               <div className="text-right">
                 <div className="text-3xl font-bold text-blue-600">
@@ -480,11 +576,132 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
           </CardContent>
         </Card>
 
+        {/* Working Towards Rider Type */}
+        {(() => {
+          const merged = mergeCompletions(completedSessions, automaticMatches);
+          const trainingFocus = calculateTrainingFocus(plan, merged);
+          const eventType = plan.eventType || formData.eventType; // Use saved event type if available
+          const riderProgress = calculateRiderTypeProgress(eventType, trainingFocus);
+          
+          if (!riderProgress) return null;
+          
+          const progressStatus = getProgressStatus(riderProgress.progress);
+          const motivationalMsg = getMotivationalMessage(riderProgress.progress, riderProgress.targetType);
+          
+          return (
+            <Card className="mb-6 border-2 border-purple-200 overflow-hidden">
+              <div className={`bg-gradient-to-r ${riderProgress.color} p-6 text-white`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-5xl">{riderProgress.icon}</div>
+                    <div>
+                      <h3 className="text-2xl font-bold mb-1">
+                        Working Towards: {riderProgress.targetType}
+                      </h3>
+                      <p className="text-white/90">{riderProgress.description}</p>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-5xl font-bold">{riderProgress.progress}%</div>
+                    <p className="text-white/80 text-sm mt-1">Progress</p>
+                  </div>
+                </div>
+              </div>
+              
+              <CardContent className="pt-6">
+                {/* Status Badge */}
+                <div className="mb-6">
+                  <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${progressStatus.bgColor} ${progressStatus.color} font-semibold`}>
+                    <Award className="w-4 h-4" />
+                    {progressStatus.status} Level
+                  </span>
+                </div>
+
+                {/* Motivational Message */}
+                <div className="mb-6 p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
+                  <p className="text-purple-900 font-medium">{motivationalMsg}</p>
+                </div>
+
+                {/* Target Characteristics */}
+                <div className="mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-purple-600" />
+                    Target Characteristics
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {riderProgress.characteristics.map((char, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                        <span className="text-purple-600 font-bold">✓</span>
+                        <span>{char}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Training Focus Breakdown */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-purple-600" />
+                    Training Focus Distribution
+                  </h4>
+                  <div className="space-y-3">
+                    {Object.keys(trainingFocus.plannedPercentages).filter(type => trainingFocus.plannedPercentages[type] > 0).map((sessionType) => {
+                      const plannedPct = trainingFocus.plannedPercentages[sessionType];
+                      const completedPct = trainingFocus.completedPercentages[sessionType] || 0;
+                      const completionRatio = plannedPct > 0 ? (completedPct / plannedPct) * 100 : 0;
+                      
+                      return (
+                        <div key={sessionType}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium text-gray-700">{sessionType}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600">Planned: {plannedPct}%</span>
+                              <span className="text-sm font-bold text-purple-600">
+                                {completedPct}% completed
+                              </span>
+                            </div>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-purple-600 h-2 rounded-full transition-all"
+                              style={{ width: `${Math.min(completionRatio, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Completion Stats */}
+                <div className="mt-6 grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-blue-50 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-blue-600">{riderProgress.completionRate}%</div>
+                    <div className="text-xs text-gray-600 mt-1">Plan Completion</div>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-green-600">{riderProgress.alignmentScore}%</div>
+                    <div className="text-xs text-gray-600 mt-1">Training Alignment</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Your Training Plan</CardTitle>
+                <div className="flex items-center gap-3">
+                  <CardTitle>Your Training Plan</CardTitle>
+                  {planLoadedFromStorage && (
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      Saved Plan
+                    </span>
+                  )}
+                </div>
                 <CardDescription>{plan.planSummary}</CardDescription>
               </div>
               <div className="flex gap-2">
@@ -507,9 +724,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
                   )}
                 </Button>
                 <Button onClick={() => {
-                  if (confirm('Are you sure you want to regenerate the plan? This will clear your current progress.')) {
-                    generatePlan();
-                  }
+                  generatePlan(false); // Will show confirmation since plan exists
                 }} variant="outline">
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Regenerate Plan
@@ -532,14 +747,17 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
                   <div className="space-y-2">
                     {week.sessions.map((session, idx) => {
                       const sessionKey = `${week.weekNumber}-${idx}`;
-                      const isCompleted = completedSessions[sessionKey];
+                      const merged = mergeCompletions(completedSessions, automaticMatches);
+                      const completion = merged[sessionKey];
+                      const completionStatus = getCompletionStatus(sessionKey, merged, automaticMatches);
+                      const isCompleted = completion && completion.completed;
                       
                       return (
                         <div
                           key={idx}
                           className={`p-4 border-2 rounded-lg transition-all cursor-pointer ${
                             isCompleted 
-                              ? 'border-green-500 bg-green-50' 
+                              ? `${completionStatus.borderColor} ${completionStatus.bgColor}` 
                               : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
                           }`}
                           onClick={() => setHoveredSession(session)}
@@ -555,8 +773,8 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
                                 'bg-purple-500'
                               }`} />
                               <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <h4 className={`font-semibold ${isCompleted ? 'text-green-900 line-through' : 'text-gray-900'}`}>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className={`font-semibold ${isCompleted ? `${completionStatus.color} line-through` : 'text-gray-900'}`}>
                                     {session.title}
                                   </h4>
                                   <span className={`px-2 py-0.5 text-xs rounded font-medium ${
@@ -573,21 +791,51 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
                                 <p className={`text-sm mt-1 ${isCompleted ? 'text-green-700' : 'text-gray-600'}`}>
                                   {session.description}
                                 </p>
-                                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                                  <span className="flex items-center gap-1">
+                                <div className="flex items-center gap-4 mt-2 text-xs flex-wrap">
+                                  <span className="flex items-center gap-1 text-gray-500">
                                     <Clock className="w-3 h-3" />
                                     {session.duration} min
                                   </span>
-                                  <span>{session.day}</span>
+                                  <span className="text-gray-500">{session.day}</span>
                                   {session.date && (
-                                    <span className="font-medium">
+                                    <span className="font-medium text-gray-500">
                                       {new Date(session.date).toLocaleDateString('en-US', { 
                                         month: 'short', 
                                         day: 'numeric' 
                                       })}
                                     </span>
                                   )}
-                                  <span className="text-blue-600 font-medium">Click for details</span>
+                                  {isCompleted && completion.automatic && (
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-semibold">
+                                      <ZapIcon className="w-3 h-3" />
+                                      Auto-matched ({completion.alignmentScore}%)
+                                    </span>
+                                  )}
+                                  {isCompleted && completion.manualOverride && (
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-semibold">
+                                      Manual Override ({completion.alignmentScore}%)
+                                    </span>
+                                  )}
+                                  {isCompleted && !completion.automatic && !completion.manualOverride && (
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded font-semibold">
+                                      Manual
+                                    </span>
+                                  )}
+                                  {!isCompleted && automaticMatches[sessionKey] && automaticMatches[sessionKey].matched && (
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded font-semibold">
+                                      <ZapIcon className="w-3 h-3" />
+                                      Activity found ({automaticMatches[sessionKey].alignmentScore}%)
+                                    </span>
+                                  )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openMatchModal(session, sessionKey);
+                                    }}
+                                    className="text-blue-600 font-medium hover:text-blue-800 transition-colors"
+                                  >
+                                    View Match
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -637,8 +885,41 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
             onClose={() => setHoveredSession(null)}
           />
         )}
+
+        {/* Activity Match Modal */}
+        <ActivityMatchModal
+          isOpen={matchModalSession !== null}
+          onClose={() => {
+            setMatchModalSession(null);
+            setMatchModalSessionKey(null);
+          }}
+          session={matchModalSession}
+          sessionKey={matchModalSessionKey}
+          activities={activities}
+          currentMatch={matchModalSessionKey ? automaticMatches[matchModalSessionKey] : null}
+          onManualSelect={handleManualActivitySelect}
+          onRemoveMatch={handleRemoveMatch}
+        />
         </>
       )}
+
+      {/* Confirm Replace Plan Modal */}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={() => generatePlan(true)}
+        title="Replace Existing Plan?"
+        message={`You already have a training plan. Generating a new plan will:
+
+• Replace your current plan
+• Clear all progress tracking
+• Remove completed session markers
+
+Are you sure you want to continue?`}
+        confirmText="Yes, Replace Plan"
+        cancelText="Cancel"
+        type="warning"
+      />
     </div>
   );
 };

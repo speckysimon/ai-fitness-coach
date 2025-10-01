@@ -2,6 +2,140 @@
 
 All notable changes to AI Fitness Coach will be documented in this file.
 
+## [2.0.0] - 2025-10-01
+
+### 🚀 Major Features
+
+#### **Race Day Form Predictor**
+- **CTL/ATL/TSB Calculations**: 42-day fitness, 7-day fatigue, form balance
+- **Readiness Score**: 0-100% composite score with weighted factors
+- **Performance Trends**: 2-week vs 4-week power comparison
+- **Recovery Status**: Based on recent training load
+- **Consistency Score**: 28-day training frequency analysis
+- **Taper Strategy**: Phase-specific recommendations (Build, Pre-taper, Taper, Final prep)
+- **Visual Charts**: 90-day fitness/fatigue/form progression with area charts
+- **Smart Insights**: Personalized recommendations based on current status
+
+#### **Training Plan Persistence & Confirmation**
+- **Auto-Save**: Plans persist across sessions in localStorage
+- **Replace Confirmation**: Custom modal warns before overwriting existing plan
+- **"Saved Plan" Badge**: Visual indicator when plan loaded from storage
+- **Progress Preservation**: Completed sessions maintained across sessions
+
+#### **"Working Towards" Rider Type System**
+- **Event Type Mapping**: Each plan type maps to target rider type
+  - Endurance → Rouleur
+  - Criterium → Sprinter
+  - Time Trial → Time Trialist
+  - Climbing → Climber
+  - Gran Fondo → All Rounder
+- **Progress Tracking**: Real-time progress towards target characteristics
+- **Training Focus Distribution**: Visual breakdown of session types
+- **Status Levels**: Starting → Building → Developing → Advanced → Mastered
+- **Motivational Messages**: Progress-based encouragement
+
+#### **Automatic Activity Matching**
+- **Multi-Factor Algorithm**: 4-factor scoring system (Duration 30%, Intensity 40%, Type 20%, TSS 10%)
+- **Intensity Verification**: Power/HR zone validation against session type
+- **Auto-Completion**: Sessions with ≥60% match automatically marked complete
+- **Match Quality Indicators**: Excellent (90-100%), Very Good (80-89%), Good (70-79%), Acceptable (60-69%)
+- **Transparent Scoring**: Every completion shows match score and source
+
+#### **Activity Match Modal**
+- **View All Activities**: See all activities on session date
+- **Manual Override**: Select different activity with 70% weighting
+- **Activity Details**: Duration, distance, power, TSS displayed
+- **Clear Match Option**: Remove match and mark incomplete
+- **Visual Feedback**: Color-coded match quality (blue/orange/purple/yellow badges)
+
+#### **Weighted Alignment System**
+- **Auto-Matches**: Use actual alignment score (60-100%)
+- **Manual Overrides**: Fixed 70% weight for manual selections
+- **Manual Marks**: Full 100% weight for manual completions
+- **Quality-Adjusted Scoring**: Reflects confidence in completion accuracy
+
+#### **AI Race Plan Generator**
+- **GPX Upload**: Parse and analyze race route files
+- **Route Analysis**: Distance, elevation gain/loss, difficulty scoring
+- **Climb Detection**: Automatic categorization (HC, Cat 1-4)
+- **Elevation Profile**: Visual chart of route terrain
+- **AI-Generated Strategy**: GPT-4o-mini powered personalized race plan
+  - Overall Strategy
+  - Pre-Race Preparation
+  - Start Strategy
+  - Segment-by-Segment Plan
+  - Climb Strategy
+  - Nutrition Plan
+  - Pacing Zones
+  - Contingency Plans
+  - Final Push Strategy
+- **Context-Aware**: Considers rider type, current form, training status
+
+### 📚 Methodology Page Updates
+
+#### **New Section: Automatic Activity Matching**
+- Multi-factor algorithm explanation
+- Matching thresholds and scoring
+- Intensity zone verification table
+- Hybrid approach benefits
+- 3 academic references with DOI links:
+  - Jobson et al. (2009) - Cycling training data analysis
+  - Sanders & Heijboer (2019) - Power profile demands
+  - Passfield et al. (2017) - Training load validity
+
+#### **New Section: Training Alignment & Progress Tracking**
+- Alignment calculation methodology
+- Perfect vs partial alignment examples
+- "Working Towards" rider type system
+- Overall progress calculation formula
+- 5 academic references with DOI links:
+  - Seiler & Kjerland (2006) - Training intensity distribution
+  - Stöggl & Sperlich (2015) - TID among elite athletes
+  - Esteve-Lanao et al. (2007) - Impact of TID on performance
+  - Bompa & Haff (2009) - Periodization theory
+  - Foster et al. (2001) - Exercise training monitoring
+
+### 🎨 UI/UX Improvements
+- **Custom Modals**: Replaced browser alerts with themed modals
+- **Progress Indicators**: Auto-matched vs manual session counts
+- **Color-Coded Badges**: Visual distinction between completion types
+- **"View Match" Button**: Easy access to activity matching details
+- **Gradient Headers**: Beautiful visual design for key features
+- **Responsive Layouts**: Optimized for all screen sizes
+
+### 🐛 Bug Fixes
+- Fixed training alignment calculation to use planned distribution
+- Corrected completion tracking for new object format
+- Improved error handling with detailed messages
+- Fixed GPX parsing for various file formats
+- Updated OpenAI model to gpt-4o-mini for reliability
+
+### 🔧 Technical Improvements
+- **GPX Parser**: Haversine formula for accurate distance calculation
+- **Climb Categorization**: Industry-standard difficulty scoring
+- **Route Difficulty Algorithm**: 0-100 scoring system
+- **Weighted Completion Tracking**: Quality-adjusted progress
+- **Better Error Messages**: Helpful debugging information
+
+### 📖 Documentation
+- Updated methodology with 8+ new academic sources
+- Added comprehensive feature explanations
+- Documented all calculation formulas
+- Included DOI links for all research papers
+- Created ROADMAP.md with prioritized improvements
+
+### ⚠️ Known Issues
+- **Race Plan Display**: Plan content may not display correctly due to OpenAI response parsing
+- **OpenAI API Credits**: Requires active OpenAI account with credits
+- **GPX Parser**: Some GPX formats may not parse correctly
+
+### 🔮 Coming Next (v2.1.0)
+- Fix race plan display parsing
+- Real-time race execution mode
+- Training plan templates
+- Export race plans as PDF
+- Mobile responsiveness improvements
+
 ## [1.2.0] - 2025-09-30
 
 ### 🎉 Training Plan Enhancements

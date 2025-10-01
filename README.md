@@ -2,8 +2,19 @@
 
 A lightweight AI-assisted training coach that pulls in past workouts from Strava, analyses training load and progress, and automatically generates structured forward-looking plans and calendar events, so athletes can see both where they've been and where they're going — all in one clear view.
 
-![AI Fitness Coach](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![AI Fitness Coach](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
+
+## 🚀 What's New in v2.0
+
+- **Race Day Form Predictor**: CTL/ATL/TSB analysis with readiness scoring
+- **"Working Towards" System**: Track progress towards target rider type
+- **Automatic Activity Matching**: AI-powered session verification with 4-factor scoring
+- **AI Race Plan Generator**: Upload GPX routes for personalized race strategies
+- **Training Alignment**: Quality-adjusted completion tracking
+- **8+ New Academic Sources**: Comprehensive methodology documentation
+
+📋 **See [ROADMAP.md](ROADMAP.md) for planned improvements and feature priorities**
 
 ## 🌟 Features
 
@@ -125,7 +136,10 @@ A lightweight AI-assisted training coach that pulls in past workouts from Strava
 1. Go to [OpenAI Platform](https://platform.openai.com/api-keys)
 2. Create a new API key
 3. Copy the key and add it to your `.env` file
-4. **Note**: You'll need credits in your OpenAI account for AI plan generation
+4. **Note**: You'll need credits in your OpenAI account for:
+   - AI training plan generation
+   - AI race plan generation (GPX route analysis)
+5. **Model Used**: gpt-4o-mini (fast and cost-effective)
 
 #### 3. Google Calendar API Setup
 

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { BookOpen, Calculator, TrendingUp, Zap, Heart, Activity, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { BookOpen, Calculator, TrendingUp, Zap, Heart, Activity, ChevronDown, ChevronUp, User, Target, Award } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 
 const Methodology = () => {
   const [expandedSections, setExpandedSections] = useState({
     intro: true,
     riderType: false,
+    autoMatching: false,
+    trainingAlignment: false,
     tss: false,
     ftp: false,
     zones: false,
@@ -172,6 +174,418 @@ const Methodology = () => {
             <li>
               <strong>Lucia, A., et al.</strong> (2001). "Physiological differences between professional and elite 
               road cyclists." <em>International Journal of Sports Medicine, 22</em>(5), 321-326.
+            </li>
+          </ul>
+        </div>
+      </CollapsibleCard>
+
+      <CollapsibleCard
+        id="autoMatching"
+        title="Automatic Activity Matching"
+        icon={Zap}
+        description="Intelligent session verification using multi-factor analysis"
+      >
+        <div>
+          <h3 className="font-semibold text-lg mb-2">How Automatic Matching Works</h3>
+          <p className="text-gray-700">
+            Our system automatically matches your completed activities to planned training sessions using 
+            a sophisticated multi-factor algorithm. This eliminates manual tracking errors and provides 
+            objective verification that your training aligns with your plan.
+          </p>
+        </div>
+
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-3">Matching Algorithm (4 Factors)</h4>
+          <div className="space-y-3 text-sm text-gray-700">
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-blue-600 min-w-[60px]">30 points</span>
+              <div>
+                <strong>Duration Match:</strong> Compares planned vs actual duration. Perfect match within 10%, 
+                partial credit up to 30% difference.
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-blue-600 min-w-[60px]">40 points</span>
+              <div>
+                <strong>Intensity Match:</strong> Analyzes power data (or heart rate) against training zones. 
+                Verifies you trained at the correct intensity for the session type.
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-blue-600 min-w-[60px]">20 points</span>
+              <div>
+                <strong>Activity Type:</strong> Confirms the activity is cycling (road or virtual).
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-blue-600 min-w-[60px]">10 points</span>
+              <div>
+                <strong>TSS/Effort Match:</strong> Validates overall training stress matches expectations.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-green-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">✅ Matching Thresholds</h4>
+          <div className="space-y-2 text-sm text-gray-700">
+            <div className="flex items-center justify-between">
+              <span><strong>90-100%:</strong> Excellent match</span>
+              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-bold">AUTO-COMPLETE</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>80-89%:</strong> Very good match</span>
+              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-bold">AUTO-COMPLETE</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>70-79%:</strong> Good match</span>
+              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-bold">AUTO-COMPLETE</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>60-69%:</strong> Acceptable match</span>
+              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-bold">AUTO-COMPLETE</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>&lt;60%:</strong> Poor match</span>
+              <span className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded text-xs font-bold">MANUAL REVIEW</span>
+            </div>
+          </div>
+          <p className="text-xs text-gray-600 mt-3">
+            Sessions with ≥60% match score are automatically marked complete. Lower scores require manual verification.
+          </p>
+        </div>
+
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">🎯 Intensity Zone Verification</h4>
+          <p className="text-sm text-gray-700 mb-3">
+            The system verifies your activity intensity matches the planned session type using power-based zones:
+          </p>
+          <div className="space-y-1 text-xs">
+            <div className="flex items-center justify-between">
+              <span><strong>Recovery:</strong></span>
+              <span className="font-mono">0-55% FTP</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>Endurance:</strong></span>
+              <span className="font-mono">55-75% FTP</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>Tempo:</strong></span>
+              <span className="font-mono">75-90% FTP</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>Threshold:</strong></span>
+              <span className="font-mono">90-105% FTP</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>VO2 Max:</strong></span>
+              <span className="font-mono">105-120% FTP</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>Intervals:</strong></span>
+              <span className="font-mono">105-130% FTP</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">💡 Hybrid Approach: Auto + Manual</h4>
+          <p className="text-sm text-gray-700 mb-2">
+            Our system combines the best of both worlds:
+          </p>
+          <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside ml-2">
+            <li><strong>Automatic:</strong> High-confidence matches (≥60%) are auto-completed</li>
+            <li><strong>Manual Override:</strong> You can always manually mark sessions complete</li>
+            <li><strong>Transparency:</strong> Every completion shows its match score and source</li>
+            <li><strong>Quality Tracking:</strong> Alignment scores reflect actual training quality</li>
+          </ul>
+        </div>
+
+        <div className="border-l-4 border-blue-500 pl-4">
+          <h4 className="font-semibold mb-2">📚 Academic Sources</h4>
+          <ul className="text-sm text-gray-700 space-y-2">
+            <li>
+              <strong>Jobson, S. A., et al.</strong> (2009). "The analysis and utilization of cycling training data." 
+              <em>Sports Medicine, 39</em>(10), 833-844.
+              <br />
+              <a href="https://doi.org/10.2165/11317840-000000000-00000" target="_blank" rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline text-xs">
+                https://doi.org/10.2165/11317840-000000000-00000
+              </a>
+            </li>
+            <li>
+              <strong>Sanders, D., & Heijboer, M.</strong> (2019). "Physical demands and power profile of different stage types 
+              within a cycling grand tour." <em>European Journal of Sport Science, 19</em>(6), 736-744.
+              <br />
+              <a href="https://doi.org/10.1080/17461391.2018.1554706" target="_blank" rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline text-xs">
+                https://doi.org/10.1080/17461391.2018.1554706
+              </a>
+            </li>
+            <li>
+              <strong>Passfield, L., et al.</strong> (2017). "Validity of the Training-Load Concept." 
+              <em>International Journal of Sports Physiology and Performance, 12</em>(Suppl 2), S2-42-S2-50.
+              <br />
+              <a href="https://doi.org/10.1123/ijspp.2016-0334" target="_blank" rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline text-xs">
+                https://doi.org/10.1123/ijspp.2016-0334
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">🔬 Why This Matters</h4>
+          <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside ml-2">
+            <li>
+              <strong>Objective Verification:</strong> Removes subjective bias from training adherence tracking
+            </li>
+            <li>
+              <strong>Quality Over Quantity:</strong> Ensures you're not just completing sessions, but doing them correctly
+            </li>
+            <li>
+              <strong>Training Load Validation:</strong> Research shows that accurate training load monitoring is crucial 
+              for performance and injury prevention
+            </li>
+            <li>
+              <strong>Intensity Distribution:</strong> Verifies you're training in the correct zones, which studies show 
+              is more important than total volume
+            </li>
+            <li>
+              <strong>Reduced Cognitive Load:</strong> Automatic tracking means less time managing data, more time training
+            </li>
+          </ul>
+        </div>
+      </CollapsibleCard>
+
+      <CollapsibleCard
+        id="trainingAlignment"
+        title="Training Alignment & Progress Tracking"
+        icon={Target}
+        description="Measuring adherence and progress towards your goals"
+      >
+        <div>
+          <h3 className="font-semibold text-lg mb-2">What is Training Alignment?</h3>
+          <p className="text-gray-700">
+            Training Alignment measures how well you're following your prescribed training plan. It compares 
+            the distribution of completed sessions against the planned distribution to calculate an alignment 
+            score (0-100%). Combined with our automatic activity matching system, this provides an objective, 
+            data-driven measure of training adherence and quality.
+          </p>
+        </div>
+
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-3">How Alignment is Calculated</h4>
+          <div className="space-y-3 text-sm text-gray-700">
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-purple-600">1.</span>
+              <div>
+                <strong>Planned Distribution:</strong> The AI generates a plan with specific session types 
+                (e.g., 40% Endurance, 30% Threshold, 20% Tempo, 10% Recovery)
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-purple-600">2.</span>
+              <div>
+                <strong>Completed Distribution:</strong> As you complete sessions, we track which types 
+                you've actually completed
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-purple-600">3.</span>
+              <div>
+                <strong>Alignment Score:</strong> For each session type, we calculate: 
+                <div className="font-mono text-xs bg-white p-2 rounded border border-purple-200 mt-1">
+                  completionRatio = (completed % / planned %) × 100
+                </div>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-purple-600">4.</span>
+              <div>
+                <strong>Weighted Average:</strong> The overall alignment is the weighted average of all 
+                session type completion ratios
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-green-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">✅ Perfect Alignment Example</h4>
+          <div className="text-sm text-gray-700 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div><strong>Planned:</strong></div>
+              <div><strong>Completed:</strong></div>
+              <div>40% Endurance</div>
+              <div>40% Endurance ✓</div>
+              <div>30% Threshold</div>
+              <div>30% Threshold ✓</div>
+              <div>20% Tempo</div>
+              <div>20% Tempo ✓</div>
+              <div>10% Recovery</div>
+              <div>10% Recovery ✓</div>
+            </div>
+            <div className="pt-2 border-t border-green-200">
+              <strong>Result:</strong> 100% Alignment Score 🎯
+            </div>
+            <p className="text-xs text-gray-600">
+              Following the plan exactly as prescribed results in optimal alignment and maximizes 
+              the effectiveness of your training.
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-yellow-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">⚠️ Partial Alignment Example</h4>
+          <div className="text-sm text-gray-700 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div><strong>Planned:</strong></div>
+              <div><strong>Completed:</strong></div>
+              <div>40% Endurance</div>
+              <div>20% Endurance (50% complete)</div>
+              <div>30% Threshold</div>
+              <div>15% Threshold (50% complete)</div>
+              <div>20% Tempo</div>
+              <div>10% Tempo (50% complete)</div>
+              <div>10% Recovery</div>
+              <div>5% Recovery (50% complete)</div>
+            </div>
+            <div className="pt-2 border-t border-yellow-200">
+              <strong>Result:</strong> 50% Alignment Score
+            </div>
+            <p className="text-xs text-gray-600">
+              Completing sessions proportionally maintains alignment, even if you haven't finished 
+              the entire plan. This shows you're following the prescribed distribution.
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2 flex items-center gap-2">
+            <Award className="w-4 h-4 text-blue-600" />
+            "Working Towards" Rider Type System
+          </h4>
+          <p className="text-sm text-gray-700 mb-3">
+            Each training plan event type maps to a target rider type with specific characteristics. 
+            As you complete your plan, you're developing the physiological adaptations needed to become 
+            that rider type.
+          </p>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🚴</span>
+              <div><strong>Endurance Plan</strong> → Rouleur (sustained power, aerobic capacity)</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">⚡</span>
+              <div><strong>Criterium Plan</strong> → Sprinter (explosive power, anaerobic capacity)</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">⏱️</span>
+              <div><strong>Time Trial Plan</strong> → Time Trialist (threshold power, pacing)</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">⛰️</span>
+              <div><strong>Climbing Plan</strong> → Climber (power-to-weight, VO2 max)</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🏆</span>
+              <div><strong>Gran Fondo Plan</strong> → All Rounder (balanced abilities)</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">📊 Overall Progress Calculation</h4>
+          <div className="font-mono text-sm bg-white p-3 rounded border border-purple-200 mb-2">
+            Overall Progress = (Completion Rate × 0.7) + (Alignment Score × 0.3)
+          </div>
+          <p className="text-sm text-gray-700">
+            Your overall progress combines two factors:
+          </p>
+          <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside ml-2 mt-2">
+            <li><strong>Completion Rate (70%):</strong> How many sessions you've completed</li>
+            <li><strong>Alignment Score (30%):</strong> How well you're following the plan distribution</li>
+          </ul>
+          <p className="text-sm text-gray-700 mt-2">
+            This weighted approach ensures that both quantity and quality of training are considered. 
+            You can achieve 90-100% progress by completing all sessions as prescribed.
+          </p>
+        </div>
+
+        <div className="border-l-4 border-purple-500 pl-4">
+          <h4 className="font-semibold mb-2">📚 Academic Sources</h4>
+          <ul className="text-sm text-gray-700 space-y-2">
+            <li>
+              <strong>Seiler, S., & Kjerland, G. Ø.</strong> (2006). "Quantifying training intensity distribution 
+              in elite endurance athletes: is there evidence for an 'optimal' distribution?" 
+              <em>Scandinavian Journal of Medicine & Science in Sports, 16</em>(1), 49-56.
+              <br />
+              <a href="https://doi.org/10.1111/j.1600-0838.2004.00418.x" target="_blank" rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline text-xs">
+                https://doi.org/10.1111/j.1600-0838.2004.00418.x
+              </a>
+            </li>
+            <li>
+              <strong>Stöggl, T. L., & Sperlich, B.</strong> (2015). "The training intensity distribution among 
+              well-trained and elite endurance athletes." <em>Frontiers in Physiology, 6</em>, 295.
+              <br />
+              <a href="https://doi.org/10.3389/fphys.2015.00295" target="_blank" rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline text-xs">
+                https://doi.org/10.3389/fphys.2015.00295
+              </a>
+            </li>
+            <li>
+              <strong>Esteve-Lanao, J., et al.</strong> (2007). "Impact of training intensity distribution on 
+              performance in endurance athletes." <em>Journal of Strength and Conditioning Research, 21</em>(3), 943-949.
+              <br />
+              <a href="https://doi.org/10.1519/R-19725.1" target="_blank" rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline text-xs">
+                https://doi.org/10.1519/R-19725.1
+              </a>
+            </li>
+            <li>
+              <strong>Bompa, T. O., & Haff, G. G.</strong> (2009). <em>Periodization: Theory and Methodology of Training</em> (5th ed.). 
+              Human Kinetics.
+              <br />
+              <span className="text-xs text-gray-600">
+                Foundational text on training periodization and progressive overload principles
+              </span>
+            </li>
+            <li>
+              <strong>Foster, C., et al.</strong> (2001). "A new approach to monitoring exercise training." 
+              <em>Journal of Strength and Conditioning Research, 15</em>(1), 109-115.
+              <br />
+              <a href="https://doi.org/10.1519/00124278-200102000-00019" target="_blank" rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline text-xs">
+                https://doi.org/10.1519/00124278-200102000-00019
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">💡 Why This Matters</h4>
+          <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside ml-2">
+            <li>
+              <strong>Training Intensity Distribution (TID):</strong> Research shows that elite athletes follow 
+              specific intensity distributions (typically 80/20 or pyramidal). Our alignment system ensures 
+              you're following evidence-based distributions.
+            </li>
+            <li>
+              <strong>Progressive Overload:</strong> By tracking both completion and alignment, we ensure you're 
+              applying progressive overload correctly across all training zones.
+            </li>
+            <li>
+              <strong>Specificity Principle:</strong> The "Working Towards" system ensures your training is 
+              specific to your event goals, developing the exact physiological adaptations needed.
+            </li>
+            <li>
+              <strong>Adherence Monitoring:</strong> Studies show that training adherence is one of the strongest 
+              predictors of performance improvement. Our system makes adherence visible and measurable.
+            </li>
+            <li>
+              <strong>Motivation & Feedback:</strong> Real-time progress tracking provides immediate feedback, 
+              which research shows improves training adherence and outcomes.
             </li>
           </ul>
         </div>
@@ -378,7 +792,7 @@ const Methodology = () => {
         <p>
           This methodology is continuously updated based on the latest sports science research.
           <br />
-          Last updated: October 2025
+          Last updated: October 2025 - Added Automatic Activity Matching & Training Alignment
         </p>
       </div>
     </div>
