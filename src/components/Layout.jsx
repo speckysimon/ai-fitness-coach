@@ -12,7 +12,7 @@ const Layout = ({ children, onLogout, userProfile }) => {
     { name: 'Rider Profile', href: '/rider-profile', icon: User },
     { name: 'Race Day Predictor', href: '/race-day-predictor', icon: Crosshair },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
-    { name: 'Plan Generator', href: '/plan', icon: Target },
+    { name: 'Training Plan', href: '/plan', icon: Target },
     { name: 'Form & Fitness', href: '/form', icon: TrendingUp },
     { name: 'FTP History', href: '/ftp', icon: Zap },
     { name: 'All Activities', href: '/activities', icon: List },
