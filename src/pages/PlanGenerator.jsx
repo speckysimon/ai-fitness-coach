@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Calendar as CalendarIcon, Sparkles, Send, CheckCircle, Circle, TrendingUp, Clock, RefreshCw, CalendarPlus, Award, Info, Zap as ZapIcon } from 'lucide-react';
+import { Target, Calendar as CalendarIcon, Sparkles, Send, CheckCircle, Circle, TrendingUp, Clock, RefreshCw, CalendarPlus, Award, Info, Zap as ZapIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import SessionHoverModal from '../components/SessionHoverModal';
@@ -31,6 +31,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const [matchModalSessionKey, setMatchModalSessionKey] = useState(null);
   const [planLoadedFromStorage, setPlanLoadedFromStorage] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isFormExpanded, setIsFormExpanded] = useState(true);
   const [formData, setFormData] = useState({
     eventName: '',
     eventDate: '',
@@ -383,13 +384,26 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 
       {/* Form */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            Training Goals
-          </CardTitle>
-          <CardDescription>Tell us about your target event and preferences</CardDescription>
+        <CardHeader 
+          className="cursor-pointer hover:bg-gray-50 transition-colors"
+          onClick={() => setIsFormExpanded(!isFormExpanded)}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                Training Goals
+              </CardTitle>
+              <CardDescription>Tell us about your target event and preferences</CardDescription>
+            </div>
+            {isFormExpanded ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            )}
+          </div>
         </CardHeader>
+        {isFormExpanded && (
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -534,6 +548,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             </Button>
           </div>
         </CardContent>
+        )}
       </Card>
 
       {/* Generated Plan */}
