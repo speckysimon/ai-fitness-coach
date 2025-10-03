@@ -9,7 +9,12 @@
     "client": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "start": "NODE_ENV=production node server/index.js",
+    "docker:build": "docker build -t ai-fitness-coach .",
+    "docker:run": "docker-compose up -d",
+    "docker:stop": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
