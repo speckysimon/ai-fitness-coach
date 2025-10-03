@@ -468,7 +468,7 @@ const Methodology = () => {
           <p className="text-sm text-gray-700 mb-3">
             Each training plan event type maps to a target rider type with specific characteristics. 
             As you complete your plan, you're developing the physiological adaptations needed to become 
-            that rider type.
+            that rider type. The AI uses this mapping to create race-specific workouts tailored to your event goals.
           </p>
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
@@ -490,6 +490,47 @@ const Methodology = () => {
             <div className="flex items-center gap-2">
               <span className="text-xl">🏆</span>
               <div><strong>Gran Fondo Plan</strong> → All Rounder (balanced abilities)</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">💪</span>
+              <div><strong>General Fitness</strong> → All Rounder (overall health, balanced training)</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">🎯 Race-Specific Training Intelligence</h4>
+          <p className="text-sm text-gray-700 mb-3">
+            Our AI training plan generator uses advanced prompt engineering to create workouts specifically 
+            designed for your target event. Every workout is contextualized to develop the exact physiological 
+            characteristics needed for race success.
+          </p>
+          <div className="space-y-3 text-sm text-gray-700">
+            <div>
+              <strong>Event Type Analysis:</strong> The AI identifies your target rider type based on event 
+              selection and designs all workouts to develop those specific characteristics.
+            </div>
+            <div>
+              <strong>Contextual Awareness:</strong> Plans consider your current fitness (FTP, training load), 
+              recent training history, days until event, and available training time.
+            </div>
+            <div>
+              <strong>Workout Specificity:</strong> Each session includes detailed explanations of HOW it 
+              develops race-specific abilities, not just WHAT to do.
+            </div>
+            <div>
+              <strong>Progressive Overload:</strong> Training builds from your current fitness level with 
+              proper periodization (Base → Build → Peak → Taper).
+            </div>
+            <div>
+              <strong>Physiological Goals:</strong> Every event type maps to specific adaptations:
+              <ul className="ml-4 mt-1 space-y-1">
+                <li>• <strong>Endurance:</strong> Aerobic capacity, fat oxidation, muscular endurance</li>
+                <li>• <strong>Criterium:</strong> Anaerobic capacity, sprint power, quick recovery</li>
+                <li>• <strong>Time Trial:</strong> FTP improvement, lactate threshold, pacing discipline</li>
+                <li>• <strong>Climbing:</strong> Power-to-weight ratio, VO2 max, climbing efficiency</li>
+                <li>• <strong>Gran Fondo:</strong> Versatility, sustained power, endurance across terrains</li>
+              </ul>
             </div>
           </div>
         </div>

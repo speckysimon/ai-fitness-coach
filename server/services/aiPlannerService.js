@@ -16,7 +16,7 @@ class AIPlannerService {
     return this.openai;
   }
 
-  async generateTrainingPlan({ activities, goals, constraints, currentMetrics }) {
+  async generateTrainingPlan({ activities, goals, constraints, currentMetrics, userProfile }) {
     // Prepare context for AI
     const ftp = currentMetrics?.ftp || analyticsService.calculateFTP(activities);
     const loadMetrics = analyticsService.calculateTrainingLoad(activities, ftp);
@@ -29,6 +29,7 @@ class AIPlannerService {
       ftp,
       loadMetrics,
       trends,
+      userProfile,
     });
 
     try {
@@ -57,7 +58,7 @@ class AIPlannerService {
     }
   }
 
-  buildPlanPrompt({ activities, goals, constraints, ftp, loadMetrics, trends }) {
+  buildPlanPrompt({ activities, goals, constraints, ftp, loadMetrics, trends, userProfile }) {
     const recentActivities = activities.slice(0, 10).map(a => ({
       date: a.date,
       type: a.type,
@@ -65,69 +66,157 @@ class AIPlannerService {
       distance: Math.round(a.distance / 1000),
     }));
 
-    return `Create a ${goals.duration || 4}-week training plan for an athlete with the following profile:
+    // Build user profile context
+    const profileContext = userProfile ? {
+      age: userProfile.age || 'Unknown',
+      gender: userProfile.gender || 'Unknown',
+      weight: userProfile.weight || 'Unknown',
+      height: userProfile.height || 'Unknown',
+    } : null;
 
-CURRENT FITNESS:
-- FTP: ${ftp || 'Unknown'} watts
+    // Calculate power-to-weight if available
+    const powerToWeight = (ftp && userProfile?.weight) 
+      ? (ftp / userProfile.weight).toFixed(2) 
+      : null;
+
+    // Map event type to target rider type and training focus
+    const eventTypeMapping = {
+      'Endurance': {
+        riderType: 'Rouleur',
+        focusDescription: 'sustained power over long distances and aerobic endurance',
+        keyWorkouts: 'long endurance rides, tempo efforts, and threshold intervals',
+        physiologicalGoals: 'aerobic capacity, fat oxidation, and muscular endurance'
+      },
+      'Gran Fondo': {
+        riderType: 'All Rounder',
+        focusDescription: 'balanced abilities across all terrains with strong endurance',
+        keyWorkouts: 'mixed terrain rides, climbing intervals, tempo work, and long endurance',
+        physiologicalGoals: 'versatility, sustained power on climbs and flats, and endurance'
+      },
+      'Criterium': {
+        riderType: 'Sprinter',
+        focusDescription: 'explosive power and high-intensity repeated efforts',
+        keyWorkouts: 'sprint intervals, VO2max efforts, race simulation, and recovery rides',
+        physiologicalGoals: 'anaerobic capacity, sprint power, and quick recovery between efforts'
+      },
+      'Time Trial': {
+        riderType: 'Time Trialist',
+        focusDescription: 'sustained threshold power and pacing ability',
+        keyWorkouts: 'threshold intervals, tempo efforts, and time trial simulations',
+        physiologicalGoals: 'FTP improvement, lactate threshold, and pacing discipline'
+      },
+      'General Fitness': {
+        riderType: 'All Rounder',
+        focusDescription: 'overall fitness and health with balanced training',
+        keyWorkouts: 'varied endurance rides, moderate intensity work, and recovery',
+        physiologicalGoals: 'cardiovascular health, sustainable fitness, and enjoyment'
+      },
+      'Climbing': {
+        riderType: 'Climber',
+        focusDescription: 'high power-to-weight ratio and climbing strength',
+        keyWorkouts: 'hill repeats, VO2max intervals, sustained climbing efforts, and tempo',
+        physiologicalGoals: 'power-to-weight ratio, VO2 max, and climbing efficiency'
+      }
+    };
+
+    const targetProfile = eventTypeMapping[goals.eventType] || eventTypeMapping['Endurance'];
+    
+    // Calculate days until event
+    const daysUntilEvent = goals.eventDate ? 
+      Math.ceil((new Date(goals.eventDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+
+    return `Create a ${goals.duration || 4}-week training plan for an athlete preparing for a ${goals.eventType} event.
+
+ATHLETE PROFILE & CURRENT FITNESS:
+- FTP: ${ftp || 'Unknown'} watts${powerToWeight ? ` (${powerToWeight} W/kg)` : ''}
 - Current week load: ${loadMetrics.currentWeek.tss} TSS, ${loadMetrics.currentWeek.time}h
 - 4-week average: ${loadMetrics.fourWeekAverage.tss} TSS, ${loadMetrics.fourWeekAverage.time}h
 - Load ratio: ${loadMetrics.loadRatio}
+- Training consistency: ${trends.consistency || 'Unknown'}${profileContext ? `
+- Age: ${profileContext.age} years
+- Gender: ${profileContext.gender}
+- Weight: ${profileContext.weight} kg
+- Height: ${profileContext.height} cm` : ''}
 
 RECENT ACTIVITIES (last 10):
 ${JSON.stringify(recentActivities, null, 2)}
 
-GOALS:
+EVENT GOALS & TARGET PROFILE:
 - Event: ${goals.eventName || 'General fitness'}
-- Date: ${goals.eventDate || 'No specific date'}
-- Type: ${goals.eventType || 'Endurance'}
+- Date: ${goals.eventDate || 'No specific date'}${daysUntilEvent ? ` (${daysUntilEvent} days away)` : ''}
+- Event Type: ${goals.eventType || 'Endurance'}
+- Target Rider Type: ${targetProfile.riderType}
+- Training Focus: ${targetProfile.focusDescription}
 - Priority: ${goals.priority || 'Medium'}
 - Duration: ${goals.duration || 4} weeks
 
-CONSTRAINTS:
+TRAINING CONSTRAINTS:
 - Available days per week: ${constraints?.daysPerWeek || 5}
 - Max hours per week: ${constraints?.maxHoursPerWeek || 10}
 - Indoor/outdoor preference: ${constraints?.preference || 'Both'}
 
-IMPORTANT PERIODIZATION REQUIREMENTS:
-- Plan must be exactly ${goals.duration || 4} weeks long
-- Final week (Week ${goals.duration || 4}) MUST be a taper week with 40-50% reduced volume
-- Taper week should maintain intensity but significantly reduce duration
-- Peak training should occur 2 weeks before the event
-- Include proper progression: Base → Build → Peak → Taper
+CRITICAL REQUIREMENTS FOR ${goals.eventType.toUpperCase()} PREPARATION:
+
+1. RACE-SPECIFIC FOCUS:
+   - All workouts must develop ${targetProfile.riderType} characteristics
+   - Key workout types: ${targetProfile.keyWorkouts}
+   - Physiological adaptations: ${targetProfile.physiologicalGoals}
+   - Workouts should simulate race demands and conditions
+
+2. PERIODIZATION:
+   - Plan must be exactly ${goals.duration || 4} weeks long
+   - Final week (Week ${goals.duration || 4}) MUST be a taper week with 40-50% reduced volume
+   - Taper week maintains intensity but significantly reduces duration
+   - Peak training occurs 2 weeks before event
+   - Progression: Base → Build → Peak → Taper
+
+3. WORKOUT SPECIFICITY:
+   - Each session must have a clear purpose aligned with ${goals.eventType} demands
+   - Include specific power targets, intervals, and rest periods
+   - Describe HOW each workout develops race-specific abilities
+   - Reference the target rider type (${targetProfile.riderType}) in workout descriptions
+
+4. PROGRESSIVE OVERLOAD:
+   - Build from current fitness level (${loadMetrics.fourWeekAverage.tss} TSS/week average)
+   - Increase load gradually, respecting the athlete's recent training
+   - Include recovery weeks if plan is longer than 4 weeks
 
 Generate a structured training plan with:
-1. Weekly overview (volume, intensity distribution)
+1. Weekly overview (volume, intensity distribution, race-specific focus)
 2. Individual sessions for each week with:
    - Day of week
-   - Session type (Endurance, Tempo, Threshold, VO2max, Recovery, Rest)
+   - Session type (Endurance, Tempo, Threshold, VO2Max, Recovery, Rest)
    - Duration (minutes)
-   - Target zones/power/HR
-   - Description and key points
-3. Progression rationale
-4. Adaptation notes
+   - Target zones/power/HR (be specific with FTP percentages)
+   - Title that reflects race-specific purpose
+   - Description explaining HOW this develops ${targetProfile.riderType} abilities
+   - Specific intervals/structure when applicable
+   - Indoor/outdoor recommendation
+3. Progression rationale linked to ${goals.eventType} demands
+4. Adaptation notes specific to ${targetProfile.riderType} development
 
 Return as JSON with structure:
 {
-  "planSummary": "...",
+  "planSummary": "Race-specific summary mentioning ${goals.eventType} and ${targetProfile.riderType} development",
   "weeks": [
     {
       "weekNumber": 1,
-      "focus": "...",
+      "focus": "Week focus aligned with ${goals.eventType} preparation",
       "totalHours": 8,
       "sessions": [
         {
           "day": "Monday",
           "type": "Recovery",
           "duration": 60,
-          "title": "Easy Spin",
-          "description": "...",
-          "targets": "Zone 1-2, <65% FTP",
+          "title": "Race-specific title",
+          "description": "Detailed description linking to ${targetProfile.riderType} development",
+          "targets": "Specific zones with FTP %",
           "indoor": false
         }
       ]
     }
   ],
-  "notes": "..."
+  "notes": "Final notes about ${goals.eventType} preparation and ${targetProfile.riderType} characteristics"
 }`;
   }
 

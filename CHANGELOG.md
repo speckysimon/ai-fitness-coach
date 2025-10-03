@@ -2,6 +2,84 @@
 
 All notable changes to AI Fitness Coach will be documented in this file.
 
+## [2.1.0] - 2025-10-02
+
+### 🚀 Major Features
+
+#### **User Authentication & Profile Management**
+- **Login System**: Secure login and registration with email/password
+- **User Profile Page**: Manage personal information (age, height, weight, gender)
+- **Profile Setup Flow**: Guided onboarding for new users
+- **User Info in Sidebar**: Display current user name and email
+- **Profile Integration**: User data automatically used in AI training plans and analytics
+- **Health Metrics**: Automatic BMI calculation and power-to-weight ratio display
+- **Age Categories**: Age-based categorization for performance analysis
+- **Privacy First**: All data stored locally, never shared with third parties
+- **Profile Persistence**: User data saved across sessions
+
+#### **Race-Specific Training Plan Generation**
+- **Event Type to Rider Type Mapping**: Training plans now automatically target the appropriate rider type based on event selection
+  - Endurance → Rouleur (sustained power, aerobic capacity)
+  - Criterium → Sprinter (explosive power, anaerobic capacity)
+  - Time Trial → Time Trialist (threshold power, pacing)
+  - Climbing → Climber (power-to-weight, VO2 max)
+  - Gran Fondo → All Rounder (balanced abilities)
+  - General Fitness → All Rounder (overall health)
+- **Race-Specific Workout Design**: Every workout is tailored to develop the physiological characteristics needed for your target event
+- **Contextual AI Prompts**: AI considers event type, days until event, current fitness, and training history to create highly specific workouts
+- **Progressive Overload**: Plans build from your current fitness level with proper periodization
+- **Workout Specificity**: Each session includes detailed explanations of HOW it develops race-specific abilities
+
+### 📚 Enhanced AI Training Intelligence
+
+#### **Improved Prompt Engineering**
+- **Target Rider Profile Integration**: AI explicitly references target rider type in all workout descriptions
+- **Physiological Goal Mapping**: Each event type maps to specific physiological adaptations
+- **Key Workout Identification**: AI prioritizes workout types most relevant to event demands
+- **Race Simulation**: Workouts designed to simulate actual race conditions and demands
+- **Days Until Event**: AI considers time available and adjusts training intensity accordingly
+
+#### **Training Context Awareness**
+- **Current Fitness Analysis**: Uses FTP, recent training load, and consistency data
+- **Historical Training Patterns**: Analyzes last 10 activities to understand training style
+- **Load Management**: Respects current training load and builds progressively
+- **Recovery Integration**: Balances intensity with adequate recovery based on recent training
+- **Athlete Demographics**: AI considers age, gender, weight, and height for personalized recommendations
+- **Power-to-Weight Integration**: Automatically calculates and displays W/kg in training plans
+
+### 🎯 "Working Towards" System Enhancement
+- **Automatic Rider Type Assignment**: Event type selection automatically determines target rider type
+- **Consistent Messaging**: All workouts reference the target rider type being developed
+- **Progress Tracking**: Visual feedback shows development towards race-specific characteristics
+- **Motivational Context**: Progress messages tied to specific event goals
+
+### 🐛 Bug Fixes
+- Improved AI prompt structure for more consistent workout generation
+- Enhanced error handling in training plan generation
+- Better handling of edge cases in event type mapping
+
+### 🎨 UI/UX Improvements
+- **New Login Page**: Beautiful gradient design with registration flow
+- **Profile Setup Wizard**: Guided experience for entering personal data
+- **User Info Display**: Sidebar shows current user with avatar
+- **Profile Management**: Easy-to-use interface for updating personal information
+- **Health Metrics Cards**: Visual display of BMI, power-to-weight, and age category
+- **Privacy Messaging**: Clear communication about data storage and usage
+
+### 📖 Documentation
+- Updated methodology to explain race-specific training approach
+- Documented event type to rider type mapping logic
+- Added examples of race-specific workout design
+- Added user profile data usage explanations
+- Privacy and data storage documentation
+
+### 🔧 Technical Improvements
+- User authentication state management
+- Profile data integration with AI services
+- LocalStorage-based user management (production should use proper backend)
+- Protected routes requiring authentication
+- Profile data validation and error handling
+
 ## [2.0.0] - 2025-10-01
 
 ### 🚀 Major Features

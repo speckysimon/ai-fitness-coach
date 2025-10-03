@@ -9,48 +9,118 @@ const FTPHistory = ({ stravaTokens }) => {
   const [currentFTP, setCurrentFTP] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState(12); // weeks
+  const [debugInfo, setDebugInfo] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (stravaTokens) {
+    if (stravaTokens && stravaTokens.access_token) {
+      console.log('FTP History - Loading data with tokens');
       loadFTPHistory();
+    } else {
+      console.log('FTP History - No valid tokens, setting loading to false');
+      setLoading(false);
     }
   }, [stravaTokens]); // Only reload when tokens change, not when timeRange changes
 
   const calculateWeeklyFTP = (activities, weekStart) => {
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
     
+    // Filter activities for this week with power data
     const weekActivities = activities.filter(a => {
+      if (!a.date) return false;
       const activityDate = new Date(a.date);
-      return isWithinInterval(activityDate, { start: weekStart, end: weekEnd }) &&
-             a.avgPower > 0 && 
-             a.duration >= 1200; // At least 20 min
+      const inInterval = isWithinInterval(activityDate, { start: weekStart, end: weekEnd });
+      const hasPower = a.avgPower && a.avgPower > 0;
+      const longEnough = a.duration >= 1200; // At least 20 min
+      
+      return inInterval && hasPower && longEnough;
     });
 
     if (weekActivities.length === 0) return null;
 
-    // Find best effort for the week
-    const sortedByPower = weekActivities.sort((a, b) => 
+    // Find best effort for the week (20-60 min activities)
+    const sortedByPower = [...weekActivities].sort((a, b) => 
       (b.normalizedPower || b.avgPower) - (a.normalizedPower || a.avgPower)
     );
 
+    // Look for activities between 20-60 minutes
     const bestEffort = sortedByPower.find(a => a.duration >= 1200 && a.duration <= 3600);
     
     if (bestEffort) {
       const power = bestEffort.normalizedPower || bestEffort.avgPower;
       const durationMin = bestEffort.duration / 60;
       
+      // 20-30 min efforts: use 95% of power
       if (durationMin <= 30) {
         return Math.round(power * 0.95);
       } else {
+        // 30-60 min efforts: use 100% of power
         return Math.round(power);
+      }
+    }
+
+    // If no ideal effort found, use the longest effort available
+    if (sortedByPower.length > 0) {
+      const longestEffort = [...weekActivities].sort((a, b) => b.duration - a.duration)[0];
+      if (longestEffort && longestEffort.duration >= 1200) {
+        const power = longestEffort.normalizedPower || longestEffort.avgPower;
+        const durationMin = longestEffort.duration / 60;
+        
+        // Adjust based on duration
+        if (durationMin <= 20) {
+          return Math.round(power * 0.90); // Very short, more conservative
+        } else if (durationMin <= 30) {
+          return Math.round(power * 0.95);
+        } else if (durationMin <= 60) {
+          return Math.round(power);
+        } else {
+          return Math.round(power * 1.0); // Longer efforts, assume it's close to FTP
+        }
       }
     }
 
     return null;
   };
 
+  const refreshAccessToken = async () => {
+    if (!stravaTokens?.refresh_token) {
+      throw new Error('No refresh token available');
+    }
+
+    try {
+      const response = await fetch('/api/strava/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: stravaTokens.refresh_token }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.requiresReauth) {
+          throw new Error('REAUTH_REQUIRED');
+        }
+        throw new Error(errorData.error || 'Failed to refresh token');
+      }
+
+      const data = await response.json();
+      const newTokens = {
+        ...stravaTokens,
+        ...data.tokens,
+      };
+
+      // Update tokens in localStorage
+      localStorage.setItem('strava_tokens', JSON.stringify(newTokens));
+
+      return newTokens;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      throw error;
+    }
+  };
+
   const loadFTPHistory = async () => {
     setLoading(true);
+    setError(null);
     
     try {
       // Calculate weeks to fetch (either 24 weeks or from Jan 1st, whichever is more)
@@ -61,21 +131,113 @@ const FTPHistory = ({ stravaTokens }) => {
       
       let activities = [];
 
-      if (stravaTokens) {
+      if (stravaTokens && stravaTokens.access_token) {
+        let tokensToUse = stravaTokens;
+
+        // Check if token is expired (expires_at is in seconds)
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        if (tokensToUse.expires_at && tokensToUse.expires_at < nowSeconds) {
+          console.log('FTP History - Token expired, refreshing...');
+          try {
+            tokensToUse = await refreshAccessToken();
+          } catch (refreshError) {
+            if (refreshError.message === 'REAUTH_REQUIRED') {
+              throw new Error('Your Strava session has expired. Please reconnect Strava in Settings.');
+            }
+            throw refreshError;
+          }
+        }
+
         // Fetch from Jan 1st or 24 weeks ago, whichever is earlier
         const fetchFrom = Math.min(
           Math.floor(yearStart.getTime() / 1000),
           Math.floor(Date.now() / 1000) - (24 * 7 * 24 * 60 * 60)
         );
         
+        console.log('FTP History - Fetching activities after:', new Date(fetchFrom * 1000).toISOString());
+        
+        const userId = localStorage.getItem('current_user') ? JSON.parse(localStorage.getItem('current_user')).email : 'anonymous';
         const response = await fetch(
-          `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${fetchFrom}&per_page=200`
+          `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${fetchFrom}&per_page=200&user_id=${encodeURIComponent(userId)}`
         );
-        activities = await response.json();
+        
+        // Handle 401/403 by attempting token refresh
+        if (response.status === 401 || response.status === 403) {
+          console.log('FTP History - Got 401/403, attempting token refresh...');
+          try {
+            tokensToUse = await refreshAccessToken();
+            // Retry the request with new token
+            const retryResponse = await fetch(
+              `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${fetchFrom}&per_page=200`
+            );
+            
+            if (!retryResponse.ok) {
+              const errorData = await retryResponse.json().catch(() => ({}));
+              throw new Error(errorData.details || errorData.error || 'Failed to fetch activities after token refresh');
+            }
+            
+            const retryData = await retryResponse.json();
+            if (retryData.error) {
+              throw new Error(retryData.error);
+            }
+            activities = retryData;
+          } catch (refreshError) {
+            if (refreshError.message === 'REAUTH_REQUIRED') {
+              throw new Error('Your Strava session has expired. Please reconnect Strava in Settings.');
+            }
+            throw new Error('Failed to refresh your Strava connection. Please try reconnecting in Settings.');
+          }
+        } else if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('FTP History - API Error:', response.status, errorData);
+          throw new Error(errorData.details || errorData.error || `HTTP ${response.status}: Failed to fetch activities`);
+        } else {
+          const data = await response.json();
+          
+          // Check if response is an error object
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          
+          activities = data;
+        }
+        
+        console.log('FTP History - Fetched activities:', activities.length);
+        
+        // Collect debug info
+        const debug = {
+          totalActivities: activities.length,
+          withPower: 0,
+          longEnough: 0,
+          suitable: 0,
+        };
+        
+        // Log sample activity to see structure
+        if (activities.length > 0) {
+          console.log('FTP History - Sample activity:', activities[0]);
+          
+          // Count activities with power data
+          const withPower = activities.filter(a => a.avgPower && a.avgPower > 0);
+          debug.withPower = withPower.length;
+          console.log('FTP History - Activities with power:', withPower.length);
+          
+          // Count activities long enough
+          const longEnough = activities.filter(a => a.duration >= 1200);
+          debug.longEnough = longEnough.length;
+          console.log('FTP History - Activities >= 20min:', longEnough.length);
+          
+          // Count activities with both
+          const suitable = activities.filter(a => a.avgPower && a.avgPower > 0 && a.duration >= 1200);
+          debug.suitable = suitable.length;
+          console.log('FTP History - Suitable for FTP calc:', suitable.length);
+        }
+        
+        setDebugInfo(debug);
       }
 
       // Calculate FTP for each week
       const history = [];
+      console.log('FTP History - Processing', maxWeeks, 'weeks of data');
 
       for (let i = 0; i < maxWeeks; i++) {
         const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
@@ -90,6 +252,8 @@ const FTPHistory = ({ stravaTokens }) => {
           });
         }
       }
+      
+      console.log('FTP History - Calculated FTP for', history.length, 'weeks');
 
       // Fill in gaps with previous FTP value (carry forward)
       const filledHistory = [];
@@ -117,6 +281,7 @@ const FTPHistory = ({ stravaTokens }) => {
       setCurrentFTP(filledHistory.length > 0 ? filledHistory[filledHistory.length - 1].ftp : null);
     } catch (error) {
       console.error('Error loading FTP history:', error);
+      setError(error.message || 'Failed to load FTP history');
     } finally {
       setLoading(false);
     }
@@ -138,6 +303,29 @@ const FTPHistory = ({ stravaTokens }) => {
   // Filter data based on selected time range
   const displayData = ftpHistory.slice(-timeRange);
 
+  // Show message if no Strava tokens
+  if (!stravaTokens || !stravaTokens.access_token) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">FTP History</h1>
+          <p className="text-gray-600 mt-1">Track your Functional Threshold Power over time</p>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center h-96 text-gray-500">
+              <Zap className="w-16 h-16 mb-4 text-gray-300" />
+              <p className="text-lg font-medium">Connect Strava to View FTP History</p>
+              <p className="text-sm mt-2 text-center max-w-md">
+                Connect your Strava account in Settings to track your FTP progression based on your power data.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -149,6 +337,32 @@ const FTPHistory = ({ stravaTokens }) => {
     );
   }
 
+  // Show error if API call failed
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">FTP History</h1>
+          <p className="text-gray-600 mt-1">Track your Functional Threshold Power over time</p>
+        </div>
+        <Card className="bg-red-50 border-red-200">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-900 mb-2">Error Loading FTP History</h3>
+                <p className="text-sm text-red-800">{error}</p>
+                <p className="text-sm text-red-700 mt-3">
+                  This is likely due to an expired or invalid Strava token. Try reconnecting Strava in Settings.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -156,6 +370,33 @@ const FTPHistory = ({ stravaTokens }) => {
         <h1 className="text-3xl font-bold text-gray-900">FTP History</h1>
         <p className="text-gray-600 mt-1">Track your Functional Threshold Power over time</p>
       </div>
+
+      {/* Debug Info Banner - only show when no FTP data */}
+      {!loading && ftpHistory.length === 0 && debugInfo && debugInfo.totalActivities > 0 && (
+        <Card className="bg-yellow-50 border-yellow-200">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-900 mb-2">No FTP Data Found</h3>
+                <div className="text-sm text-yellow-800 space-y-1">
+                  <p>• Total activities: <strong>{debugInfo.totalActivities}</strong></p>
+                  <p>• Activities with power data: <strong>{debugInfo.withPower}</strong></p>
+                  <p>• Activities ≥ 20 minutes: <strong>{debugInfo.longEnough}</strong></p>
+                  <p>• Suitable for FTP: <strong>{debugInfo.suitable}</strong></p>
+                  <p className="mt-2 pt-2 border-t border-yellow-300">
+                    {debugInfo.withPower === 0 
+                      ? "❌ Your activities don't contain power meter data. You need a power meter to track FTP."
+                      : debugInfo.longEnough === 0
+                      ? "❌ No activities are long enough (need 20+ minutes)."
+                      : "❌ No activities have both power data AND 20+ minute duration."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Current FTP Card */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -303,6 +544,20 @@ const FTPHistory = ({ stravaTokens }) => {
               <Zap className="w-16 h-16 mb-4 text-gray-300" />
               <p className="text-lg font-medium">No FTP data available</p>
               <p className="text-sm mt-2">Complete rides with a power meter to see your FTP history</p>
+              {debugInfo && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg text-left text-xs">
+                  <p className="font-semibold mb-2">Debug Info:</p>
+                  <p>Total activities fetched: {debugInfo.totalActivities}</p>
+                  <p>Activities with power data: {debugInfo.withPower}</p>
+                  <p>Activities ≥ 20 minutes: {debugInfo.longEnough}</p>
+                  <p>Suitable for FTP calculation: {debugInfo.suitable}</p>
+                  {debugInfo.suitable === 0 && debugInfo.totalActivities > 0 && (
+                    <p className="mt-2 text-orange-600 font-medium">
+                      ⚠️ No activities found with both power data and 20+ minute duration
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

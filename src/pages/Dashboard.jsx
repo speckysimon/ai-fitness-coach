@@ -27,6 +27,11 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
   const [tssPeriod, setTssPeriod] = useState(6); // weeks for TSS chart
   const [currentTokens, setCurrentTokens] = useState(stravaTokens);
   const [raceActivities, setRaceActivities] = useState({});
+  const [showStravaNotification, setShowStravaNotification] = useState(() => {
+    // Initialize based on whether we have tokens and if notification was dismissed
+    const dismissed = sessionStorage.getItem('strava_notification_dismissed');
+    return !stravaTokens && !dismissed;
+  });
 
   // Calculate TSS for a single activity
   const calculateTSS = (activity, ftp) => {
@@ -102,10 +107,28 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     return 'border-l-gray-300 bg-white'; // No TSS data
   };
 
+  // Check notification on mount and when stravaTokens changes
   useEffect(() => {
-    if (stravaTokens) {
+    console.log('Dashboard - stravaTokens:', stravaTokens);
+    console.log('Dashboard - stravaTokens type:', typeof stravaTokens);
+    console.log('Dashboard - stravaTokens is null:', stravaTokens === null);
+    
+    if (stravaTokens && stravaTokens.access_token) {
+      console.log('Dashboard - Has valid tokens, hiding notification');
       setCurrentTokens(stravaTokens);
       loadDashboardData(false);
+      setShowStravaNotification(false);
+    } else {
+      // Show notification if no Strava tokens and hasn't been dismissed
+      const dismissed = sessionStorage.getItem('strava_notification_dismissed');
+      console.log('Dashboard - notification dismissed:', dismissed);
+      console.log('Dashboard - Should show notification:', !dismissed);
+      if (!dismissed) {
+        console.log('Dashboard - Setting showStravaNotification to TRUE');
+        setShowStravaNotification(true);
+      } else {
+        console.log('Dashboard - Notification was dismissed');
+      }
     }
   }, [stravaTokens]);
 
@@ -267,8 +290,9 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
 
       // Fetch activities from last 6 weeks
       const sixWeeksAgo = Math.floor(Date.now() / 1000) - (6 * 7 * 24 * 60 * 60);
+      const userId = localStorage.getItem('current_user') ? JSON.parse(localStorage.getItem('current_user')).email : 'anonymous';
       const activitiesResponse = await fetch(
-        `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100`
+        `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100&user_id=${encodeURIComponent(userId)}`
       );
       
       // Check if token is invalid or expired
@@ -278,7 +302,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
           tokensToUse = await refreshAccessToken();
           // Retry the request with new token
           const retryResponse = await fetch(
-            `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100`
+            `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100&user_id=${encodeURIComponent(userId)}`
           );
           
           if (!retryResponse.ok) {
@@ -437,8 +461,49 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     );
   }
 
+  // Debug render condition
+  console.log('Dashboard RENDER - showStravaNotification:', showStravaNotification);
+  console.log('Dashboard RENDER - stravaTokens:', stravaTokens);
+  console.log('Dashboard RENDER - Condition result:', showStravaNotification && (!stravaTokens || !stravaTokens.access_token));
+
   return (
     <div className="space-y-8">
+      {/* Strava Connection Notification */}
+      {showStravaNotification && (!stravaTokens || !stravaTokens.access_token) ? (
+        <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-300 rounded-lg p-4 shadow-md mb-6">
+          <div className="flex items-start gap-3">
+            <Activity className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-orange-900 font-semibold mb-1">Connect Strava to Get Started</h3>
+              <p className="text-orange-800 text-sm mb-3">
+                Connect your Strava account to import activities, track progress, and get personalized training insights.
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => navigate('/settings')} 
+                  variant="default" 
+                  size="sm"
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  <Activity className="w-4 h-4 mr-2" />
+                  Connect Strava
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setShowStravaNotification(false);
+                    sessionStorage.setItem('strava_notification_dismissed', 'true');
+                  }} 
+                  variant="outline" 
+                  size="sm"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Error Banner */}
       {error && hasData && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">

@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Generate training plan
 router.post('/plan/generate', async (req, res) => {
-  const { activities, goals, constraints, currentMetrics } = req.body;
+  const { activities, goals, constraints, currentMetrics, userProfile } = req.body;
   
   if (!activities || !goals) {
     return res.status(400).json({ error: 'Activities and goals required' });
@@ -18,6 +18,7 @@ router.post('/plan/generate', async (req, res) => {
       goals,
       constraints,
       currentMetrics,
+      userProfile,
     });
     
     res.json(plan);

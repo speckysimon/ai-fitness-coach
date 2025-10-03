@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Activity, Calendar, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -6,47 +6,73 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 
 const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [processingOAuth, setProcessingOAuth] = useState(false);
+  const processedRef = useRef(new Set());
 
+  // Handle OAuth callbacks - only run once when URL params change
   useEffect(() => {
-    // Handle OAuth callbacks
-    const stravaData = searchParams.get('strava_data');
+    const stravaSuccess = searchParams.get('strava_success');
     const googleData = searchParams.get('google_data');
     const errorParam = searchParams.get('error');
 
     if (errorParam) {
       setError(decodeURIComponent(errorParam));
+      setSearchParams({}); // Clear URL params
       return;
     }
 
-    if (stravaData) {
-      try {
-        const data = JSON.parse(decodeURIComponent(stravaData));
-        if (data.success) {
-          onStravaAuth(data.tokens);
-          // Clear the URL parameters
-          navigate('/setup', { replace: true });
+    if (stravaSuccess && !processedRef.current.has('strava_success')) {
+      processedRef.current.add('strava_success');
+      setProcessingOAuth(true);
+      (async () => {
+        try {
+          console.log('✅ Strava OAuth callback received');
+          // Fetch updated user data from backend
+          const sessionToken = localStorage.getItem('session_token');
+          const response = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${sessionToken}`
+            }
+          });
+          const data = await response.json();
+          if (data.success && data.user.stravaTokens) {
+            await onStravaAuth(data.user.stravaTokens);
+            console.log('✅ Tokens loaded successfully');
+          }
+          // Clear URL params after successful save
+          setSearchParams({});
+          setProcessingOAuth(false);
+        } catch (err) {
+          console.error('❌ Error processing Strava auth:', err);
+          setError('Failed to process Strava authentication');
+          setSearchParams({});
+          setProcessingOAuth(false);
         }
-      } catch (err) {
-        setError('Failed to process Strava authentication');
-      }
+      })();
     }
 
-    if (googleData) {
-      try {
-        const data = JSON.parse(decodeURIComponent(googleData));
-        if (data.success) {
-          onGoogleAuth(data.tokens);
-          // Clear the URL parameters
-          navigate('/setup', { replace: true });
+    if (googleData && !processedRef.current.has(googleData)) {
+      processedRef.current.add(googleData);
+      setProcessingOAuth(true);
+      (async () => {
+        try {
+          const data = JSON.parse(decodeURIComponent(googleData));
+          if (data.success) {
+            await onGoogleAuth(data.tokens);
+            setSearchParams({});
+            setProcessingOAuth(false);
+          }
+        } catch (err) {
+          setError('Failed to process Google authentication');
+          setSearchParams({});
+          setProcessingOAuth(false);
         }
-      } catch (err) {
-        setError('Failed to process Google authentication');
-      }
+      })();
     }
-  }, [searchParams]);
+  }, [searchParams, setSearchParams, onStravaAuth, onGoogleAuth]);
 
   const handleGoogleCallback = async (code) => {
     setLoading(true);
@@ -71,8 +97,18 @@ const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
 
   const connectStrava = async () => {
     try {
-      const response = await fetch('/api/strava/auth');
+      const sessionToken = localStorage.getItem('session_token');
+      if (!sessionToken) {
+        setError('Session expired. Please login again.');
+        navigate('/login');
+        return;
+      }
+      const response = await fetch(`/api/strava/auth?session_token=${sessionToken}&state=setup`);
       const data = await response.json();
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
       window.location.href = data.authUrl;
     } catch (err) {
       setError('Failed to initiate Strava authentication');
@@ -110,6 +146,14 @@ const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
             Connect your accounts to start training smarter
           </p>
         </div>
+
+        {/* Processing OAuth message */}
+        {processingOAuth && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 flex items-center gap-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-700"></div>
+            <span>Connecting your account...</span>
+          </div>
+        )}
 
         {/* Error message */}
         {error && (
@@ -187,8 +231,8 @@ const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
         </div>
 
         {/* Continue button */}
-        {stravaTokens && (
-          <div className="text-center">
+        <div className="text-center space-y-4">
+          {stravaTokens && (
             <Button
               onClick={continueToApp}
               size="lg"
@@ -196,8 +240,25 @@ const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
             >
               Continue to Dashboard
             </Button>
-          </div>
-        )}
+          )}
+          
+          {/* Skip button - allow users to continue without Strava */}
+          {!stravaTokens && (
+            <div>
+              <Button
+                onClick={() => navigate('/')}
+                variant="outline"
+                size="lg"
+                className="px-12"
+              >
+                Skip for Now
+              </Button>
+              <p className="text-sm text-gray-500 mt-2">
+                You can connect Strava later in Settings
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Info */}
         <div className="mt-12 text-center text-sm text-gray-500">

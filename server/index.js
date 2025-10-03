@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import authRoutes from './routes/auth.js';
 import stravaRoutes from './routes/strava.js';
 import googleRoutes from './routes/google.js';
 import trainingRoutes from './routes/training.js';
@@ -17,6 +18,7 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/strava', stravaRoutes);
 app.use('/api/google', googleRoutes);
 app.use('/api/training', trainingRoutes);

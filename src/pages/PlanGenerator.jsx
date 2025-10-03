@@ -18,7 +18,7 @@ import {
 } from '../lib/activityMatching';
 import confetti from 'canvas-confetti';
 
-const PlanGenerator = ({ stravaTokens, googleTokens }) => {
+const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const [activities, setActivities] = useState([]);
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -275,6 +275,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens }) => {
             maxHoursPerWeek: parseInt(formData.maxHoursPerWeek),
             preference: formData.preference,
           },
+          userProfile, // Pass user profile for personalized training
         }),
       });
 

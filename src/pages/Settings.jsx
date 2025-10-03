@@ -1,13 +1,175 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Activity, Calendar, LogOut, Trash2, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import StravaAttribution from '../components/StravaAttribution';
 
-const Settings = ({ stravaTokens, googleTokens, onLogout }) => {
+const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogleAuth }) => {
+  const [connecting, setConnecting] = useState(false);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const processedRef = useRef(new Set());
+
+  // Handle OAuth callbacks
+  useEffect(() => {
+    const stravaSuccess = searchParams.get('strava_success');
+    const googleData = searchParams.get('google_data');
+
+    if (stravaSuccess && !processedRef.current.has('strava_success')) {
+      processedRef.current.add('strava_success');
+      (async () => {
+        try {
+          console.log('✅ Strava OAuth callback received');
+          // Fetch updated user data from backend
+          const sessionToken = localStorage.getItem('session_token');
+          const response = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${sessionToken}`
+            }
+          });
+          const data = await response.json();
+          if (data.success && data.user.stravaTokens && onStravaAuth) {
+            await onStravaAuth(data.user.stravaTokens);
+            console.log('✅ Strava tokens loaded from Settings');
+          }
+          // Clear URL params to prevent re-processing
+          navigate('/settings', { replace: true });
+        } catch (err) {
+          console.error('Error processing Strava auth:', err);
+        }
+      })();
+    }
+
+    if (googleData && !processedRef.current.has(googleData)) {
+      processedRef.current.add(googleData);
+      (async () => {
+        try {
+          const data = JSON.parse(decodeURIComponent(googleData));
+          if (data.success && onGoogleAuth) {
+            await onGoogleAuth(data.tokens);
+            console.log('✅ Google tokens saved from Settings');
+            // Clear URL params to prevent re-processing
+            navigate('/settings', { replace: true });
+          }
+        } catch (err) {
+          console.error('Error processing Google auth:', err);
+        }
+      })();
+    }
+  }, [searchParams, onStravaAuth, onGoogleAuth, navigate]);
+
   const clearData = () => {
     if (confirm('Are you sure you want to clear all local data? This cannot be undone.')) {
       localStorage.clear();
       alert('All local data has been cleared.');
+    }
+  };
+
+  const connectStrava = async () => {
+    setConnecting(true);
+    try {
+      const sessionToken = localStorage.getItem('session_token');
+      if (!sessionToken) {
+        alert('Session expired. Please login again.');
+        navigate('/login');
+        return;
+      }
+      const response = await fetch(`/api/strava/auth?session_token=${sessionToken}&state=settings`);
+      const data = await response.json();
+      if (data.error) {
+        alert(data.error);
+        setConnecting(false);
+        return;
+      }
+      window.location.href = data.authUrl;
+    } catch (err) {
+      alert('Failed to initiate Strava authentication');
+      setConnecting(false);
+    }
+  };
+
+  const connectGoogle = async () => {
+    setConnecting(true);
+    try {
+      const response = await fetch('/api/google/auth');
+      const data = await response.json();
+      window.location.href = data.authUrl;
+    } catch (err) {
+      alert('Failed to initiate Google authentication');
+      setConnecting(false);
+    }
+  };
+
+  const disconnectStrava = async () => {
+    if (!confirm('Are you sure you want to disconnect Strava? Your activities will no longer sync.')) {
+      return;
+    }
+
+    setConnecting(true);
+    try {
+      const sessionToken = localStorage.getItem('session_token');
+      const response = await fetch('/api/auth/strava-tokens', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${sessionToken}`
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Clear tokens from state and localStorage
+        if (onStravaAuth) {
+          onStravaAuth(null);
+        }
+        localStorage.removeItem('strava_tokens');
+        alert('Strava disconnected successfully');
+        // Refresh page to update UI
+        window.location.reload();
+      } else {
+        alert('Failed to disconnect Strava');
+      }
+    } catch (err) {
+      console.error('Disconnect error:', err);
+      alert('Failed to disconnect Strava');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const disconnectGoogle = async () => {
+    if (!confirm('Are you sure you want to disconnect Google Calendar?')) {
+      return;
+    }
+
+    setConnecting(true);
+    try {
+      const sessionToken = localStorage.getItem('session_token');
+      const response = await fetch('/api/auth/google-tokens', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${sessionToken}`
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Clear tokens from state and localStorage
+        if (onGoogleAuth) {
+          onGoogleAuth(null);
+        }
+        localStorage.removeItem('google_tokens');
+        alert('Google Calendar disconnected successfully');
+        // Refresh page to update UI
+        window.location.reload();
+      } else {
+        alert('Failed to disconnect Google Calendar');
+      }
+    } catch (err) {
+      console.error('Disconnect error:', err);
+      alert('Failed to disconnect Google Calendar');
+    } finally {
+      setConnecting(false);
     }
   };
 
@@ -35,15 +197,36 @@ const Settings = ({ stravaTokens, googleTokens, onLogout }) => {
               <div>
                 <h3 className="font-medium text-gray-900">Strava</h3>
                 <p className="text-sm text-gray-600">Activity tracking and history</p>
+                {stravaTokens && (
+                  <StravaAttribution className="mt-1" />
+                )}
               </div>
             </div>
             {stravaTokens ? (
-              <div className="flex items-center gap-2 text-green-600">
-                <CheckCircle2 className="w-5 h-5" />
-                <span className="text-sm font-medium">Connected</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span className="text-sm font-medium">Connected</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={disconnectStrava}
+                  disabled={connecting}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  Disconnect
+                </Button>
               </div>
             ) : (
-              <Button variant="outline" size="sm">Connect</Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={connectStrava}
+                disabled={connecting}
+              >
+                {connecting ? 'Connecting...' : 'Connect'}
+              </Button>
             )}
           </div>
 
@@ -59,12 +242,30 @@ const Settings = ({ stravaTokens, googleTokens, onLogout }) => {
               </div>
             </div>
             {googleTokens ? (
-              <div className="flex items-center gap-2 text-green-600">
-                <CheckCircle2 className="w-5 h-5" />
-                <span className="text-sm font-medium">Connected</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span className="text-sm font-medium">Connected</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={disconnectGoogle}
+                  disabled={connecting}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  Disconnect
+                </Button>
               </div>
             ) : (
-              <Button variant="outline" size="sm">Connect</Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={connectGoogle}
+                disabled={connecting}
+              >
+                {connecting ? 'Connecting...' : 'Connect'}
+              </Button>
             )}
           </div>
         </CardContent>

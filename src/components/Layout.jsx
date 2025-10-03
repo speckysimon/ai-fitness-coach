@@ -1,12 +1,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Calendar, Target, Settings, LogOut, Zap, List, BookOpen, TrendingUp, Package, Trophy, User, Crosshair } from 'lucide-react';
+import { Activity, Calendar, Target, Settings, LogOut, Zap, List, BookOpen, TrendingUp, Package, Trophy, User, Crosshair, UserCircle } from 'lucide-react';
+import StravaAttribution from './StravaAttribution';
 
-const Layout = ({ children, onLogout }) => {
+const Layout = ({ children, onLogout, userProfile }) => {
   const location = useLocation();
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Activity },
+    { name: 'User Profile', href: '/profile', icon: UserCircle },
     { name: 'Rider Profile', href: '/rider-profile', icon: User },
     { name: 'Race Day Predictor', href: '/race-day-predictor', icon: Crosshair },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
@@ -25,14 +27,32 @@ const Layout = ({ children, onLogout }) => {
       <div className="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200">
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center gap-3 px-6 py-6 border-b border-gray-200">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">🎯</span>
+          <div className="px-6 py-6 border-b border-gray-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">🎯</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">AI Fitness Coach</h1>
+                <p className="text-xs text-gray-500">Train Smarter</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">AI Fitness Coach</h1>
-              <p className="text-xs text-gray-500">Train Smarter</p>
-            </div>
+            {/* User Info */}
+            {userProfile && (
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <UserCircle className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {userProfile.name || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {userProfile.email}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Navigation */}
@@ -64,8 +84,17 @@ const Layout = ({ children, onLogout }) => {
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
             >
               <Package className="w-4 h-4" />
-              <span>v1.3.0</span>
+              <span>v2.1.0</span>
             </Link>
+          </div>
+
+          {/* Strava Attribution */}
+          <div className="px-4 py-3 border-t border-gray-200">
+            <StravaAttribution className="px-4" />
+            <div className="px-4 mt-2 flex gap-3 text-xs text-gray-500">
+              <Link to="/privacy" className="hover:text-gray-700">Privacy</Link>
+              <Link to="/terms" className="hover:text-gray-700">Terms</Link>
+            </div>
           </div>
 
           {/* Logout */}

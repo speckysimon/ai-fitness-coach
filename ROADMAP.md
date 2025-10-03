@@ -106,31 +106,53 @@
 
 ### Priority 4: Data & Integration
 
-16. **Additional Platform Integrations**
+16. **Scaling & Infrastructure** ⚠️ **CRITICAL FOR GROWTH**
+    - **Current Limitation**: 100-200 daily active users due to Strava API limits
+    - **Phase 1 (Immediate - 2-3 hours)**: Database + Daily Sync
+      - Add SQLite/PostgreSQL for activity storage
+      - Implement daily background sync instead of real-time fetching
+      - Serve data from database (reduces API calls by 80-90%)
+      - **Result**: Support 500-800 users
+    - **Phase 2 (Short-term - 1-2 hours)**: Production Deployment
+      - Deploy to Railway/Render/Heroku
+      - Set up automated daily sync jobs
+      - Add monitoring and alerting
+    - **Phase 3 (When 100+ users - 4-8 hours)**: Strava Webhooks
+      - Implement webhook endpoint for real-time activity updates
+      - Subscribe to Strava push notifications
+      - Eliminate polling entirely
+      - **Result**: Support 10,000+ users
+    - **Phase 4 (When 100+ users - 1 hour)**: Apply for Strava Rate Limit Increase
+      - Request higher API limits from Strava
+      - Typical increases: 2-10x current limits
+      - **Result**: Support 1,000-5,000 users (without webhooks)
+    - **See**: `SCALING_STRATEGY.md` for detailed implementation guide
+
+17. **Additional Platform Integrations**
     - Zwift workout export
     - TrainingPeaks sync
     - Garmin Connect integration
     - Wahoo/Hammerhead bike computer sync
 
-17. **Multi-Sport Support**
+18. **Multi-Sport Support**
     - Running training plans
     - Triathlon training (swim/bike/run)
     - Cross-training recommendations
     - Sport-specific metrics
 
-18. **Database Backend**
+19. **Database Backend** (Partially covered by #16)
     - Move from localStorage to proper database
     - User authentication
     - Data backup and sync
     - Multi-device support
 
-19. **Coach Mode**
+20. **Coach Mode**
     - Multi-athlete management
     - Coach dashboard
     - Plan assignment and tracking
     - Communication tools
 
-20. **Social Features**
+21. **Social Features**
     - Training groups
     - Challenge friends
     - Leaderboards
@@ -138,31 +160,31 @@
 
 ### Priority 5: Advanced Features
 
-21. **Nutrition Planning**
+22. **Nutrition Planning**
     - Race-specific fueling strategies
     - Training nutrition recommendations
     - Macro tracking integration
     - Supplement timing
 
-22. **Equipment Recommendations**
+23. **Equipment Recommendations**
     - Gear suggestions based on race profile
     - Tire pressure calculator
     - Bike fit integration
     - Power meter recommendations
 
-23. **Recovery Optimization**
+24. **Recovery Optimization**
     - Sleep tracking integration
     - Recovery score calculation
     - Active recovery suggestions
     - Injury prevention exercises
 
-24. **Performance Prediction**
+25. **Performance Prediction**
     - Race time predictions based on training
     - FTP progression forecasting
     - Peak performance date optimization
     - Confidence intervals
 
-25. **AI Coach Chat**
+26. **AI Coach Chat**
     - Conversational AI for training questions
     - Personalized advice
     - Form analysis from descriptions
@@ -222,6 +244,14 @@
 
 ---
 
-**Last Updated**: October 1, 2025
-**Version**: 2.0.0
+**Last Updated**: October 3, 2025
+**Version**: 2.1.0
 **Next Review**: October 15, 2025
+
+---
+
+## 📄 Related Documents
+
+- **[SCALING_STRATEGY.md](SCALING_STRATEGY.md)** - Detailed scaling implementation guide
+- **[STRAVA_COMPLIANCE.md](STRAVA_COMPLIANCE.md)** - Strava API compliance documentation
+- **[README.md](README.md)** - Project overview and setup

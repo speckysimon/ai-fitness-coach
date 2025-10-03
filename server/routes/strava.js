@@ -1,19 +1,65 @@
 import express from 'express';
 import axios from 'axios';
 import { stravaService } from '../services/stravaService.js';
+import { sessionDb, stravaTokenDb } from '../db.js';
+import crypto from 'crypto';
 
 const router = express.Router();
 
+// Store pending OAuth states (session_token -> state)
+const pendingOAuthStates = new Map();
+
 // Strava OAuth flow
 router.get('/auth', (req, res) => {
-  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${process.env.STRAVA_CLIENT_ID}&response_type=code&redirect_uri=${process.env.STRAVA_REDIRECT_URI}&approval_prompt=force&scope=activity:read_all`;
+  const sessionToken = req.query.session_token;
+  const page = req.query.state || 'setup'; // 'setup' or 'settings'
+  
+  if (!sessionToken) {
+    return res.status(401).json({ error: 'Session token required' });
+  }
+  
+  // Verify session exists
+  const session = sessionDb.findByToken(sessionToken);
+  if (!session) {
+    return res.status(401).json({ error: 'Invalid session token' });
+  }
+  
+  // Generate a unique state for this OAuth flow
+  const state = crypto.randomBytes(16).toString('hex');
+  pendingOAuthStates.set(state, { sessionToken, page });
+  
+  // Clean up old states after 10 minutes
+  setTimeout(() => pendingOAuthStates.delete(state), 10 * 60 * 1000);
+  
+  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${process.env.STRAVA_CLIENT_ID}&response_type=code&redirect_uri=${process.env.STRAVA_REDIRECT_URI}&approval_prompt=force&scope=activity:read_all&state=${state}`;
   res.json({ authUrl });
 });
 
 router.get('/callback', async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
+  
+  console.log('🔵 Strava callback hit with code:', code ? 'YES' : 'NO');
+  console.log('🔵 State:', state);
   
   try {
+    // Verify state and get session info
+    const oauthData = pendingOAuthStates.get(state);
+    if (!oauthData) {
+      console.error('❌ Invalid or expired OAuth state');
+      return res.redirect(`http://localhost:3000/setup?error=${encodeURIComponent('Invalid or expired authentication request')}`);
+    }
+    
+    // Clean up the state
+    pendingOAuthStates.delete(state);
+    
+    // Verify session is still valid
+    const session = sessionDb.findByToken(oauthData.sessionToken);
+    if (!session) {
+      console.error('❌ Session expired');
+      return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent('Session expired, please login again')}`);
+    }
+    
+    console.log('🔵 Exchanging code for tokens...');
     const response = await axios.post('https://www.strava.com/oauth/token', {
       client_id: process.env.STRAVA_CLIENT_ID,
       client_secret: process.env.STRAVA_CLIENT_SECRET,
@@ -22,25 +68,34 @@ router.get('/callback', async (req, res) => {
     });
 
     const { access_token, refresh_token, expires_at, athlete } = response.data;
+    console.log('🔵 Tokens received from Strava');
+    console.log('🔵 Athlete:', athlete?.firstname, athlete?.lastname);
     
-    // Encode the tokens and athlete data to pass to frontend
-    const data = encodeURIComponent(JSON.stringify({
-      success: true,
-      tokens: { access_token, refresh_token, expires_at },
+    // Save tokens to database
+    stravaTokenDb.upsert(session.user_id, {
+      access_token,
+      refresh_token,
+      expires_at,
       athlete,
-    }));
+    });
     
-    // Redirect back to frontend with data
-    res.redirect(`http://localhost:3000/setup?strava_data=${data}`);
+    console.log('✅ Strava tokens saved to database for user:', session.user_id);
+    
+    // Redirect back to frontend
+    const redirectPath = oauthData.page === 'settings' ? 'settings' : 'setup';
+    const redirectUrl = `http://localhost:3000/${redirectPath}?strava_success=true`;
+    console.log('🔵 Redirecting to:', redirectUrl);
+    
+    res.redirect(redirectUrl);
   } catch (error) {
-    console.error('Strava OAuth error:', error.response?.data || error.message);
+    console.error('❌ Strava OAuth error:', error.response?.data || error.message);
     res.redirect(`http://localhost:3000/setup?error=${encodeURIComponent('Failed to authenticate with Strava')}`);
   }
 });
 
 // Get athlete activities
 router.get('/activities', async (req, res) => {
-  const { access_token, before, after, page = 1, per_page = 30 } = req.query;
+  const { access_token, before, after, page = 1, per_page = 30, user_id } = req.query;
   
   if (!access_token) {
     return res.status(401).json({ error: 'Access token required' });
@@ -52,12 +107,32 @@ router.get('/activities', async (req, res) => {
       after,
       page,
       per_page,
-    });
+    }, user_id);
     
     res.json(activities);
   } catch (error) {
     console.error('Error fetching activities:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to fetch activities' });
+    
+    // Check if it's a rate limit error
+    if (error.message && error.message.includes('rate limit')) {
+      return res.status(429).json({ 
+        error: error.message,
+        rateLimitExceeded: true 
+      });
+    }
+    
+    // Check if it's an authentication error
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      return res.status(401).json({ 
+        error: 'Invalid or expired access token',
+        requiresReauth: true 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to fetch activities',
+      details: error.response?.data?.message || error.message 
+    });
   }
 });
 
