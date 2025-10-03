@@ -809,7 +809,15 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                       const completionStatus = getCompletionStatus(sessionKey, merged, automaticMatches);
                       const isCompleted = completion && completion.completed;
                       const isMissed = completion && completion.missed;
-                      const isPastSession = session.date && new Date(session.date) < new Date();
+                      
+                      // Check if session date has passed (compare date only, not time)
+                      const isPastSession = session.date && (() => {
+                        const sessionDate = new Date(session.date);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        sessionDate.setHours(0, 0, 0, 0);
+                        return sessionDate < today;
+                      })();
                       
                       return (
                         <div
