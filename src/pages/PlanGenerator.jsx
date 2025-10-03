@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Calendar as CalendarIcon, Sparkles, Send, CheckCircle, Circle, TrendingUp, Clock, RefreshCw, CalendarPlus, Award, Info, Zap as ZapIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Target, Calendar as CalendarIcon, Sparkles, Send, CheckCircle, Circle, TrendingUp, Clock, RefreshCw, CalendarPlus, Award, Info, Zap as ZapIcon, ChevronDown, ChevronUp, X, AlertCircle, Calendar, User } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import SessionHoverModal from '../components/SessionHoverModal';
@@ -32,6 +32,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const [planLoadedFromStorage, setPlanLoadedFromStorage] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isFormExpanded, setIsFormExpanded] = useState(true);
+  const [showMissedDropdown, setShowMissedDropdown] = useState(null);
   const [formData, setFormData] = useState({
     eventName: '',
     eventDate: '',
@@ -68,6 +69,18 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       setAutomaticMatches(matches);
     }
   }, [plan, activities]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (showMissedDropdown) {
+        setShowMissedDropdown(null);
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showMissedDropdown]);
 
   const toggleSessionComplete = (weekNum, sessionIdx) => {
     const key = `${weekNum}-${sessionIdx}`;
@@ -118,6 +131,34 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   };
 
   const handleRemoveMatch = (sessionKey) => {
+    const newCompleted = {
+      ...completedSessions,
+      [sessionKey]: null
+    };
+    
+    setCompletedSessions(newCompleted);
+    localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
+  };
+
+  const markSessionMissed = (sessionKey, reason) => {
+    const newCompleted = {
+      ...completedSessions,
+      [sessionKey]: {
+        completed: false,
+        missed: true,
+        missedReason: reason,
+        missedDate: new Date().toISOString().split('T')[0],
+        activity: null,
+        alignmentScore: 0
+      }
+    };
+    
+    setCompletedSessions(newCompleted);
+    localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
+    setShowMissedDropdown(null);
+  };
+
+  const undoMissed = (sessionKey) => {
     const newCompleted = {
       ...completedSessions,
       [sessionKey]: null
@@ -767,6 +808,8 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                       const completion = merged[sessionKey];
                       const completionStatus = getCompletionStatus(sessionKey, merged, automaticMatches);
                       const isCompleted = completion && completion.completed;
+                      const isMissed = completion && completion.missed;
+                      const isPastSession = session.date && new Date(session.date) < new Date();
                       
                       return (
                         <div
@@ -774,6 +817,8 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                           className={`p-4 border-2 rounded-lg transition-all cursor-pointer ${
                             isCompleted 
                               ? `${completionStatus.borderColor} ${completionStatus.bgColor}` 
+                              : isMissed
+                              ? 'border-red-200 bg-red-50'
                               : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
                           }`}
                           onClick={() => setHoveredSession(session)}
@@ -790,7 +835,11 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                               }`} />
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <h4 className={`font-semibold ${isCompleted ? `${completionStatus.color} line-through` : 'text-gray-900'}`}>
+                                  <h4 className={`font-semibold ${
+                                    isCompleted ? `${completionStatus.color} line-through` : 
+                                    isMissed ? 'text-red-700 line-through' :
+                                    'text-gray-900'
+                                  }`}>
                                     {session.title}
                                   </h4>
                                   <span className={`px-2 py-0.5 text-xs rounded font-medium ${
@@ -803,8 +852,18 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                   }`}>
                                     {session.type}
                                   </span>
+                                  {isMissed && (
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded font-semibold">
+                                      <X className="w-3 h-3" />
+                                      Missed: {completion.missedReason}
+                                    </span>
+                                  )}
                                 </div>
-                                <p className={`text-sm mt-1 ${isCompleted ? 'text-green-700' : 'text-gray-600'}`}>
+                                <p className={`text-sm mt-1 ${
+                                  isCompleted ? 'text-green-700' : 
+                                  isMissed ? 'text-red-700' :
+                                  'text-gray-600'
+                                }`}>
                                   {session.description}
                                 </p>
                                 <div className="flex items-center gap-4 mt-2 text-xs flex-wrap">
@@ -855,26 +914,100 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                 </div>
                               </div>
                             </div>
-                            <Button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleSessionComplete(week.weekNumber, idx);
-                              }}
-                              variant={isCompleted ? "default" : "outline"}
-                              className={`ml-4 ${isCompleted ? 'bg-green-600 hover:bg-green-700' : ''}`}
-                            >
-                              {isCompleted ? (
-                                <>
-                                  <CheckCircle className="w-4 h-4 mr-2" />
-                                  Completed
-                                </>
+                            <div className="ml-4 flex gap-2">
+                              {isMissed ? (
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    undoMissed(sessionKey);
+                                  }}
+                                  variant="outline"
+                                  className="border-red-300 text-red-700 hover:bg-red-50"
+                                >
+                                  <RefreshCw className="w-4 h-4 mr-2" />
+                                  Undo Missed
+                                </Button>
                               ) : (
                                 <>
-                                  <Circle className="w-4 h-4 mr-2" />
-                                  Mark Complete
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleSessionComplete(week.weekNumber, idx);
+                                    }}
+                                    variant={isCompleted ? "default" : "outline"}
+                                    className={isCompleted ? 'bg-green-600 hover:bg-green-700' : ''}
+                                  >
+                                    {isCompleted ? (
+                                      <>
+                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                        Completed
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Circle className="w-4 h-4 mr-2" />
+                                        Mark Complete
+                                      </>
+                                    )}
+                                  </Button>
+                                  
+                                  {isPastSession && !isCompleted && (
+                                    <div className="relative">
+                                      <Button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowMissedDropdown(showMissedDropdown === sessionKey ? null : sessionKey);
+                                        }}
+                                        variant="outline"
+                                        className="border-red-300 text-red-700 hover:bg-red-50"
+                                      >
+                                        <X className="w-4 h-4 mr-2" />
+                                        Mark Missed
+                                      </Button>
+                                      
+                                      {showMissedDropdown === sessionKey && (
+                                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border-2 border-gray-200 z-10">
+                                          <div className="p-2">
+                                            <div className="text-xs font-semibold text-gray-500 px-3 py-2">
+                                              Reason for missing:
+                                            </div>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                markSessionMissed(sessionKey, 'Illness');
+                                              }}
+                                              className="w-full text-left px-3 py-2 hover:bg-red-50 rounded flex items-center gap-2 text-sm"
+                                            >
+                                              <AlertCircle className="w-4 h-4 text-red-600" />
+                                              Illness
+                                            </button>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                markSessionMissed(sessionKey, 'Schedule Conflict');
+                                              }}
+                                              className="w-full text-left px-3 py-2 hover:bg-red-50 rounded flex items-center gap-2 text-sm"
+                                            >
+                                              <Calendar className="w-4 h-4 text-red-600" />
+                                              Schedule Conflict
+                                            </button>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                markSessionMissed(sessionKey, 'Other');
+                                              }}
+                                              className="w-full text-left px-3 py-2 hover:bg-red-50 rounded flex items-center gap-2 text-sm"
+                                            >
+                                              <User className="w-4 h-4 text-red-600" />
+                                              Other
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </>
                               )}
-                            </Button>
+                            </div>
                           </div>
                         </div>
                       );
