@@ -220,25 +220,141 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
     return { completed, total, percentage, autoMatched, manual };
   };
 
-  const loadActivities = async () => {
-    try {
-      const sixWeeksAgo = Math.floor(Date.now() / 1000) - (6 * 7 * 24 * 60 * 60);
-      const response = await fetch(
-        `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${sixWeeksAgo}&per_page=100`
-      );
-      const data = await response.json();
-      setActivities(data);
+  const refreshAccessToken = async () => {
+    if (!stravaTokens?.refresh_token) {
+      throw new Error('No refresh token available');
+    }
 
-      // Calculate FTP for power targets
-      const ftpResponse = await fetch('/api/analytics/ftp', {
+    try {
+      const response = await fetch('/api/strava/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activities: data }),
+        body: JSON.stringify({ refresh_token: stravaTokens.refresh_token }),
       });
-      const ftpData = await ftpResponse.json();
-      setFtp(ftpData.ftp);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.requiresReauth) {
+          throw new Error('REAUTH_REQUIRED');
+        }
+        throw new Error(errorData.error || 'Failed to refresh token');
+      }
+
+      const data = await response.json();
+      
+      // Backend returns { success: true, tokens: {...} }
+      const tokenData = data.tokens || data;
+      
+      // Update tokens in localStorage
+      const newTokens = {
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expires_at: tokenData.expires_at,
+      };
+      localStorage.setItem('strava_tokens', JSON.stringify(newTokens));
+      
+      return newTokens;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      throw error;
+    }
+  };
+
+  const loadActivities = async () => {
+    if (!stravaTokens) {
+      console.log('No Strava tokens available');
+      return;
+    }
+
+    try {
+      let tokensToUse = { ...stravaTokens };
+      
+      // Check if token is expired and refresh if needed
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      if (tokensToUse.expires_at && tokensToUse.expires_at < nowSeconds) {
+        console.log('Plan Generator - Token expired, refreshing...');
+        try {
+          tokensToUse = await refreshAccessToken();
+        } catch (refreshError) {
+          if (refreshError.message === 'REAUTH_REQUIRED') {
+            alert('Your Strava session has expired. Please reconnect Strava in Settings.');
+            return;
+          }
+          throw refreshError;
+        }
+      }
+
+      const sixWeeksAgo = Math.floor(Date.now() / 1000) - (6 * 7 * 24 * 60 * 60);
+      const response = await fetch(
+        `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100`
+      );
+
+      // Handle 401/403 errors by refreshing token and retrying
+      if (response.status === 401 || response.status === 403) {
+        console.log('Plan Generator - Got 401/403, attempting token refresh...');
+        try {
+          const newTokens = await refreshAccessToken();
+          console.log('Plan Generator - Token refreshed successfully');
+          console.log('Plan Generator - New token:', newTokens.access_token.substring(0, 20) + '...');
+          
+          // Wait a moment for token to propagate
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Retry the request with new token
+          const retryResponse = await fetch(
+            `/api/strava/activities?access_token=${newTokens.access_token}&after=${sixWeeksAgo}&per_page=100`
+          );
+          
+          console.log('Plan Generator - Retry response status:', retryResponse.status);
+          
+          if (retryResponse.ok) {
+            const data = await retryResponse.json();
+            console.log('Plan Generator - Retry successful, loaded activities:', data.length);
+            setActivities(data);
+
+            // Calculate FTP for power targets
+            const ftpResponse = await fetch('/api/analytics/ftp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ activities: data }),
+            });
+            const ftpData = await ftpResponse.json();
+            setFtp(ftpData.ftp);
+            return;
+          } else {
+            const errorText = await retryResponse.text();
+            console.error('Retry failed with status:', retryResponse.status, 'Response:', errorText);
+            // Continue to try parsing the original response
+          }
+        } catch (refreshError) {
+          console.error('Token refresh error:', refreshError);
+          // Continue to try parsing the original response
+        }
+      }
+
+      // Try to parse response even if status isn't perfect
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Plan Generator - Loaded activities:', data.length);
+        setActivities(data);
+
+        // Calculate FTP for power targets
+        const ftpResponse = await fetch('/api/analytics/ftp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activities: data }),
+        });
+        const ftpData = await ftpResponse.json();
+        setFtp(ftpData.ftp);
+      } else {
+        console.error('Failed to fetch activities, status:', response.status);
+        setActivities([]);
+        setFtp(null);
+      }
     } catch (error) {
       console.error('Error loading activities:', error);
+      setActivities([]);
+      setFtp(null);
     }
   };
 
@@ -907,18 +1023,26 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                   {!isCompleted && automaticMatches[sessionKey] && automaticMatches[sessionKey].matched && (
                                     <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded font-semibold">
                                       <ZapIcon className="w-3 h-3" />
-                                      Activity found ({automaticMatches[sessionKey].alignmentScore}%)
+                                      Activity found ({Math.round(automaticMatches[sessionKey].alignmentScore)}%)
                                     </span>
                                   )}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openMatchModal(session, sessionKey);
-                                    }}
-                                    className="text-blue-600 font-medium hover:text-blue-800 transition-colors"
-                                  >
-                                    View Match
-                                  </button>
+                                  {!isCompleted && automaticMatches[sessionKey] && !automaticMatches[sessionKey].matched && automaticMatches[sessionKey].activity && automaticMatches[sessionKey].activity.id && automaticMatches[sessionKey].alignmentScore > 0 && (
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-semibold">
+                                      <AlertCircle className="w-3 h-3" />
+                                      Low match ({Math.round(automaticMatches[sessionKey].alignmentScore)}%)
+                                    </span>
+                                  )}
+                                  {automaticMatches[sessionKey] && automaticMatches[sessionKey].activity && automaticMatches[sessionKey].activity.id && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openMatchModal(session, sessionKey);
+                                      }}
+                                      className="text-blue-600 font-medium hover:text-blue-800 transition-colors"
+                                    >
+                                      View Match
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             </div>

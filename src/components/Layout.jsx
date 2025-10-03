@@ -7,7 +7,7 @@ const Layout = ({ children, onLogout, userProfile }) => {
   const location = useLocation();
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Activity },
+    { name: 'Dashboard', href: '/dashboard', icon: Activity },
     { name: 'User Profile', href: '/profile', icon: UserCircle },
     { name: 'Rider Profile', href: '/rider-profile', icon: User },
     { name: 'Race Day Predictor', href: '/race-day-predictor', icon: Crosshair },

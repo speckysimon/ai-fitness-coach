@@ -9,7 +9,11 @@ export const matchActivitiesToPlan = (plan, activities) => {
 
   // Create a map of activities by date for quick lookup
   activities.forEach(activity => {
-    const activityDate = new Date(activity.date).toISOString().split('T')[0];
+    // Handle different date field names from Strava API
+    const dateStr = activity.start_date_local || activity.start_date || activity.date;
+    if (!dateStr) return;
+    
+    const activityDate = new Date(dateStr).toISOString().split('T')[0];
     if (!activityMap.has(activityDate)) {
       activityMap.set(activityDate, []);
     }
@@ -24,14 +28,43 @@ export const matchActivitiesToPlan = (plan, activities) => {
 
       if (!sessionDate) return;
 
-      const dayActivities = activityMap.get(sessionDate) || [];
+      // Check for activities on the planned date and ±2 days
+      let dayActivities = activityMap.get(sessionDate) || [];
+      let dateOffset = 0;
+      
+      // If no exact match, check nearby dates (±2 days)
+      if (dayActivities.length === 0) {
+        for (let offset = 1; offset <= 2; offset++) {
+          // Check day before
+          const dateBefore = new Date(sessionDate);
+          dateBefore.setDate(dateBefore.getDate() - offset);
+          const beforeStr = dateBefore.toISOString().split('T')[0];
+          const activitiesBefore = activityMap.get(beforeStr) || [];
+          
+          // Check day after
+          const dateAfter = new Date(sessionDate);
+          dateAfter.setDate(dateAfter.getDate() + offset);
+          const afterStr = dateAfter.toISOString().split('T')[0];
+          const activitiesAfter = activityMap.get(afterStr) || [];
+          
+          if (activitiesBefore.length > 0) {
+            dayActivities = activitiesBefore;
+            dateOffset = -offset;
+            break;
+          } else if (activitiesAfter.length > 0) {
+            dayActivities = activitiesAfter;
+            dateOffset = offset;
+            break;
+          }
+        }
+      }
       
       if (dayActivities.length === 0) {
         matches[sessionKey] = {
           matched: false,
           activity: null,
           alignmentScore: 0,
-          reason: 'No activity found on this date'
+          reason: 'No activity found within ±2 days'
         };
         return;
       }
@@ -50,17 +83,26 @@ export const matchActivitiesToPlan = (plan, activities) => {
 
       // Consider it a match if score is above threshold (60%)
       if (bestScore >= 60) {
+        let reason = getMatchReason(bestScore);
+        if (dateOffset !== 0) {
+          const dayText = dateOffset === 1 ? '1 day later' : dateOffset === -1 ? '1 day earlier' : 
+                         dateOffset > 0 ? `${dateOffset} days later` : `${Math.abs(dateOffset)} days earlier`;
+          reason = `${reason} (done ${dayText})`;
+        }
+        
         matches[sessionKey] = {
           matched: true,
           activity: bestMatch,
           alignmentScore: bestScore,
-          reason: getMatchReason(bestScore)
+          dateOffset: dateOffset,
+          reason: reason
         };
       } else {
         matches[sessionKey] = {
           matched: false,
           activity: bestMatch,
           alignmentScore: bestScore,
+          dateOffset: dateOffset,
           reason: 'Activity found but does not match session requirements'
         };
       }

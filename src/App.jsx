@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import ProfileSetup from './pages/ProfileSetup';
@@ -200,6 +201,18 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Landing Page */}
+        <Route
+          path="/"
+          element={
+            !isAuthenticated ? (
+              <Landing />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+
         {/* Login Route */}
         <Route
           path="/login"
@@ -207,7 +220,7 @@ function App() {
             !isAuthenticated ? (
               <Login onLogin={handleLogin} />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to="/dashboard" replace />
             )
           }
         />
@@ -236,7 +249,7 @@ function App() {
               <Layout onLogout={handleLogout} userProfile={userProfile}>
                 <Routes>
                   <Route
-                    path="/"
+                    path="/dashboard"
                     element={
                       <Dashboard
                         stravaTokens={stravaTokens}
