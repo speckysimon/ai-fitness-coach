@@ -1,11 +1,36 @@
 import express from 'express';
 import { google } from 'googleapis';
 import { googleCalendarService } from '../services/googleCalendarService.js';
+import { sessionDb, googleTokenDb } from '../db.js';
+import crypto from 'crypto';
 
 const router = express.Router();
 
+// Store pending OAuth states (state -> session_token)
+const pendingOAuthStates = new Map();
+
 // Google OAuth flow
 router.get('/auth', (req, res) => {
+  const sessionToken = req.query.session_token;
+  const page = req.query.state || 'settings'; // 'setup' or 'settings'
+  
+  if (!sessionToken) {
+    return res.status(401).json({ error: 'Session token required' });
+  }
+  
+  // Verify session exists
+  const session = sessionDb.findByToken(sessionToken);
+  if (!session) {
+    return res.status(401).json({ error: 'Invalid session token' });
+  }
+  
+  // Generate a unique state for this OAuth flow
+  const state = crypto.randomBytes(16).toString('hex');
+  pendingOAuthStates.set(state, { sessionToken, page });
+  
+  // Clean up old states after 10 minutes
+  setTimeout(() => pendingOAuthStates.delete(state), 10 * 60 * 1000);
+  
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
@@ -15,15 +40,40 @@ router.get('/auth', (req, res) => {
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: ['https://www.googleapis.com/auth/calendar'],
+    state: state,
+    prompt: 'consent', // Force consent screen to get refresh token
   });
 
   res.json({ authUrl });
 });
 
 router.get('/callback', async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
+  
+  console.log('🟢 Google callback hit with code:', code ? 'YES' : 'NO');
+  console.log('🟢 State:', state);
+  
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   
   try {
+    // Verify state and get session info
+    const oauthData = pendingOAuthStates.get(state);
+    if (!oauthData) {
+      console.error('❌ Invalid or expired OAuth state');
+      return res.redirect(`${frontendUrl}/settings?error=${encodeURIComponent('Invalid or expired authentication request')}`);
+    }
+    
+    // Clean up the state
+    pendingOAuthStates.delete(state);
+    
+    // Verify session is still valid
+    const session = sessionDb.findByToken(oauthData.sessionToken);
+    if (!session) {
+      console.error('❌ Session expired');
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Session expired, please login again')}`);
+    }
+    
+    console.log('🟢 Exchanging code for tokens...');
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -31,18 +81,26 @@ router.get('/callback', async (req, res) => {
     );
 
     const { tokens } = await oauth2Client.getToken(code);
+    console.log('🟢 Tokens received from Google');
     
-    // Encode the tokens to pass to frontend
-    const data = encodeURIComponent(JSON.stringify({
-      success: true,
-      tokens,
-    }));
+    // Save tokens to database
+    googleTokenDb.upsert(session.user_id, {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_at: tokens.expiry_date,
+    });
     
-    // Redirect back to frontend with data
-    res.redirect(`http://localhost:3000/setup?google_data=${data}`);
+    console.log('✅ Google tokens saved to database for user:', session.user_id);
+    
+    // Redirect back to frontend
+    const redirectPath = oauthData.page === 'settings' ? 'settings' : 'settings';
+    const redirectUrl = `${frontendUrl}/${redirectPath}?google_success=true`;
+    console.log('🟢 Redirecting to:', redirectUrl);
+    
+    res.redirect(redirectUrl);
   } catch (error) {
-    console.error('Google OAuth error:', error.message);
-    res.redirect(`http://localhost:3000/setup?error=${encodeURIComponent('Failed to authenticate with Google')}`);
+    console.error('❌ Google OAuth error:', error.response?.data || error.message);
+    res.redirect(`${frontendUrl}/settings?error=${encodeURIComponent('Failed to authenticate with Google Calendar')}`);
   }
 });
 

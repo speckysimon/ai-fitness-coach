@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Zap, TrendingUp, Mountain, AlertTriangle, Calendar, Trophy, Target, X, Info } from 'lucide-react';
+import { User, Zap, TrendingUp, Mountain, AlertTriangle, Calendar, Trophy, Target, X, Info, Heart, Activity as ActivityIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -15,6 +15,11 @@ const RiderProfile = ({ stravaTokens }) => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ftp, setFtp] = useState(null);
+  const [manualFTP, setManualFTP] = useState('');
+  const [fthr, setFthr] = useState(null);
+  const [manualFTHR, setManualFTHR] = useState('');
+  const [hrZones, setHrZones] = useState(null);
+  const [userProfile, setUserProfile] = useState({ weight: 0, height: 0 });
   const [riderProfile, setRiderProfile] = useState(null);
   const [recentProfile, setRecentProfile] = useState(null);
   const [powerCurve, setPowerCurve] = useState(null);
@@ -22,10 +27,78 @@ const RiderProfile = ({ stravaTokens }) => {
   const [insights, setInsights] = useState([]);
   const [efficiencyMetrics, setEfficiencyMetrics] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [zoneModel, setZoneModel] = useState('5-zone'); // HR zone model
+  const [maxHR, setMaxHR] = useState(''); // Optional max HR for 7-zone
+  const [showZoneInfoModal, setShowZoneInfoModal] = useState(false);
+
+  // Load user profile data (weight, height)
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('current_user');
+    if (savedProfile) {
+      try {
+        const profile = JSON.parse(savedProfile);
+        setUserProfile({
+          weight: profile.weight || 0,
+          height: profile.height || 0
+        });
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    }
+  }, []);
+
+  // Load FTP and FTHR from cached metrics
+  useEffect(() => {
+    // Check for manual FTP first
+    const savedManualFTP = localStorage.getItem('manual_ftp');
+    if (savedManualFTP) {
+      setManualFTP(savedManualFTP);
+      setFtp(parseInt(savedManualFTP));
+    } else {
+      // Otherwise load from cached metrics
+      const cachedMetrics = localStorage.getItem('cached_metrics');
+      if (cachedMetrics) {
+        try {
+          const metrics = JSON.parse(cachedMetrics);
+          setFtp(metrics.ftp || null);
+        } catch (error) {
+          console.error('Error loading cached metrics:', error);
+        }
+      }
+    }
+
+    // Load manual FTHR from localStorage
+    const savedManualFTHR = localStorage.getItem('manual_fthr');
+    if (savedManualFTHR) {
+      setManualFTHR(savedManualFTHR);
+    }
+
+    // Load HR zone model preference
+    const savedZoneModel = localStorage.getItem('hr_zone_model');
+    if (savedZoneModel) {
+      setZoneModel(savedZoneModel);
+    }
+
+    // Load max HR
+    const savedMaxHR = localStorage.getItem('max_hr');
+    if (savedMaxHR) {
+      setMaxHR(savedMaxHR);
+    }
+  }, []);
+
+  // Calculate FTHR when activities, manual FTHR, or zone model changes
+  useEffect(() => {
+    if (activities.length > 0) {
+      calculateFTHR(activities, manualFTHR);
+    }
+  }, [activities, manualFTHR, zoneModel, maxHR]);
 
   useEffect(() => {
     if (stravaTokens) {
       loadProfileData();
+    } else {
+      // No Strava tokens, stop loading
+      setLoading(false);
     }
   }, [stravaTokens]);
 
@@ -48,12 +121,22 @@ const RiderProfile = ({ stravaTokens }) => {
       }
 
       setActivities(allActivities);
-      const cachedMetrics = localStorage.getItem('cached_metrics');
+      
+      // Get FTP for classification - check manual override first, then cached metrics
       let currentFtp = null;
-      if (cachedMetrics) {
-        const metrics = JSON.parse(cachedMetrics);
-        currentFtp = metrics.ftp;
+      const manualFtpValue = localStorage.getItem('manual_ftp');
+      if (manualFtpValue) {
+        currentFtp = parseInt(manualFtpValue);
+        console.log('🔧 Using manual FTP for classification:', currentFtp);
+      } else {
+        const cachedMetrics = localStorage.getItem('cached_metrics');
+        if (cachedMetrics) {
+          const metrics = JSON.parse(cachedMetrics);
+          currentFtp = metrics.ftp;
+          console.log('📊 Using cached FTP for classification:', currentFtp);
+        }
       }
+      console.log('⚡ Final FTP for rider type classification:', currentFtp);
 
       // Calculate power curve for full season
       const curve = calculatePowerCurve(allActivities);
@@ -61,6 +144,9 @@ const RiderProfile = ({ stravaTokens }) => {
 
       // Classify rider type for full season
       const profile = classifyRiderType(allActivities, curve, currentFtp);
+      console.log('🚴 Rider Profile calculated:', profile);
+      console.log('🚴 Has scores?', profile?.scores);
+      console.log('🚴 Profile type:', profile?.type);
       setRiderProfile(profile);
 
       // Calculate recent profile (last 3 months)
@@ -88,6 +174,84 @@ const RiderProfile = ({ stravaTokens }) => {
       console.error('Error loading profile data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const calculateFTHR = async (acts, manual) => {
+    try {
+      const manualValue = manual && !isNaN(parseInt(manual)) ? parseInt(manual) : null;
+      const maxHRValue = maxHR && !isNaN(parseInt(maxHR)) ? parseInt(maxHR) : null;
+      
+      const response = await fetch('/api/analytics/fthr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          activities: acts,
+          manualFTHR: manualValue,
+          zoneModel: zoneModel,
+          maxHR: maxHRValue
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFthr(data.fthr);
+        setHrZones(data.zones);
+      }
+    } catch (error) {
+      console.error('Error calculating FTHR:', error);
+    }
+  };
+
+  const handleZoneModelChange = (newModel) => {
+    setZoneModel(newModel);
+    localStorage.setItem('hr_zone_model', newModel);
+    
+    // Recalculate zones with new model
+    if (activities.length > 0) {
+      calculateFTHR(activities, manualFTHR);
+    }
+  };
+
+  const handleMaxHRChange = (e) => {
+    const value = e.target.value;
+    setMaxHR(value);
+    
+    if (value) {
+      localStorage.setItem('max_hr', value);
+    } else {
+      localStorage.removeItem('max_hr');
+    }
+  };
+
+  const handleManualFTPChange = (e) => {
+    const value = e.target.value;
+    setManualFTP(value);
+    
+    // Save to localStorage and update current FTP
+    if (value) {
+      localStorage.setItem('manual_ftp', value);
+      setFtp(parseInt(value));
+    } else {
+      localStorage.removeItem('manual_ftp');
+      // Reload from cached metrics
+      const cachedMetrics = localStorage.getItem('cached_metrics');
+      if (cachedMetrics) {
+        const metrics = JSON.parse(cachedMetrics);
+        setFtp(metrics.ftp || null);
+      }
+    }
+  };
+
+  const handleManualFTHRChange = (e) => {
+    const value = e.target.value;
+    setManualFTHR(value);
+    
+    // Save to localStorage
+    if (value) {
+      localStorage.setItem('manual_fthr', value);
+    } else {
+      localStorage.removeItem('manual_fthr');
     }
   };
 
@@ -149,9 +313,41 @@ const RiderProfile = ({ stravaTokens }) => {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Analyzing your rider profile...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Analyzing your rider profile...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!stravaTokens) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+            <User className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            Rider Profile
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Your complete performance dashboard</p>
+        </div>
+
+        <Card>
+          <CardContent className="pt-12 pb-12">
+            <div className="text-center">
+              <AlertTriangle className="w-16 h-16 text-orange-400 dark:text-orange-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Connect Strava to Continue</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                To view your rider profile and performance metrics, please connect your Strava account.
+              </p>
+              <a 
+                href="/settings" 
+                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                Go to Settings
+              </a>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -160,22 +356,22 @@ const RiderProfile = ({ stravaTokens }) => {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <User className="w-8 h-8 text-blue-600" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+            <User className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             Rider Profile
           </h1>
-          <p className="text-gray-600 mt-1">Discover your rider type and training insights</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Discover your rider type and training insights</p>
         </div>
 
         <Card>
           <CardContent className="pt-12 pb-12">
             <div className="text-center">
-              <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Not Enough Data Yet</h3>
-              <p className="text-gray-600 mb-6">
+              <User className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Not Enough Data Yet</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 We need at least 10 activities to analyze your rider profile and generate insights.
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-500">
                 Keep training and check back soon! Current activities: {activities.length}/10
               </p>
             </div>
@@ -188,96 +384,473 @@ const RiderProfile = ({ stravaTokens }) => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <User className="w-8 h-8 text-blue-600" />
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+          <User className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           Rider Profile
         </h1>
-        <p className="text-gray-600 mt-1">Your unique strengths and training insights</p>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Your complete performance dashboard</p>
       </div>
 
-      {riderProfile && (
-        <Card className="border-2 border-blue-200 overflow-hidden">
-          <div 
-            className={`bg-gradient-to-r ${getRiderTypeColor(riderProfile.type)} p-8 text-white cursor-pointer hover:opacity-95 transition-opacity`}
-            onClick={() => setShowProfileModal(true)}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="text-6xl">{getRiderTypeIcon(riderProfile.type)}</div>
-                <div>
-                  <h2 className="text-3xl font-bold mb-2 flex items-center gap-2">
-                    You are a {riderProfile.type}
-                    <Info className="w-6 h-6 text-white/80" />
-                  </h2>
-                  <p className="text-white/90 text-lg">{riderProfile.description}</p>
-                  <p className="text-white/70 text-sm mt-2">Click for detailed analysis</p>
-                </div>
+      {/* Performance Metrics Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            Performance Metrics
+          </CardTitle>
+          <CardDescription>
+            Your current fitness indicators and training zones
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Current Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {/* FTP */}
+            <div className="p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/30 dark:to-yellow-900/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                <span className="text-xs font-semibold text-yellow-900 dark:text-yellow-100 uppercase tracking-wide">FTP</span>
               </div>
-              <div className="text-right">
-                <div className="text-5xl font-bold">{riderProfile.confidence}%</div>
-                <p className="text-white/80 text-sm">Confidence</p>
+              <div className="text-3xl font-bold text-yellow-900 dark:text-yellow-100">
+                {ftp ? `${ftp}W` : 'N/A'}
               </div>
+              <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">Functional Threshold Power</p>
+            </div>
+
+            {/* FTHR */}
+            <div className="p-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/30 rounded-lg border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2 mb-2">
+                <Heart className="w-4 h-4 text-red-600 dark:text-red-400" />
+                <span className="text-xs font-semibold text-red-900 dark:text-red-100 uppercase tracking-wide">FTHR</span>
+              </div>
+              <div className="text-3xl font-bold text-red-900 dark:text-red-100">
+                {fthr ? `${fthr} BPM` : 'N/A'}
+              </div>
+              <p className="text-xs text-red-700 dark:text-red-300 mt-1">Functional Threshold HR</p>
+            </div>
+
+            {/* Power-to-Weight */}
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs font-semibold text-blue-900 dark:text-blue-100 uppercase tracking-wide">W/kg</span>
+              </div>
+              <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                {ftp && userProfile.weight > 0 ? (ftp / userProfile.weight).toFixed(2) : 'N/A'}
+              </div>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">Power-to-Weight Ratio</p>
+            </div>
+
+            {/* BMI */}
+            <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
+              <div className="flex items-center gap-2 mb-2">
+                <ActivityIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span className="text-xs font-semibold text-green-900 dark:text-green-100 uppercase tracking-wide">BMI</span>
+              </div>
+              <div className="text-3xl font-bold text-green-900 dark:text-green-100">
+                {userProfile.weight > 0 && userProfile.height > 0 
+                  ? (userProfile.weight / Math.pow(userProfile.height / 100, 2)).toFixed(1) 
+                  : 'N/A'}
+              </div>
+              <p className="text-xs text-green-700 dark:text-green-300 mt-1">Body Mass Index</p>
             </div>
           </div>
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Strengths Profile</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {Object.entries(riderProfile.scores).map(([type, score]) => (
-                <div key={type} className="p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700 capitalize">
-                      {type.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                    <span className="text-lg font-bold text-blue-600">{score}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${(score / 7) * 100}%` }}
+        </CardContent>
+      </Card>
+
+      {/* Debug logging */}
+      {console.log('🔍 Render check - riderProfile:', riderProfile)}
+      {console.log('🔍 Render check - riderProfile.scores:', riderProfile?.scores)}
+      {console.log('🔍 Render check - condition result:', !!(riderProfile && riderProfile.scores))}
+
+      {/* HR Zones & Rider Type - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* HR Training Zones - Left Half */}
+        {hrZones && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    HR Training Zones
+                  </CardTitle>
+                  <CardDescription>Based on your 6-week FTHR</CardDescription>
+                </div>
+                <button
+                  onClick={() => setShowZoneInfoModal(true)}
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
+                  title="Learn about zone models"
+                >
+                  <Info className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Zone Model Selector */}
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  HR Zone Model
+                </label>
+                <select
+                  value={zoneModel}
+                  onChange={(e) => handleZoneModelChange(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="3-zone">3-Zone (Polarized Training)</option>
+                  <option value="5-zone">5-Zone (Coggan/Friel) ⭐ Recommended</option>
+                  <option value="7-zone">7-Zone (British Cycling)</option>
+                </select>
+              </div>
+
+              {/* Optional: Max HR input for 7-zone model */}
+              {zoneModel === '7-zone' && (
+                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <label className="block text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                    Max HR (Optional for 7-Zone)
+                  </label>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                    For more accurate Zone 6 & 7 calculations. Leave blank to estimate from FTHR.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      value={maxHR}
+                      onChange={handleMaxHRChange}
+                      placeholder="e.g., 190"
+                      min="140"
+                      max="220"
+                      className="w-32 px-3 py-2 border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 text-foreground rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
+                    <span className="text-sm text-blue-700 dark:text-blue-300">BPM</span>
                   </div>
                 </div>
-              ))}
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Object.entries(hrZones).map(([zoneKey, zone], index, allEntries) => {
+                  // Extract zone number from key (e.g., "zone1" -> 1)
+                  const zoneNumber = parseInt(zoneKey.replace('zone', ''));
+                  
+                  // Calculate min and max HR across all zones for positioning
+                  const allZones = allEntries.map(([, z]) => z);
+                  const minHR = Math.min(...allZones.map(z => z.min));
+                  const maxHR = Math.max(...allZones.map(z => z.max));
+                  const totalRange = maxHR - minHR;
+                  
+                  // Calculate position and width as percentage of total range
+                  const startPercent = ((zone.min - minHR) / totalRange) * 100;
+                  const widthPercent = ((zone.max - zone.min) / totalRange) * 100;
+                  
+                  // Color mapping based on zone number
+                  const zoneColorMap = {
+                    1: { 
+                      bgColor: '#f0fdf4',       // green-50
+                      textColor: '#15803d',     // green-700
+                      darkBgColor: 'rgba(20, 83, 45, 0.2)' // green-900/20
+                    },
+                    2: { 
+                      bgColor: '#eff6ff',       // blue-50
+                      textColor: '#1d4ed8',     // blue-700
+                      darkBgColor: 'rgba(30, 58, 138, 0.2)' // blue-900/20
+                    },
+                    3: { 
+                      bgColor: '#fefce8',       // yellow-50
+                      textColor: '#a16207',     // yellow-700
+                      darkBgColor: 'rgba(113, 63, 18, 0.2)' // yellow-900/20
+                    },
+                    4: { 
+                      bgColor: '#fff7ed',       // orange-50
+                      textColor: '#c2410c',     // orange-700
+                      darkBgColor: 'rgba(124, 45, 18, 0.2)' // orange-900/20
+                    },
+                    5: { 
+                      bgColor: '#fef2f2',       // red-50
+                      textColor: '#b91c1c',     // red-700
+                      darkBgColor: 'rgba(127, 29, 29, 0.2)' // red-900/20
+                    }
+                  };
+                  const colors = zoneColorMap[zoneNumber] || zoneColorMap[1];
+                  
+                  return (
+                    <div 
+                      key={zoneKey} 
+                      className="p-3 rounded-lg border-l-4 dark:bg-opacity-20"
+                      style={{ 
+                        backgroundColor: colors.bgColor,
+                        borderLeftColor: zone.color
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold dark:text-gray-100" style={{ color: colors.textColor }}>
+                            Zone {zoneNumber}
+                          </span>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{zone.name}</span>
+                        </div>
+                        <span className="text-sm font-mono text-gray-600 dark:text-gray-400">{zone.min}-{zone.max} BPM</span>
+                      </div>
+                      <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
+                        <div 
+                          className="h-3 rounded-full transition-all absolute"
+                          style={{ 
+                            left: `${startPercent}%`,
+                            width: `${widthPercent}%`,
+                            backgroundColor: zone.color
+                          }}
+                        />
+                      </div>
+                      
+                      {/* Description */}
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{zone.description}</p>
+                      
+                      {/* Training time recommendation (for 3-zone only) */}
+                      {zone.trainingTime && (
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 italic">
+                          💡 {zone.trainingTime}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Rider Type - Right Half */}
+        {riderProfile && riderProfile.scores && (
+          <Card className="border-2 border-blue-200 dark:border-blue-800 overflow-hidden">
+            <div 
+              className={`bg-gradient-to-r ${getRiderTypeColor(riderProfile.type)} p-6 text-white cursor-pointer hover:opacity-95 transition-opacity`}
+              onClick={() => setShowProfileModal(true)}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="text-5xl">{getRiderTypeIcon(riderProfile.type)}</div>
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold mb-1 flex items-center gap-2">
+                    {riderProfile.type}
+                    <Info className="w-5 h-5 text-white/80" />
+                  </h3>
+                  <p className="text-white/90 text-sm">{riderProfile.description}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between bg-white/20 rounded-lg p-3">
+                <span className="text-sm font-medium">Confidence</span>
+                <span className="text-3xl font-bold">{riderProfile.confidence}%</span>
+              </div>
+            </div>
+            <CardContent className="pt-4">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Strengths Profile</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(riderProfile.scores).map(([type, score]) => (
+                  <div key={type} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300 capitalize">
+                        {type.replace(/([A-Z])/g, ' $1').trim()}
+                      </span>
+                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{score}/7</span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                      <div 
+                        className="bg-blue-600 dark:bg-blue-500 h-1.5 rounded-full transition-all"
+                        style={{ width: `${(score / 7) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+                Click card for detailed analysis
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Smart Insights & Manual Overrides - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Smart Insights - Left Half */}
+        {insights.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                Smart Insights & Recommendations
+              </CardTitle>
+              <CardDescription>Personalized training guidance</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {insights.slice(0, 3).map((insight, idx) => {
+                  const Icon = getInsightIcon(insight.icon);
+                  const priorityColors = {
+                    high: 'border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700',
+                    medium: 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700',
+                    low: 'border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700'
+                  };
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`p-4 rounded-lg border-2 ${priorityColors[insight.priority] || priorityColors.low}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Icon className="w-5 h-5 text-gray-700 dark:text-gray-300 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100">{insight.title}</h4>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 uppercase font-medium">
+                              {insight.priority}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{insight.message}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Manual Overrides - Right Half */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              Manual Overrides
+            </CardTitle>
+            <CardDescription>Override automatic calculations if needed</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Manual FTP Override */}
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <label htmlFor="manualFTP" className="block text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
+                    Manual FTP Override
+                  </label>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
+                    Enter your FTP from a recent test to override automatic calculation.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      id="manualFTP"
+                      type="number"
+                      value={manualFTP}
+                      onChange={handleManualFTPChange}
+                      placeholder="e.g., 250"
+                      min="50"
+                      max="600"
+                      className="w-32 px-3 py-2 border border-yellow-300 dark:border-yellow-700 bg-white dark:bg-gray-800 text-foreground rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    />
+                    <span className="text-sm text-yellow-700 dark:text-yellow-300">Watts</span>
+                    {manualFTP && (
+                      <button
+                        onClick={() => {
+                          setManualFTP('');
+                          localStorage.removeItem('manual_ftp');
+                          const cachedMetrics = localStorage.getItem('cached_metrics');
+                          if (cachedMetrics) {
+                            const metrics = JSON.parse(cachedMetrics);
+                            setFtp(metrics.ftp || null);
+                          }
+                        }}
+                        className="text-xs text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200 underline"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Manual FTHR Override */}
+            <div className="p-4 bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Heart className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <label htmlFor="manualFTHR" className="block text-sm font-semibold text-red-900 dark:text-red-100 mb-1">
+                    Manual FTHR Override
+                  </label>
+                  <p className="text-xs text-red-700 dark:text-red-300 mb-3">
+                    Enter your FTHR from a recent test to override automatic calculation.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      id="manualFTHR"
+                      type="number"
+                      value={manualFTHR}
+                      onChange={handleManualFTHRChange}
+                      placeholder="e.g., 162"
+                      min="100"
+                      max="220"
+                      className="w-32 px-3 py-2 border border-red-300 dark:border-red-700 bg-white dark:bg-gray-800 text-foreground rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    />
+                    <span className="text-sm text-red-700 dark:text-red-300">BPM</span>
+                    {manualFTHR && (
+                      <button
+                        onClick={() => {
+                          setManualFTHR('');
+                          localStorage.removeItem('manual_fthr');
+                        }}
+                        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 underline"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
-      )}
+      </div>
 
-      {insights.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Zap className="w-6 h-6 text-yellow-500" />
-            Smart Insights & Recommendations
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {insights.map((insight, idx) => {
-              const Icon = getInsightIcon(insight.icon);
-              return (
-                <Card key={idx} className={`border-l-4 ${getPriorityColor(insight.priority)}`}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <div className={`p-3 rounded-lg ${insight.priority === 'high' ? 'bg-red-100' : insight.priority === 'medium' ? 'bg-yellow-100' : 'bg-blue-100'}`}>
-                        <Icon className={`w-6 h-6 ${insight.priority === 'high' ? 'text-red-600' : insight.priority === 'medium' ? 'text-yellow-600' : 'text-blue-600'}`} />
-                      </div>
+      {/* Additional Insights - Show remaining insights if more than 2 */}
+      {insights.length > 2 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+              Additional Insights
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {insights.slice(2).map((insight, idx) => {
+                const Icon = getInsightIcon(insight.icon);
+                const priorityColors = {
+                  high: 'border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700',
+                  medium: 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700',
+                  low: 'border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700'
+                };
+                return (
+                  <div 
+                    key={idx} 
+                    className={`p-4 rounded-lg border-2 ${priorityColors[insight.priority] || priorityColors.low}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Icon className="w-5 h-5 text-gray-700 dark:text-gray-300 flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-gray-900">{insight.title}</h3>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded ${getPriorityBadge(insight.priority)}`}>
-                            {insight.priority.toUpperCase()}
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100">{insight.title}</h4>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 uppercase font-medium">
+                            {insight.priority}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-3">{insight.message}</p>
-                        <Button variant="outline" size="sm">
-                          {insight.action}
-                        </Button>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">{insight.message}</p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {powerCurve && (
@@ -479,7 +1052,7 @@ const RiderProfile = ({ stravaTokens }) => {
       )}
 
       {/* Profile Analysis Modal */}
-      {showProfileModal && riderProfile && (
+      {showProfileModal && riderProfile && riderProfile.scores && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowProfileModal(false)}>
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
@@ -626,6 +1199,74 @@ const RiderProfile = ({ stravaTokens }) => {
                     <span><strong>Track changes:</strong> Your profile may evolve with focused training - check back regularly</span>
                   </li>
                 </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Zone Info Modal */}
+      {showZoneInfoModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowZoneInfoModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                HR Zone Models Explained
+              </h2>
+              <button onClick={() => setShowZoneInfoModal(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* 3-Zone Model */}
+              <div className="border-l-4 border-green-500 pl-4">
+                <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">3-Zone (Polarized Training)</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Based on Dr. Stephen Seiler's research on elite endurance athletes.
+                </p>
+                <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg mb-3">
+                  <p className="font-semibold text-green-900 dark:text-green-100 mb-2">
+                    80/20 Rule: 80% easy, 20% hard
+                  </p>
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    Minimize time in the "grey zone" (Zone 2) - it's too hard to build base, too easy to improve fitness.
+                  </p>
+                </div>
+                <p className="text-sm text-gray-700 dark:text-gray-300"><strong>Best for:</strong> Endurance athletes, marathon runners, long-distance cyclists</p>
+              </div>
+
+              {/* 5-Zone Model */}
+              <div className="border-l-4 border-blue-500 pl-4">
+                <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">5-Zone (Coggan/Friel) ⭐ Recommended</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Adapted from Dr. Andrew Coggan's power zones by Joe Friel.
+                </p>
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg mb-3">
+                  <p className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                    Most widely used model
+                  </p>
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    Each zone targets a specific energy system. Good balance between simplicity and granularity.
+                  </p>
+                </div>
+                <p className="text-sm text-gray-700 dark:text-gray-300"><strong>Best for:</strong> Most athletes, structured training, periodization</p>
+              </div>
+
+              {/* 7-Zone Model */}
+              <div className="border-l-4 border-red-500 pl-4">
+                <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">7-Zone (British Cycling)</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Used by British Cycling and Team GB Olympic cyclists.
+                </p>
+                <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg mb-3">
+                  <p className="font-semibold text-red-900 dark:text-red-100 mb-2">
+                    Maximum granularity for elite athletes
+                  </p>
+                  <p className="text-sm text-red-800 dark:text-red-200">
+                    Fine-tuned control for specific race demands. Includes anaerobic and neuromuscular zones.
+                  </p>
+                </div>
+                <p className="text-sm text-gray-700 dark:text-gray-300"><strong>Best for:</strong> Advanced/elite athletes, professional coaching</p>
               </div>
             </div>
           </div>

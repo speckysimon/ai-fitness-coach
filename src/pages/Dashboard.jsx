@@ -7,7 +7,10 @@ import { formatDuration, formatDistance } from '../lib/utils';
 import ActivityDetailModal from '../components/ActivityDetailModal';
 import SessionHoverModal from '../components/SessionHoverModal';
 import EditActivityModal from '../components/EditActivityModal';
-import { isActivityRace } from '../lib/raceUtils';
+import AITrainingCoach from '../components/AITrainingCoach';
+import LogIllnessModal from '../components/LogIllnessModal';
+import PlanAdjustmentNotification from '../components/PlanAdjustmentNotification';
+import DashboardClock from '../components/DashboardClock';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard = ({ stravaTokens, onLogout }) => {
@@ -19,6 +22,9 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
+  const [showLogIllness, setShowLogIllness] = useState(false);
+  const [pendingAdjustment, setPendingAdjustment] = useState(null);
+  const [aiCoachKey, setAiCoachKey] = useState(0);
   const [editingActivity, setEditingActivity] = useState(null);
   const [error, setError] = useState(null);
   const [hasData, setHasData] = useState(false);
@@ -32,6 +38,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     const dismissed = sessionStorage.getItem('strava_notification_dismissed');
     return !stravaTokens && !dismissed;
   });
+  const [smartFTPContext, setSmartFTPContext] = useState(null);
 
   // Calculate TSS for a single activity
   const calculateTSS = (activity, ftp) => {
@@ -109,33 +116,42 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
 
   // Check notification on mount and when stravaTokens changes
   useEffect(() => {
-    console.log('Dashboard - stravaTokens:', stravaTokens);
-    console.log('Dashboard - stravaTokens type:', typeof stravaTokens);
-    console.log('Dashboard - stravaTokens is null:', stravaTokens === null);
-    
     if (stravaTokens && stravaTokens.access_token) {
-      console.log('Dashboard - Has valid tokens, hiding notification');
       setCurrentTokens(stravaTokens);
       loadDashboardData(false);
       setShowStravaNotification(false);
     } else {
       // Show notification if no Strava tokens and hasn't been dismissed
       const dismissed = sessionStorage.getItem('strava_notification_dismissed');
-      console.log('Dashboard - notification dismissed:', dismissed);
-      console.log('Dashboard - Should show notification:', !dismissed);
       if (!dismissed) {
-        console.log('Dashboard - Setting showStravaNotification to TRUE');
         setShowStravaNotification(true);
-      } else {
-        console.log('Dashboard - Notification was dismissed');
       }
     }
   }, [stravaTokens]);
 
   // Load race tags when activities change
   useEffect(() => {
-    const raceTags = JSON.parse(localStorage.getItem('race_tags') || '{}');
-    setRaceActivities(raceTags);
+    const loadRaceTags = async () => {
+      try {
+        const sessionToken = localStorage.getItem('session_token');
+        if (!sessionToken) return;
+
+        const response = await fetch('/api/race-tags', {
+          headers: { 'Authorization': `Bearer ${sessionToken}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setRaceActivities(data.raceTags || {});
+        }
+      } catch (error) {
+        console.error('Error loading race tags:', error);
+      }
+    };
+    
+    if (activities.length > 0) {
+      loadRaceTags();
+    }
   }, [activities]);
 
   // Load upcoming workout when metrics are available
@@ -257,6 +273,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       const cachedActivities = localStorage.getItem('cached_activities');
       const cachedMetrics = localStorage.getItem('cached_metrics');
       const cachedTrends = localStorage.getItem('cached_trends');
+      const cachedSmartFTP = localStorage.getItem('smart_ftp_context');
       const cacheTimestamp = localStorage.getItem('cache_timestamp');
       
       // Use cache if it's less than 5 minutes old
@@ -265,6 +282,9 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         setActivities(JSON.parse(cachedActivities));
         setMetrics(JSON.parse(cachedMetrics));
         setTrends(JSON.parse(cachedTrends));
+        if (cachedSmartFTP) {
+          setSmartFTPContext(JSON.parse(cachedSmartFTP));
+        }
         setHasData(true);
         setLoading(false);
         return;
@@ -349,17 +369,43 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
 
   const processActivitiesData = async (activitiesData, tokensToUse) => {
     // Calculate FTP first (needed for TSS calculation)
-    const ftpResponse = await fetch('/api/analytics/ftp', {
+    // Log activities for debugging FTP calculation
+    const powerActivities = activitiesData.filter(a => a.avgPower && a.avgPower > 0 && a.duration >= 1200);
+    const recentPowerActivities = powerActivities.filter(a => {
+      const activityDate = new Date(a.date);
+      const sixWeeksAgo = new Date();
+      sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
+      return activityDate >= sixWeeksAgo;
+    });
+    console.log('Dashboard - Total activities:', activitiesData.length);
+    console.log('Dashboard - Power activities (>=20min):', powerActivities.length);
+    console.log('Dashboard - Recent power activities (last 6 weeks):', recentPowerActivities.length);
+    
+    // Get last known FTP from cache
+    const cachedMetrics = localStorage.getItem('cached_metrics');
+    const lastKnownFTP = cachedMetrics ? JSON.parse(cachedMetrics).ftp : null;
+    
+    // Calculate Smart FTP (training-load aware)
+    const smartFTPResponse = await fetch('/api/analytics/smart-ftp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ activities: activitiesData }),
+      body: JSON.stringify({ 
+        activities: activitiesData,
+        lastKnownFTP 
+      }),
     });
     
-    if (!ftpResponse.ok) {
-      throw new Error('Failed to calculate FTP');
+    if (!smartFTPResponse.ok) {
+      throw new Error('Failed to calculate Smart FTP');
     }
     
-    const ftpData = await ftpResponse.json();
+    const smartFTPData = await smartFTPResponse.json();
+    console.log('Dashboard - Smart FTP result:', smartFTPData);
+    
+    // Store smart FTP context for UI display
+    setSmartFTPContext(smartFTPData);
+    
+    const ftpData = { ftp: smartFTPData.ftp };
     
     // Calculate TSS for each activity
     const activitiesWithTSS = activitiesData.map(activity => ({
@@ -398,6 +444,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     localStorage.setItem('cached_activities', JSON.stringify(sortedActivities));
     localStorage.setItem('cached_metrics', JSON.stringify({ ftp: ftpData.ftp, ...loadData }));
     localStorage.setItem('cached_trends', JSON.stringify(trendsData));
+    localStorage.setItem('smart_ftp_context', JSON.stringify(smartFTPData));
     localStorage.setItem('cache_timestamp', Date.now().toString());
     setHasData(true);
   };
@@ -460,11 +507,6 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       </div>
     );
   }
-
-  // Debug render condition
-  console.log('Dashboard RENDER - showStravaNotification:', showStravaNotification);
-  console.log('Dashboard RENDER - stravaTokens:', stravaTokens);
-  console.log('Dashboard RENDER - Condition result:', showStravaNotification && (!stravaTokens || !stravaTokens.access_token));
 
   return (
     <div className="space-y-8">
@@ -535,15 +577,18 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">Your training overview and progress</p>
         </div>
-        <Button
-          onClick={handleForceRefresh}
-          disabled={refreshing}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
+        <div className="flex items-center gap-4">
+          <DashboardClock />
+          <Button
+            onClick={handleForceRefresh}
+            disabled={refreshing}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </div>
       </div>
       
       {/* Upcoming Workout Card - Centered */}
@@ -623,9 +668,24 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card className={smartFTPContext?.confidence === 'high' ? 'border-green-200 dark:border-green-800' : smartFTPContext?.confidence === 'medium' ? 'border-yellow-200 dark:border-yellow-800' : smartFTPContext?.confidence === 'low' ? 'border-orange-200 dark:border-orange-800' : ''}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current FTP</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              Current FTP
+              {smartFTPContext?.confidence && (
+                <span 
+                  className={`px-2 py-0.5 text-xs rounded-full cursor-help ${
+                    smartFTPContext.confidence === 'high' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                    smartFTPContext.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                    smartFTPContext.confidence === 'low' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                    'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+                  }`}
+                  title={smartFTPContext.confidenceExplanation || 'FTP confidence level'}
+                >
+                  {smartFTPContext.confidence}
+                </span>
+              )}
+            </CardTitle>
             <Zap className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
@@ -633,8 +693,22 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
               {metrics?.ftp ? `${metrics.ftp}W` : 'N/A'}
             </div>
             <p className="text-xs text-muted-foreground">
-              Functional Threshold Power
+              {smartFTPContext?.method === 'hard_efforts' && smartFTPContext?.effortsUsed && (
+                `From ${smartFTPContext.effortsUsed} hard effort${smartFTPContext.effortsUsed > 1 ? 's' : ''} (${smartFTPContext.avgDuration}min avg)`
+              )}
+              {smartFTPContext?.method === 'maintained_by_ctl' && (
+                `Maintained by training load`
+              )}
+              {smartFTPContext?.method === 'estimated_decline' && smartFTPContext?.estimatedDecline && (
+                `Est. ${Math.round(smartFTPContext.estimatedDecline * 100)}% decline`
+              )}
+              {!smartFTPContext && 'Functional Threshold Power'}
             </p>
+            {smartFTPContext?.recommendation && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">
+                💡 {smartFTPContext.recommendation}
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -684,8 +758,27 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* AI Training Coach & Charts - 3 Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* AI Training Coach Widget */}
+        <AITrainingCoach
+          key={aiCoachKey}
+          onLogIllness={() => setShowLogIllness(true)}
+          onViewAdjustments={async () => {
+            // Load pending adjustment
+            const sessionToken = localStorage.getItem('session_token');
+            const response = await fetch('/api/adaptation/adjustments/pending', {
+              headers: { 'Authorization': `Bearer ${sessionToken}` }
+            });
+            if (response.ok) {
+              const data = await response.json();
+              if (data.adjustments && data.adjustments.length > 0) {
+                setPendingAdjustment(data.adjustments[0]);
+              }
+            }
+          }}
+        />
+
         {/* Weekly Volume Trend */}
         <Card>
           <CardHeader>
@@ -947,11 +1040,57 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         <EditActivityModal
           activity={editingActivity}
           onClose={() => setEditingActivity(null)}
-          onSave={() => {
-            // Reload race tags
-            const raceTags = JSON.parse(localStorage.getItem('race_tags') || '{}');
-            setRaceActivities(raceTags);
+          onSave={async () => {
+            // Reload race tags from backend
+            try {
+              const sessionToken = localStorage.getItem('session_token');
+              if (sessionToken) {
+                const response = await fetch('/api/race-tags', {
+                  headers: { 'Authorization': `Bearer ${sessionToken}` }
+                });
+                if (response.ok) {
+                  const data = await response.json();
+                  setRaceActivities(data.raceTags || {});
+                }
+              }
+            } catch (error) {
+              console.error('Error reloading race tags:', error);
+            }
           }}
+        />
+      )}
+
+      {/* Log Illness Modal */}
+      {showLogIllness && (
+        <LogIllnessModal
+          onClose={() => setShowLogIllness(false)}
+          onSave={() => {
+            setShowLogIllness(false);
+            // Force AI Training Coach to reload
+            setAiCoachKey(prev => prev + 1);
+            // Refresh dashboard data
+            loadDashboardData(true);
+          }}
+        />
+      )}
+
+      {/* Plan Adjustment Notification */}
+      {pendingAdjustment && (
+        <PlanAdjustmentNotification
+          adjustment={pendingAdjustment}
+          onAccept={() => {
+            setPendingAdjustment(null);
+            // Refresh AI coach widget and reload data
+            setAiCoachKey(prev => prev + 1);
+            // Reload activities to reflect changes
+            setTimeout(() => loadActivities(), 500);
+          }}
+          onReject={() => {
+            setPendingAdjustment(null);
+            // Refresh AI coach widget
+            setAiCoachKey(prev => prev + 1);
+          }}
+          onClose={() => setPendingAdjustment(null)}
         />
       )}
     </div>

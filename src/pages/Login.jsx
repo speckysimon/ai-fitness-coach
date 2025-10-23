@@ -106,12 +106,12 @@ const Login = ({ onLogin }) => {
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Activity className="w-12 h-12 text-blue-600" />
-            <h1 className="text-4xl font-bold text-gray-900">AI Fitness Coach</h1>
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <span className="text-3xl">🔬</span>
+            </div>
+            <h1 className="text-4xl font-bold text-gray-900">RiderLabs</h1>
           </div>
-          <p className="text-gray-600">
-            Your intelligent training companion
-          </p>
+          <p className="text-gray-600">Where Performance is Engineered</p>
         </div>
 
         {/* Login/Register Card */}

@@ -25,7 +25,19 @@ export const calculatePowerCurve = (activities) => {
 // Classify rider type based on power curve and activity patterns
 export const classifyRiderType = (activities, powerCurve, ftp) => {
   if (!ftp || activities.length < 10) {
-    return { type: 'Insufficient Data', confidence: 0, description: 'Need more activities to classify' };
+    return { 
+      type: 'Insufficient Data', 
+      confidence: 0, 
+      description: 'Need more activities to classify',
+      scores: {
+        sprinter: 0,
+        climber: 0,
+        rouleur: 0,
+        timeTrial: 0,
+        allRounder: 0,
+        puncheur: 0
+      }
+    };
   }
 
   const scores = {

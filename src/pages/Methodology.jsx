@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { BookOpen, Calculator, TrendingUp, Zap, Heart, Activity, ChevronDown, ChevronUp, User, Target, Award } from 'lucide-react';
+import { BookOpen, Calculator, TrendingUp, Zap, Heart, Activity, ChevronDown, ChevronUp, User, Target, Award, Trophy } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 
 const Methodology = () => {
   const [expandedSections, setExpandedSections] = useState({
     intro: true,
+    raceAnalysis: true,
     riderType: false,
     autoMatching: false,
     trainingAlignment: false,
@@ -74,6 +75,261 @@ const Methodology = () => {
           and adopted by professional coaches worldwide. All calculations are based on peer-reviewed 
           research and industry-standard protocols.
         </p>
+      </CollapsibleCard>
+
+      <CollapsibleCard
+        id="raceAnalysis"
+        title="Post-Race Analysis & Learning Loop"
+        icon={Trophy}
+        description="AI-powered race analysis with pre-race fatigue assessment and continuous improvement"
+      >
+        <div>
+          <h3 className="font-semibold text-lg mb-2">What is the Learning Loop?</h3>
+          <p className="text-gray-700">
+            Our Post-Race Analysis system creates a complete learning loop that transforms race experiences 
+            into actionable insights. By analyzing your race performance, pre-race training load, and subjective 
+            feedback, the AI identifies what worked, what didn't, and automatically integrates these learnings 
+            into your future training plans.
+          </p>
+        </div>
+
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border-2 border-yellow-200">
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-yellow-600" />
+            The Complete Race Lifecycle
+          </h4>
+          <div className="space-y-2 text-sm text-gray-700">
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-yellow-600 text-lg">1</span>
+              <div><strong>Race Preparation:</strong> Generate race-day strategy with power targets and pacing plan</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-yellow-600 text-lg">2</span>
+              <div><strong>Race Execution:</strong> Complete the race and sync activity from Strava</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-yellow-600 text-lg">3</span>
+              <div><strong>Post-Race Feedback:</strong> Submit 2-minute survey with subjective experience</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-yellow-600 text-lg">4</span>
+              <div><strong>AI Analysis:</strong> GPT-4 analyzes performance, pacing, tactics, and pre-race fatigue</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-yellow-600 text-lg">5</span>
+              <div><strong>Training Integration:</strong> Next training plan automatically addresses weaknesses</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-yellow-600 text-lg">6</span>
+              <div><strong>Improved Performance:</strong> Race-informed training leads to better results</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-3">Pre-Race Training Load Analysis</h4>
+          <p className="text-sm text-gray-700 mb-3">
+            Our system examines the 14 days before your race to determine if you arrived fresh or carrying fatigue. 
+            This is critical for understanding race performance in context.
+          </p>
+          <div className="space-y-3 text-sm text-gray-700">
+            <div>
+              <strong>Data Collected:</strong>
+              <ul className="ml-4 mt-1 space-y-1 list-disc">
+                <li>Total TSS (14 days) - Overall training load</li>
+                <li>Average Daily TSS - Training intensity per day</li>
+                <li>Week 2 TSS (days 14-8) - Training block before taper</li>
+                <li>Week 1 TSS (days 7-1) - Taper week</li>
+                <li>Taper Ratio - Week 1 TSS / Week 2 TSS (ideal: 40-60%)</li>
+                <li>Individual activities with TSS values</li>
+              </ul>
+            </div>
+            <div className="bg-white p-3 rounded border border-blue-200">
+              <strong>Example Analysis:</strong>
+              <div className="font-mono text-xs mt-2 space-y-1">
+                <div>Total TSS (14 days): 850</div>
+                <div>Week 2 TSS: 520</div>
+                <div>Week 1 TSS: 330</div>
+                <div>Taper Ratio: 63% ⚠️ (slightly high)</div>
+              </div>
+              <p className="text-xs mt-2 text-gray-600">
+                AI Insight: "Your taper ratio was 63% (ideal is 40-60%), meaning you didn't reduce 
+                volume enough in the final week. This likely contributed to the heavy legs you felt."
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-3">AI Analysis Components</h4>
+          <div className="space-y-3 text-sm text-gray-700">
+            <div>
+              <strong>1. Performance Scores (0-100):</strong>
+              <ul className="ml-4 mt-1 space-y-1">
+                <li>• <strong>Overall:</strong> Holistic race performance assessment</li>
+                <li>• <strong>Pacing:</strong> Energy distribution and power management</li>
+                <li>• <strong>Execution:</strong> Plan adherence and decision-making</li>
+                <li>• <strong>Tactical:</strong> Race positioning and strategic choices</li>
+              </ul>
+            </div>
+            <div>
+              <strong>2. Fatigue State Assessment:</strong>
+              <ul className="ml-4 mt-1 space-y-1">
+                <li>• Was the athlete properly rested?</li>
+                <li>• Taper quality evaluation (gradual reduction, intensity maintained)</li>
+                <li>• Correlation between training load and performance</li>
+                <li>• Freshness level at race start</li>
+              </ul>
+            </div>
+            <div>
+              <strong>3. Contextual Analysis:</strong>
+              <ul className="ml-4 mt-1 space-y-1">
+                <li>• Compares actual vs planned power/HR</li>
+                <li>• Integrates athlete's subjective feedback</li>
+                <li>• Considers pre-race training stress</li>
+                <li>• Evaluates pacing strategy effectiveness</li>
+              </ul>
+            </div>
+            <div>
+              <strong>4. Actionable Recommendations:</strong>
+              <ul className="ml-4 mt-1 space-y-1">
+                <li>• What went well (3-4 concise points)</li>
+                <li>• What didn't go well (3-4 concise points)</li>
+                <li>• Key insights and patterns</li>
+                <li>• Specific recommendations for next race</li>
+                <li>• Training focus areas to address</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-green-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-3">Automatic Training Plan Integration</h4>
+          <p className="text-sm text-gray-700 mb-3">
+            When you generate your next training plan, the AI automatically loads your last 3 race analyses 
+            and uses them to customize your training:
+          </p>
+          <div className="space-y-2 text-sm text-gray-700">
+            <div>
+              <strong>Race Data Sent to AI:</strong>
+              <ul className="ml-4 mt-1 space-y-1 list-disc">
+                <li>Performance scores (overall, pacing, execution, tactical)</li>
+                <li>What went well and what didn't</li>
+                <li>Training focus areas identified</li>
+                <li>Specific recommendations from analysis</li>
+              </ul>
+            </div>
+            <div className="bg-white p-3 rounded border border-green-200 mt-2">
+              <strong>Example Integration:</strong>
+              <p className="text-xs mt-1">
+                "This plan has been customized based on your recent race analysis. Key focus: 
+                <strong> Pacing Strategy</strong>. We're addressing your pacing score (60/100) and 
+                building on your strength in <strong>sustained power output</strong>. Sessions include 
+                specific pacing drills to improve energy distribution."
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">🎯 Taper Guidelines</h4>
+          <p className="text-sm text-gray-700 mb-3">
+            Research-backed taper ratios for optimal race-day freshness:
+          </p>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span><strong>40-50%:</strong> Aggressive taper (hard training blocks)</span>
+              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs">OPTIMAL</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>50-60%:</strong> Standard taper (most athletes)</span>
+              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs">OPTIMAL</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>60-70%:</strong> Light taper (moderate training)</span>
+              <span className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded text-xs">ACCEPTABLE</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>70%+:</strong> Insufficient taper</span>
+              <span className="px-2 py-1 bg-red-200 text-red-800 rounded text-xs">CARRYING FATIGUE</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span><strong>&lt;40%:</strong> Excessive taper</span>
+              <span className="px-2 py-1 bg-orange-200 text-orange-800 rounded text-xs">DETRAINING RISK</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-l-4 border-yellow-500 pl-4">
+          <h4 className="font-semibold mb-2">📚 Academic Sources</h4>
+          <ul className="text-sm text-gray-700 space-y-2">
+            <li>
+              <strong>Bosquet, L., et al.</strong> (2007). "Effects of tapering on performance: a meta-analysis." 
+              <em>Medicine & Science in Sports & Exercise, 39</em>(8), 1358-1365.
+              <br />
+              <a href="https://doi.org/10.1249/mss.0b013e31806010e0" target="_blank" rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline text-xs">
+                https://doi.org/10.1249/mss.0b013e31806010e0
+              </a>
+            </li>
+            <li>
+              <strong>Mujika, I., & Padilla, S.</strong> (2003). "Scientific bases for precompetition tapering strategies." 
+              <em>Medicine & Science in Sports & Exercise, 35</em>(7), 1182-1187.
+              <br />
+              <a href="https://doi.org/10.1249/01.MSS.0000074448.73931.11" target="_blank" rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline text-xs">
+                https://doi.org/10.1249/01.MSS.0000074448.73931.11
+              </a>
+            </li>
+            <li>
+              <strong>Thomas, L., & Busso, T.</strong> (2005). "A theoretical study of taper characteristics to optimize performance." 
+              <em>Medicine & Science in Sports & Exercise, 37</em>(9), 1615-1621.
+              <br />
+              <a href="https://doi.org/10.1249/01.mss.0000177461.94156.4b" target="_blank" rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline text-xs">
+                https://doi.org/10.1249/01.mss.0000177461.94156.4b
+              </a>
+            </li>
+            <li>
+              <strong>Banister, E. W., et al.</strong> (1999). "Modeling human performance in running." 
+              <em>Journal of Applied Physiology, 69</em>(3), 1171-1177.
+              <br />
+              <span className="text-xs text-gray-600">
+                Foundational work on training stress and fatigue modeling (TSS/CTL/ATL concepts)
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">💡 Why This Matters</h4>
+          <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside ml-2">
+            <li>
+              <strong>Complete Picture:</strong> Understanding performance requires context - race data alone 
+              isn't enough. Pre-race training load is critical for interpretation.
+            </li>
+            <li>
+              <strong>Systematic Learning:</strong> Research shows that deliberate reflection and analysis 
+              accelerates skill acquisition and performance improvement.
+            </li>
+            <li>
+              <strong>Fatigue Management:</strong> Studies demonstrate that proper tapering can improve 
+              performance by 2-6%. Our system helps you optimize this.
+            </li>
+            <li>
+              <strong>Personalized Insights:</strong> Generic advice doesn't work. AI analysis considers YOUR 
+              specific data, feedback, and training history.
+            </li>
+            <li>
+              <strong>Continuous Improvement:</strong> The learning loop ensures each race makes you smarter 
+              and better prepared for the next one.
+            </li>
+            <li>
+              <strong>Competitive Advantage:</strong> No other platform connects pre-race training load, 
+              race performance, and future training in an automated learning loop.
+            </li>
+          </ul>
+        </div>
       </CollapsibleCard>
 
       <CollapsibleCard

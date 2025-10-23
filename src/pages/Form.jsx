@@ -9,12 +9,51 @@ const Form = ({ stravaTokens }) => {
   const [currentMetrics, setCurrentMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState(42); // 6 weeks default
+  const [currentTokens, setCurrentTokens] = useState(stravaTokens);
 
   useEffect(() => {
-    if (stravaTokens) {
+    if (stravaTokens && stravaTokens.access_token) {
+      setCurrentTokens(stravaTokens);
       loadFormData();
+    } else {
+      setLoading(false);
     }
   }, [stravaTokens, timeRange]);
+
+  // Refresh Strava access token if expired
+  const refreshAccessToken = async () => {
+    if (!currentTokens?.refresh_token) {
+      throw new Error('No refresh token available');
+    }
+
+    console.log('Form - Refreshing access token...');
+    const response = await fetch('/api/strava/refresh-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: currentTokens.refresh_token }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      if (error.requiresReauth) {
+        throw new Error('REAUTH_REQUIRED');
+      }
+      throw new Error('Failed to refresh token');
+    }
+
+    const data = await response.json();
+    const newTokens = {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token || currentTokens.refresh_token,
+      expires_at: data.expires_at,
+    };
+
+    setCurrentTokens(newTokens);
+    localStorage.setItem('strava_tokens', JSON.stringify(newTokens));
+    console.log('Form - Token refreshed successfully');
+    
+    return newTokens;
+  };
 
   const calculateTSS = (activity, ftp) => {
     if (!activity.duration) return 0;
@@ -40,11 +79,86 @@ const Form = ({ stravaTokens }) => {
   const loadFormData = async () => {
     setLoading(true);
     try {
-      const daysAgo = Math.floor(Date.now() / 1000) - (timeRange * 24 * 60 * 60);
+      // Try to load from cache first (much faster and avoids API rate limits)
+      const cachedActivities = localStorage.getItem('cached_activities');
+      const cacheTimestamp = localStorage.getItem('cache_timestamp');
+      const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
+      const cacheValid = cacheAge < 30 * 60 * 1000; // 30 minutes
+
+      if (cachedActivities && cacheValid) {
+        console.log('Form - Using cached activities');
+        const activities = JSON.parse(cachedActivities);
+        await processFormData(activities, currentTokens);
+        return;
+      }
+
+      console.log('Form - Cache miss or expired, fetching from Strava...');
+      let tokensToUse = currentTokens;
+
+      // Check if token is expired
+      const now = Math.floor(Date.now() / 1000);
+      if (tokensToUse.expires_at && tokensToUse.expires_at < now) {
+        console.log('Form - Token expired, refreshing...');
+        try {
+          tokensToUse = await refreshAccessToken();
+        } catch (refreshError) {
+          if (refreshError.message === 'REAUTH_REQUIRED') {
+            throw new Error('Your Strava session has expired. Please reconnect in Settings.');
+          }
+          throw refreshError;
+        }
+      }
+
+      // Fetch 90 days of activities for proper baseline
+      const ninetyDaysAgo = Math.floor(Date.now() / 1000) - (90 * 24 * 60 * 60);
+      console.log('Form - Fetching 90 days of activities from Strava...');
+      
       const response = await fetch(
-        `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${daysAgo}&per_page=200`
+        `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${ninetyDaysAgo}&per_page=200`
       );
+
+      // Handle 401/403
+      if (response.status === 401 || response.status === 403) {
+        console.log('Form - Got 401/403, attempting token refresh...');
+        try {
+          tokensToUse = await refreshAccessToken();
+          const retryResponse = await fetch(
+            `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${ninetyDaysAgo}&per_page=200`
+          );
+          
+          if (!retryResponse.ok) {
+            throw new Error('Failed to fetch activities after token refresh');
+          }
+          
+          const activities = await retryResponse.json();
+          console.log('Form - Received activities after retry:', activities.length);
+          await processFormData(activities, tokensToUse);
+          return;
+        } catch (refreshError) {
+          if (refreshError.message === 'REAUTH_REQUIRED') {
+            throw new Error('Your Strava session has expired. Please reconnect in Settings.');
+          }
+          throw new Error('Failed to refresh your Strava connection. Please try reconnecting in Settings.');
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch activities: ${response.statusText}`);
+      }
+
       const activities = await response.json();
+      console.log('Form - Received activities from Strava:', activities.length);
+      await processFormData(activities, tokensToUse);
+    } catch (error) {
+      console.error('Form - Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const processFormData = async (activities, tokensToUse) => {
+    try {
+      console.log('Form - Processing data for', activities.length, 'activities');
 
       // Get FTP
       const ftpResponse = await fetch('/api/analytics/ftp', {
@@ -54,17 +168,23 @@ const Form = ({ stravaTokens }) => {
       });
       const ftpData = await ftpResponse.json();
       const ftp = ftpData.ftp;
+      console.log('Form - FTP:', ftp);
 
-      // Calculate daily metrics
-      const dailyData = [];
+      // Use the activities we already have (already 90 days from loadFormData)
+      const baselineActivities = activities;
+      console.log('Form - Using activities for baseline:', baselineActivities.length);
+
+      // Calculate daily metrics from 90 days ago to build proper baseline
+      const allDailyData = [];
       const today = startOfDay(new Date());
+      const startDay = 89; // 90 days of history
 
-      for (let i = timeRange - 1; i >= 0; i--) {
+      for (let i = startDay; i >= 0; i--) {
         const date = subDays(today, i);
         const dateStr = format(date, 'yyyy-MM-dd');
         
         // Get activities for this day
-        const dayActivities = activities.filter(a => {
+        const dayActivities = baselineActivities.filter(a => {
           const activityDate = format(new Date(a.date), 'yyyy-MM-dd');
           return activityDate === dateStr;
         });
@@ -74,18 +194,18 @@ const Form = ({ stravaTokens }) => {
 
         // Calculate ATL (Acute Training Load) - 7-day exponentially weighted average
         const atlDecay = 2 / (7 + 1);
-        const prevATL = i < timeRange - 1 ? dailyData[dailyData.length - 1]?.atl || 0 : 0;
+        const prevATL = allDailyData.length > 0 ? allDailyData[allDailyData.length - 1].atl : 0;
         const atl = prevATL + atlDecay * (dailyTSS - prevATL);
 
         // Calculate CTL (Chronic Training Load) - 42-day exponentially weighted average
         const ctlDecay = 2 / (42 + 1);
-        const prevCTL = i < timeRange - 1 ? dailyData[dailyData.length - 1]?.ctl || 0 : 0;
+        const prevCTL = allDailyData.length > 0 ? allDailyData[allDailyData.length - 1].ctl : 0;
         const ctl = prevCTL + ctlDecay * (dailyTSS - prevCTL);
 
         // Calculate TSB (Training Stress Balance) = CTL - ATL
         const tsb = ctl - atl;
 
-        dailyData.push({
+        allDailyData.push({
           date: dateStr,
           dateLabel: format(date, 'MMM d'),
           tss: dailyTSS,
@@ -98,15 +218,21 @@ const Form = ({ stravaTokens }) => {
         });
       }
 
-      setFormData(dailyData);
+      // Extract only the requested time range for display
+      const displayData = allDailyData.slice(-timeRange);
+      console.log('Form - Display data points:', displayData.length);
+      console.log('Form - Latest metrics:', displayData[displayData.length - 1]);
+
+      setFormData(displayData);
       
       // Set current metrics (today's values)
-      const current = dailyData[dailyData.length - 1];
+      const current = displayData[displayData.length - 1];
       setCurrentMetrics(current);
+      
+      console.log('Form - Data processed successfully');
     } catch (error) {
-      console.error('Error loading form data:', error);
-    } finally {
-      setLoading(false);
+      console.error('Form - Error processing data:', error);
+      throw error;
     }
   };
 
@@ -133,7 +259,56 @@ const Form = ({ stravaTokens }) => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Calculating your fitness metrics...</p>
+          <p className="text-sm text-gray-500 mt-2">Fetching 90 days of training data for accurate baseline...</p>
         </div>
+      </div>
+    );
+  }
+
+  // No Strava connection
+  if (!currentTokens?.access_token) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Card className="max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Connect Strava to View Fitness & Form</h3>
+              <p className="text-gray-600 mb-4">
+                This page requires your Strava activities to calculate fitness metrics.
+              </p>
+              <p className="text-sm text-gray-500">
+                Go to Settings to connect your Strava account.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // No data available
+  if (!loading && formData.length === 0) {
+    return (
+      <div className="space-y-6 max-w-7xl">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Fitness & Form</h1>
+          <p className="text-gray-600 mt-1">Track your training load, fitness, and freshness using Joe Friel's TSB methodology</p>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-12">
+              <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Training Data Available</h3>
+              <p className="text-gray-600 mb-4">
+                We need at least a few weeks of training data to calculate your fitness metrics.
+              </p>
+              <p className="text-sm text-gray-500">
+                Keep training and sync your activities from Strava!
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

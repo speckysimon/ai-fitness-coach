@@ -1,8 +1,10 @@
-# 🎯 AI Fitness Coach
+# 🔬 RiderLabs
 
-A lightweight AI-assisted training coach that pulls in past workouts from Strava, analyses training load and progress, and automatically generates structured forward-looking plans and calendar events, so athletes can see both where they've been and where they're going — all in one clear view.
+**Where Performance is Engineered**
 
-![AI Fitness Coach](https://img.shields.io/badge/version-2.0.0-blue.svg)
+Data-driven cycling performance platform powered by AI. Analyzes your training history from Strava, generates personalized training plans, and provides race-day strategies with post-race analysis — creating a complete learning loop that makes you faster.
+
+![RiderLabs](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## 🚀 What's New in v2.0
@@ -85,7 +87,7 @@ A lightweight AI-assisted training coach that pulls in past workouts from Strava
 
 1. **Clone the repository**:
    ```bash
-   cd /Users/simonosx/CascadeProjects/ai-fitness-coach
+   cd /Users/simonosx/CascadeProjects/riderlabs
    ```
 
 2. **Install dependencies**:
@@ -248,7 +250,7 @@ Manage your configuration:
 ### Project Structure
 
 ```
-ai-fitness-coach/
+riderlabs/
 ├── server/
 │   ├── index.js                 # Express server
 │   ├── routes/
@@ -405,6 +407,6 @@ This project is licensed under the MIT License.
 
 ---
 
-**Built with ❤️ for athletes who want to train smarter, not just harder.**
+**Built with ❤️ for cyclists who want data-driven performance.**
 
 🎯 **Ready to start?** Run `npm install && npm run dev` and connect your Strava account!

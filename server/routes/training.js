@@ -68,4 +68,51 @@ router.post('/session/recommend', async (req, res) => {
   }
 });
 
+// Adjust plan based on user request (adaptive adjustments)
+router.post('/plan/adjust', async (req, res) => {
+  const { plan, activities, completedSessions, adjustmentRequest, context, userDateTime } = req.body;
+  
+  if (!plan || !adjustmentRequest) {
+    return res.status(400).json({ error: 'Plan and adjustment request required' });
+  }
+
+  try {
+    const adjustment = await aiPlannerService.adjustPlanFromRequest({
+      plan,
+      activities,
+      completedSessions,
+      adjustmentRequest,
+      context,
+      userDateTime,
+    });
+    
+    res.json(adjustment);
+  } catch (error) {
+    console.error('Error adjusting training plan:', error.message);
+    res.status(500).json({ error: 'Failed to adjust training plan' });
+  }
+});
+
+// Analyze workout vs planned session
+router.post('/workout/analyze', async (req, res) => {
+  const { plannedSession, actualActivity, athleteComment } = req.body;
+  
+  if (!plannedSession || !actualActivity) {
+    return res.status(400).json({ error: 'Planned session and actual activity required' });
+  }
+
+  try {
+    const analysis = await aiPlannerService.analyzeWorkout({
+      plannedSession,
+      actualActivity,
+      athleteComment,
+    });
+    
+    res.json(analysis);
+  } catch (error) {
+    console.error('Error analyzing workout:', error.message);
+    res.status(500).json({ error: 'Failed to analyze workout' });
+  }
+});
+
 export default router;

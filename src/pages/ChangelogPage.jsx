@@ -5,6 +5,180 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 const ChangelogPage = () => {
   const versions = [
     {
+      version: '2.5.0',
+      date: '2025-10-23',
+      type: 'major',
+      changes: {
+        features: [
+          '⏰ Real-time Dashboard Clock showing user\'s local time',
+          '🌍 Timezone Settings with auto-detect and 24 timezone options',
+          '🤖 AI Timezone Awareness - AI now understands "today", "yesterday", "tomorrow" based on your timezone',
+          '👤 Coach Avatar System with 5 unique coaching personas',
+          '💪 Coach Alex - Motivational high-energy coach',
+          '📊 Coach Jordan - Analytical data-driven coach',
+          '🤝 Coach Sam - Supportive empathetic coach',
+          '🎯 Coach Taylor - Strategic tactical coach',
+          '🏆 Coach Morgan - Experienced veteran coach',
+          'Coach Avatar Selector in Settings with personality descriptions',
+          'Coach icons displayed in all training notes',
+        ],
+        improvements: [
+          'Coach notes now display latest first (reverse chronological)',
+          'Starting Level badge moved to Rider Type header',
+          'Rider Type section now collapsible to reduce clutter',
+          'Dashboard charts fixed - Training Volume extends to current date',
+          'TSS Training Load graph now displays correctly',
+          'Timezone context sent to AI for accurate date parsing',
+          'Better mobile responsiveness for clock display',
+        ],
+        fixes: [
+          'Fixed Training Volume graph not extending to current date',
+          'Fixed TSS graph showing no data',
+          'Fixed week-based date calculations to include current week',
+        ],
+      },
+    },
+    {
+      version: '0.2.0',
+      date: '2025-10-21',
+      type: 'major',
+      changes: {
+        features: [
+          '🎨 Complete rebrand to RiderLabs',
+          'New brand identity: "Where Performance is Engineered"',
+          'Updated logo icon (🔬 microscope) across all pages',
+          'Purchased riderlabs.io domain',
+          'Professional brand positioning as data-driven cycling platform',
+        ],
+        improvements: [
+          'Consistent branding across Landing, Login, Settings, Layout',
+          'Updated package.json and README.md with new brand',
+          'Blue-to-purple gradient color scheme',
+          'Version bumped to 0.2.0 (pre-beta)',
+        ],
+      },
+    },
+    {
+      version: '2.4.0',
+      date: '2025-10-21',
+      type: 'major',
+      changes: {
+        features: [
+          'Post-Race Analysis with AI-powered performance insights',
+          'Race activity auto-detection based on intensity',
+          'Post-race feedback form (5-star rating, plan adherence, lessons learned)',
+          'AI analysis with 4 performance scores (overall, pacing, execution, tactical)',
+          'Detailed race breakdown: what worked, what didn\'t, insights, recommendations',
+          'Training focus suggestions based on race weaknesses',
+          'Race history database with localStorage integration',
+          'Complete race lifecycle: Predict → Execute → Analyze → Learn → Improve',
+          '"Generate Training Plan" button to close the learning loop',
+        ],
+        improvements: [
+          'Race data integration with training plan generation',
+          'AI uses last 3 races to customize future plans',
+          'Coach notes reference race analysis in generated plans',
+          'Beautiful gradient UI for analysis display',
+        ],
+      },
+    },
+    {
+      version: '2.3.0',
+      date: '2025-10-21',
+      type: 'major',
+      changes: {
+        features: [
+          'Today\'s Workout mobile-optimized page (/workout/today)',
+          'Large, readable text optimized for phone screens',
+          'Navigation between workouts (Previous/Next buttons)',
+          'Zwift workout recommendations on mobile view',
+          'Gradient design with session type color coding',
+          '"TODAY" badge for current day\'s workout',
+          'Bookmark-able URL for quick mobile access',
+          'AI Workout Analysis in Activity Match Modal',
+          'Workout comment textarea for athlete feedback',
+          'AI Coach Analysis button with loading states',
+          'Deviation level indicators (low/medium/high) with color coding',
+          'Plan update suggestions for significant deviations',
+        ],
+        improvements: [
+          'Lowered activity matching threshold from 60% to 50%',
+          'Better "Fair match" category for 50-60% range',
+          'Auto-complete threshold updated to 50%',
+          'More activities automatically matched to planned sessions',
+        ],
+      },
+    },
+    {
+      version: '2.2.0',
+      date: '2025-10-21',
+      type: 'major',
+      changes: {
+        features: [
+          'Collapsible weeks with current week auto-expanded',
+          'Week completion stats (X/Y sessions completed, percentage)',
+          'Current week highlighted with blue border and badge',
+          'Chevron icons for expand/collapse state',
+          'Click week header to toggle expansion',
+        ],
+        improvements: [
+          'Reduced visual clutter with week rollup',
+          'Better focus on current training week',
+          'Improved navigation through long training plans',
+        ],
+      },
+    },
+    {
+      version: '2.1.0',
+      date: '2025-10-19',
+      type: 'major',
+      changes: {
+        features: [
+          'Coach Notes collapsible with timestamps',
+          'Type badges for each coach note entry',
+          'Supports both new array format and legacy string format',
+          'Auto-collapse adjustment form when plan exists',
+          'Timestamped adjustment notes for each plan change',
+          'Activity re-matching after plan adjustments',
+        ],
+        improvements: [
+          'Better empty state handling',
+          'Reduced visual clutter with collapsed notes',
+          'Accurate completion tracking after adjustments',
+        ],
+        fixes: [
+          'Fixed coach notes overwriting (now appends correctly)',
+          'Fixed incorrect dates in plan adjustments',
+          'Fixed plan settings being lost during adjustments',
+          'Fixed sessions being deleted from adjusted plans',
+          'Fixed schedule changes not being applied (AI now moves sessions to different days)',
+          'Fixed retroactive session updates (AI now accepts what was actually done)',
+        ],
+      },
+    },
+    {
+      version: '2.0.0',
+      date: '2025-10-19',
+      type: 'major',
+      changes: {
+        features: [
+          'Adaptive Training Plan adjustments with natural language',
+          'AI-powered plan analysis using GPT-4',
+          'Preview of proposed changes before applying',
+          'Modified session tracking with metadata',
+          'Considers current plan, recent activities, and missed sessions',
+          'Maintains training principles (progressive overload, recovery, specificity)',
+          '"Adjust Plan" button with purple gradient design',
+        ],
+        improvements: [
+          'Full integration with plan storage and completion tracking',
+          'Error handling with fallback to original plan',
+          'Smart date handling (preserves dates when day unchanged)',
+          'Recalculates dates when day of week changes',
+        ],
+      },
+    },
+    {
       version: '1.3.0',
       date: '2025-10-01',
       type: 'major',
@@ -129,7 +303,7 @@ const ChangelogPage = () => {
           Changelog
         </h1>
         <p className="text-gray-600 mt-2">
-          Track all updates, new features, and improvements to AI Fitness Coach
+          Track all updates, new features, and improvements to RiderLabs
         </p>
       </div>
 

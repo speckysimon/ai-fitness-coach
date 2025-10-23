@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, Clock, TrendingUp, Mountain, Zap, Heart, Activity as ActivityIcon } from 'lucide-react';
+import { X, Clock, TrendingUp, Mountain, Zap, Heart, Activity as ActivityIcon, Trophy } from 'lucide-react';
 import { formatDuration, formatDistance } from '../lib/utils';
+import { getRaceTypeLabel } from '../lib/raceUtils';
 import RouteMap from './RouteMap';
 
 const ActivityDetailModal = ({ activity, onClose }) => {
@@ -42,12 +43,32 @@ const ActivityDetailModal = ({ activity, onClose }) => {
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-start justify-between">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">
-              {getActivityIcon(activity.type)}
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl ${
+              activity.isRace ? 'bg-yellow-100' : 'bg-blue-100'
+            }`}>
+              {activity.isRace ? (
+                <Trophy className="w-6 h-6 text-yellow-600" />
+              ) : (
+                getActivityIcon(activity.type)
+              )}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{activity.name}</h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-2xl font-bold text-gray-900">{activity.name}</h2>
+                {activity.isRace && (
+                  <>
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded">
+                      RACE
+                    </span>
+                    {activity.raceType && (
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
+                        {getRaceTypeLabel(activity.raceType)}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+              <p className="text-sm text-gray-500">
                 {new Date(activity.date).toLocaleDateString('en-US', {
                   weekday: 'long',
                   year: 'numeric',

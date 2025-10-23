@@ -9,6 +9,8 @@ import googleRoutes from './routes/google.js';
 import trainingRoutes from './routes/training.js';
 import analyticsRoutes from './routes/analytics.js';
 import raceRoutes from './routes/race.js';
+import raceTagRoutes from './routes/raceTags.js';
+import adaptationRoutes from './routes/adaptation.js';
 
 dotenv.config();
 
@@ -21,7 +23,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Increase limit for large activity datasets
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -30,6 +33,8 @@ app.use('/api/google', googleRoutes);
 app.use('/api/training', trainingRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/race', raceRoutes);
+app.use('/api/race-tags', raceTagRoutes);
+app.use('/api/adaptation', adaptationRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

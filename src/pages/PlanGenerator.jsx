@@ -1,16 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Calendar as CalendarIcon, Sparkles, Send, CheckCircle, Circle, TrendingUp, Clock, RefreshCw, CalendarPlus, Award, Info, Zap as ZapIcon, ChevronDown, ChevronUp, X, AlertCircle, Calendar, User } from 'lucide-react';
+import { 
+  Calendar as CalendarIcon, 
+  TrendingUp, 
+  Zap as ZapIcon, 
+  Clock, 
+  CheckCircle, 
+  Circle,
+  X, 
+  AlertCircle, 
+  RefreshCw, 
+  Download, 
+  CalendarPlus, 
+  Award, 
+  Info, 
+  ChevronDown, 
+  ChevronUp, 
+  User,
+  Target,
+  Sparkles,
+  Brain,
+  ArrowRight
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { Textarea } from '../components/ui/Textarea';
 import SessionHoverModal from '../components/SessionHoverModal';
 import ConfirmModal from '../components/ConfirmModal';
 import ActivityMatchModal from '../components/ActivityMatchModal';
+import AdaptivePlanModal from '../components/AdaptivePlanModal';
+import SuccessModal from '../components/SuccessModal';
 import { 
   calculateTrainingFocus, 
   calculateRiderTypeProgress, 
   getProgressStatus, 
   getMotivationalMessage 
 } from '../lib/trainingPlanMapping';
+import { getCoachPersona, getUserCoach } from '../lib/coachPersonas';
 import {
   matchActivitiesToPlan,
   mergeCompletions,
@@ -24,6 +49,8 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [ftp, setFtp] = useState(null);
+  const [fthr, setFthr] = useState(null);
+  const [hrZones, setHrZones] = useState(null);
   const [completedSessions, setCompletedSessions] = useState({});
   const [automaticMatches, setAutomaticMatches] = useState({});
   const [hoveredSession, setHoveredSession] = useState(null);
@@ -32,16 +59,24 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const [planLoadedFromStorage, setPlanLoadedFromStorage] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isFormExpanded, setIsFormExpanded] = useState(true);
+  const [isCoachNotesExpanded, setIsCoachNotesExpanded] = useState(false);
   const [showMissedDropdown, setShowMissedDropdown] = useState(null);
+  const [illnessHistory, setIllnessHistory] = useState([]);
+  const [showAdaptiveModal, setShowAdaptiveModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState({ title: '', message: '' });
+  const [expandedWeeks, setExpandedWeeks] = useState({});
+  const [isRiderTypeExpanded, setIsRiderTypeExpanded] = useState(false);
   const [formData, setFormData] = useState({
     eventName: '',
     eventDate: '',
     startDate: new Date().toISOString().split('T')[0], // Today's date
     eventType: 'Endurance',
-    priority: 'High',
+    priority: 'High Priority',
     daysPerWeek: 5,
     maxHoursPerWeek: 10,
     preference: 'Both',
+    aiContext: '',
   });
 
   useEffect(() => {
@@ -59,8 +94,46 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
     if (savedPlan) {
       setPlan(JSON.parse(savedPlan));
       setPlanLoadedFromStorage(true);
+      setIsFormExpanded(false); // Collapse form when plan exists
     }
+    
+    // Load illness/injury history
+    loadIllnessHistory();
   }, [stravaTokens]);
+
+  const loadIllnessHistory = async () => {
+    try {
+      const sessionToken = localStorage.getItem('session_token');
+      if (!sessionToken) return;
+
+      const response = await fetch('/api/adaptation/history', {
+        headers: { 'Authorization': `Bearer ${sessionToken}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIllnessHistory(data.events || []);
+      }
+    } catch (error) {
+      console.error('Error loading illness history:', error);
+    }
+  };
+
+  const loadRaceHistory = () => {
+    const storedAnalyses = localStorage.getItem('race_analyses');
+    if (!storedAnalyses) return [];
+    
+    const analyses = JSON.parse(storedAnalyses);
+    
+    // Convert to array and sort by date (most recent first)
+    return Object.entries(analyses)
+      .map(([activityId, analysis]) => ({
+        activityId,
+        ...analysis
+      }))
+      .sort((a, b) => new Date(b.activityDate) - new Date(a.activityDate))
+      .slice(0, 3); // Last 3 races
+  };
 
   // Auto-match activities to plan when either changes
   useEffect(() => {
@@ -81,6 +154,69 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showMissedDropdown]);
+
+  // Initialize expanded weeks when plan changes - only expand current week
+  useEffect(() => {
+    if (plan) {
+      const currentWeekNumber = getCurrentWeek(plan);
+      const initialExpanded = {};
+      plan.weeks.forEach(week => {
+        initialExpanded[week.weekNumber] = week.weekNumber === currentWeekNumber;
+      });
+      setExpandedWeeks(initialExpanded);
+    }
+  }, [plan?.generatedAt, plan?.coachNotes?.length]); // Re-run when plan is regenerated or adjusted
+
+  // Helper function to determine current week based on today's date
+  const getCurrentWeek = (plan) => {
+    if (!plan || !plan.weeks || plan.weeks.length === 0) return 1;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Find which week contains today's date
+    for (const week of plan.weeks) {
+      for (const session of week.sessions) {
+        if (session.date) {
+          const sessionDate = new Date(session.date);
+          sessionDate.setHours(0, 0, 0, 0);
+          
+          // Check if this session's week contains today
+          const weekStart = new Date(sessionDate);
+          weekStart.setDate(sessionDate.getDate() - sessionDate.getDay() + 1); // Monday of this week
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6); // Sunday of this week
+          
+          if (today >= weekStart && today <= weekEnd) {
+            return week.weekNumber;
+          }
+        }
+      }
+    }
+    
+    // If no week contains today, return the first week with future sessions
+    for (const week of plan.weeks) {
+      for (const session of week.sessions) {
+        if (session.date) {
+          const sessionDate = new Date(session.date);
+          sessionDate.setHours(0, 0, 0, 0);
+          if (sessionDate >= today) {
+            return week.weekNumber;
+          }
+        }
+      }
+    }
+    
+    // Default to first week
+    return 1;
+  };
+
+  const toggleWeekExpanded = (weekNumber) => {
+    setExpandedWeeks(prev => ({
+      ...prev,
+      [weekNumber]: !prev[weekNumber]
+    }));
+  };
 
   const toggleSessionComplete = (weekNum, sessionIdx) => {
     const key = `${weekNum}-${sessionIdx}`;
@@ -320,6 +456,16 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             });
             const ftpData = await ftpResponse.json();
             setFtp(ftpData.ftp);
+
+            // Calculate FTHR and HR zones
+            const fthrResponse = await fetch('/api/analytics/fthr', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ activities: data }),
+            });
+            const fthrData = await fthrResponse.json();
+            setFthr(fthrData.fthr);
+            setHrZones(fthrData.zones);
             return;
           } else {
             const errorText = await retryResponse.text();
@@ -346,10 +492,22 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         });
         const ftpData = await ftpResponse.json();
         setFtp(ftpData.ftp);
+
+        // Calculate FTHR and HR zones
+        const fthrResponse = await fetch('/api/analytics/fthr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activities: data }),
+        });
+        const fthrData = await fthrResponse.json();
+        setFthr(fthrData.fthr);
+        setHrZones(fthrData.zones);
       } else {
         console.error('Failed to fetch activities, status:', response.status);
         setActivities([]);
         setFtp(null);
+        setFthr(null);
+        setHrZones(null);
       }
     } catch (error) {
       console.error('Error loading activities:', error);
@@ -394,6 +552,10 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         
         session.date = sessionDate.toISOString().split('T')[0];
         session.dateObj = sessionDate;
+        
+        // Fix day name to match actual date
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        session.day = dayNames[sessionDate.getDay()];
       });
     });
 
@@ -416,6 +578,19 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       const duration = Math.max(1, Math.ceil(diffDays / 7)); // At least 1 week
       
+      // Calculate enhanced metrics
+      const bmi = userProfile?.weight && userProfile?.height 
+        ? (userProfile.weight / ((userProfile.height / 100) ** 2))
+        : null;
+      
+      const powerToWeight = ftp && userProfile?.weight
+        ? (ftp / userProfile.weight)
+        : null;
+
+      // Load race history for AI integration
+      const raceHistory = loadRaceHistory();
+      const latestRace = raceHistory[0];
+
       const response = await fetch('/api/training/plan/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -427,6 +602,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             eventType: formData.eventType,
             priority: formData.priority,
             duration, // Pass calculated duration
+            aiContext: formData.aiContext || undefined, // Pass AI context if provided
           },
           constraints: {
             daysPerWeek: parseInt(formData.daysPerWeek),
@@ -434,6 +610,37 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             preference: formData.preference,
           },
           userProfile, // Pass user profile for personalized training
+          illnessHistory, // Pass illness/injury history for safer plan generation
+          athleteMetrics: {
+            ftp,
+            fthr,
+            hrZones,
+            bmi,
+            powerToWeight,
+            weight: userProfile?.weight,
+            height: userProfile?.height,
+            age: userProfile?.age,
+            gender: userProfile?.gender
+          },
+          // Include race history for AI learning loop
+          raceHistory: raceHistory.map(race => ({
+            date: race.activityDate,
+            performanceScore: race.performanceScore,
+            pacingScore: race.pacingScore,
+            executionScore: race.executionScore,
+            tacticalScore: race.tacticalScore,
+            whatWentWell: race.whatWentWell,
+            whatDidntGoWell: race.whatDidntGoWell,
+            trainingFocus: race.trainingFocus,
+            recommendations: race.recommendations
+          })),
+          // Training priorities from latest race
+          trainingPriorities: latestRace ? {
+            primary: latestRace.trainingFocus[0],
+            weaknesses: latestRace.whatDidntGoWell.slice(0, 3),
+            strengths: latestRace.whatWentWell.slice(0, 3),
+            pacingScore: latestRace.pacingScore
+          } : null
         }),
       });
 
@@ -444,6 +651,17 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       
       // Add event type to plan for rider type tracking
       planWithDates.eventType = formData.eventType;
+      
+      // Add coach note if race history exists
+      if (raceHistory.length > 0) {
+        const raceNote = {
+          message: `This plan has been customized based on your recent race analysis. Key focus: ${latestRace.trainingFocus[0]}. We're addressing your pacing (${latestRace.pacingScore}/100) and building on your strength in ${latestRace.whatWentWell[0]}.`,
+          timestamp: new Date().toISOString(),
+          type: 'Race Integration'
+        };
+        
+        planWithDates.coachNotes = [raceNote, ...(planWithDates.coachNotes || [])];
+      }
       
       setPlan(planWithDates);
       
@@ -462,14 +680,123 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
     }
   };
 
+  const handleApplyAdjustments = (adjustedPlan, explanation) => {
+    // Preserve plan metadata but recalculate dates if days changed
+    const planWithPreservedDates = {
+      ...adjustedPlan,
+      eventType: plan.eventType || formData.eventType,
+      goals: plan.goals, // Preserve original goals
+      generatedAt: plan.generatedAt, // Preserve original generation time
+    };
+
+    // Helper to get day offset from week start (Monday = 0)
+    const getDayOffset = (dayName) => {
+      const days = {
+        'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3,
+        'Friday': 4, 'Saturday': 5, 'Sunday': 6
+      };
+      return days[dayName] || 0;
+    };
+
+    // Map dates intelligently - preserve if day unchanged, recalculate if day changed
+    planWithPreservedDates.weeks = planWithPreservedDates.weeks.map((week, weekIdx) => {
+      const originalWeek = plan.weeks[weekIdx];
+      if (!originalWeek) return week; // New week added, keep AI-generated dates
+
+      // Get the Monday of this week by finding a session with matching day name
+      // This is more reliable than calculating from any date
+      let weekStartDate = null;
+      
+      // First, try to find a Monday in the original week
+      const mondaySession = originalWeek.sessions.find(s => s.day === 'Monday' && s.date);
+      if (mondaySession) {
+        weekStartDate = new Date(mondaySession.date);
+      } else {
+        // If no Monday, calculate from any session with a known day
+        for (const session of originalWeek.sessions) {
+          if (session.date && session.day) {
+            const sessionDate = new Date(session.date);
+            const dayOffset = getDayOffset(session.day);
+            weekStartDate = new Date(sessionDate);
+            weekStartDate.setDate(sessionDate.getDate() - dayOffset);
+            break;
+          }
+        }
+      }
+
+      return {
+        ...week,
+        sessions: week.sessions.map((session, sessionIdx) => {
+          const originalSession = originalWeek.sessions[sessionIdx];
+          if (!originalSession) return session; // New session added, keep AI-generated date
+
+          // Check if the day of week changed
+          const dayChanged = session.day !== originalSession.day;
+          
+          if (dayChanged && weekStartDate) {
+            // Recalculate date based on new day of week
+            const newDate = new Date(weekStartDate);
+            newDate.setDate(weekStartDate.getDate() + getDayOffset(session.day));
+            
+            return {
+              ...session,
+              date: newDate.toISOString().split('T')[0],
+              dateObj: newDate,
+              dateFormatted: newDate.toISOString().split('T')[0],
+            };
+          } else {
+            // Day unchanged, preserve the original date
+            return {
+              ...session,
+              date: originalSession.date,
+              dateObj: originalSession.dateObj,
+              dateFormatted: originalSession.dateFormatted,
+            };
+          }
+        })
+      };
+    });
+
+    // Append new coach note to existing notes (don't overwrite)
+    const existingNotes = plan.coachNotes || [];
+    const newNotes = adjustedPlan.coachNotes || [];
+    
+    // Add the new adjustment note with current timestamp
+    const adjustmentNote = {
+      message: explanation,
+      timestamp: new Date().toISOString(),
+      type: 'Adjustment'
+    };
+    
+    planWithPreservedDates.coachNotes = [...existingNotes, adjustmentNote];
+    
+    // Save adjusted plan
+    setPlan(planWithPreservedDates);
+    localStorage.setItem('training_plan', JSON.stringify(planWithPreservedDates));
+    
+    // Re-run activity matching to match activities to adjusted sessions
+    // This will automatically match the completed activity to the correct session
+    if (activities.length > 0) {
+      const matches = matchActivitiesToPlan(planWithPreservedDates, activities);
+      setAutomaticMatches(matches);
+    }
+    
+    // Show success modal
+    setSuccessMessage({
+      title: 'Plan Adjusted Successfully!',
+      message: explanation
+    });
+    setShowSuccessModal(true);
+  };
+
   const syncToCalendar = async () => {
     if (!googleTokens) {
-      alert('❌ Google Calendar not connected\n\nPlease connect your Google Calendar in Settings first to sync your training plan.');
+      alert('Google Calendar not connected. Please connect in Settings first.');
       return;
     }
     
     if (!plan) {
-      alert('❌ No training plan available\n\nPlease generate a training plan first before syncing to calendar.');
+      alert('No training plan available. Please generate a plan first.');
       return;
     }
 
@@ -493,7 +820,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 • Targets: ${session.targets}
 • Day: ${session.day}
 
-💡 Click for full workout details in AI Fitness Coach app`;
+💡 Click for full workout details in RiderLabs app`;
 
           return {
             title: `🚴 ${session.title}`,
@@ -519,13 +846,13 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       const result = await response.json();
       
       if (result.success) {
-        alert(`✅ Successfully added ${events.length} training sessions to Google Calendar!\n\nCheck your calendar to see all scheduled workouts.`);
+        alert(`Successfully added ${events.length} training sessions to Google Calendar!`);
       } else {
         throw new Error(result.error || 'Unknown error occurred while syncing');
       }
     } catch (error) {
       console.error('Error syncing to calendar:', error);
-      alert(`❌ Failed to sync to calendar\n\n${error.message}\n\nPlease try again or check your Google Calendar permissions in Settings.`);
+      alert(`Failed to sync to calendar: ${error.message}`);
     } finally {
       setSyncing(false);
     }
@@ -535,9 +862,60 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
     <div className="space-y-8 max-w-6xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">AI Training Plan Generator</h1>
-        <p className="text-gray-600 mt-1">Create a personalized training plan based on your goals and history</p>
+        <h1 className="text-3xl font-bold text-gray-900">AI Coach</h1>
+        <p className="text-gray-600 mt-1">Your personal AI cycling coach - create and adapt training plans based on your goals</p>
       </div>
+
+      {/* Race Integration Indicator */}
+      {(() => {
+        const raceHistory = loadRaceHistory();
+        if (raceHistory.length === 0) return null;
+        const latestRace = raceHistory[0];
+        
+        return (
+          <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <Brain className="w-6 h-6 text-purple-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    AI Will Use Your Race Data
+                    <Award className="w-5 h-5 text-purple-600" />
+                  </h3>
+                  <p className="text-gray-700 mb-3">
+                    Your training plan will be customized based on your recent race performance:
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Addressing pacing issues (Score: {latestRace.pacingScore}/100)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Building on your strengths: {latestRace.whatWentWell[0]}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>Focus: {latestRace.trainingFocus[0]}</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-purple-200">
+                    <Button
+                      onClick={() => window.location.href = '/race-analysis'}
+                      variant="outline"
+                      size="sm"
+                      className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                    >
+                      View Full Race Analysis
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Form */}
       <Card>
@@ -564,7 +942,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Event Name
               </label>
               <input
@@ -573,59 +951,63 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                 value={formData.eventName}
                 onChange={handleInputChange}
                 placeholder="e.g., Spring Century Ride"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Event Date
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Event Date {formData.eventType === 'Off-Season Training' && <span className="text-muted-foreground">(Optional)</span>}
               </label>
               <input
                 type="date"
                 name="eventDate"
                 value={formData.eventDate}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Event Type
               </label>
               <select
                 name="eventType"
                 value={formData.eventType}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               >
                 <option value="Endurance">Endurance</option>
                 <option value="Gran Fondo">Gran Fondo</option>
                 <option value="Criterium">Criterium</option>
                 <option value="Time Trial">Time Trial</option>
                 <option value="General Fitness">General Fitness</option>
+                <option value="Off-Season Training">Off-Season Training</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Priority
               </label>
               <select
                 name="priority"
                 value={formData.priority}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               >
-                <option value="High">High (A-race)</option>
-                <option value="Medium">Medium (B-race)</option>
-                <option value="Low">Low (C-race)</option>
+                <option value="Peak Performance">Peak Performance - A-race, most important event</option>
+                <option value="High Priority">High Priority - B-race, important event</option>
+                <option value="Moderate Priority">Moderate Priority - C-race, tune-up event</option>
+                <option value="Maintenance">Maintenance - Stay fit, no specific goal</option>
+                <option value="Base Building">Base Building - Off-season foundation</option>
+                <option value="Recovery/Comeback">Recovery/Comeback - Post-injury or break</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Start Date
               </label>
               <input
@@ -633,12 +1015,12 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Days per Week
               </label>
               <input
@@ -648,12 +1030,12 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                 onChange={handleInputChange}
                 min="3"
                 max="7"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Max Hours per Week
               </label>
               <input
@@ -663,24 +1045,212 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                 onChange={handleInputChange}
                 min="3"
                 max="20"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Indoor/Outdoor Preference
               </label>
               <select
                 name="preference"
                 value={formData.preference}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
               >
                 <option value="Both">Both</option>
                 <option value="Outdoor">Outdoor Only</option>
                 <option value="Indoor">Indoor Only</option>
               </select>
+            </div>
+          </div>
+
+          {/* Athlete Metrics Indicator */}
+          {(ftp || fthr || userProfile?.weight) && (
+            <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-950/30 border-2 border-purple-200 dark:border-purple-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <User className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-1">
+                    ✓ Athlete Metrics Detected
+                  </h4>
+                  <p className="text-xs text-purple-700 dark:text-purple-300 mb-3">
+                    Your AI coach has analyzed your performance data to create a plan matched to your current fitness level.
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {ftp && (
+                      <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded">
+                        <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">FTP</div>
+                        <div className="text-lg font-bold text-purple-900 dark:text-purple-100">{ftp}W</div>
+                        <div className="text-xs text-purple-700 dark:text-purple-300">Power Threshold</div>
+                      </div>
+                    )}
+                    {fthr && (
+                      <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded">
+                        <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">FTHR</div>
+                        <div className="text-lg font-bold text-purple-900 dark:text-purple-100">{fthr} bpm</div>
+                        <div className="text-xs text-purple-700 dark:text-purple-300">HR Threshold</div>
+                      </div>
+                    )}
+                    {ftp && userProfile?.weight && (
+                      <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded">
+                        <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">Power/Weight</div>
+                        <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                          {(ftp / userProfile.weight).toFixed(2)}
+                        </div>
+                        <div className="text-xs text-purple-700 dark:text-purple-300">W/kg</div>
+                      </div>
+                    )}
+                    {userProfile?.weight && userProfile?.height && (
+                      <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded">
+                        <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">BMI</div>
+                        <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                          {((userProfile.weight / ((userProfile.height / 100) ** 2))).toFixed(1)}
+                        </div>
+                        <div className="text-xs text-purple-700 dark:text-purple-300">Body Mass Index</div>
+                      </div>
+                    )}
+                  </div>
+                  {hrZones && (
+                    <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-800">
+                      <p className="text-xs font-medium text-purple-800 dark:text-purple-200 mb-2">
+                        💓 HR Training Zones (based on 6-week FTHR)
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-xs">
+                        {Object.entries(hrZones).map(([key, zone]) => (
+                          <div key={key} className="p-2 rounded" style={{ backgroundColor: `${zone.color}20`, borderLeft: `3px solid ${zone.color}` }}>
+                            <div className="font-semibold" style={{ color: zone.color }}>
+                              Z{key.replace('zone', '')} - {zone.name}
+                            </div>
+                            <div className="text-purple-700 dark:text-purple-300 mt-1">
+                              {zone.min}-{zone.max} bpm
+                            </div>
+                            <div className="text-purple-600 dark:text-purple-400 mt-1">
+                              {zone.percentage}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Illness/Injury History Indicator */}
+          {illnessHistory.length > 0 && (
+            <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/30 border-2 border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">
+                    ✓ Health History Detected
+                  </h4>
+                  <p className="text-xs text-green-700 dark:text-green-300 mb-3">
+                    Your AI coach is aware of {illnessHistory.length} recorded health {illnessHistory.length === 1 ? 'event' : 'events'} and will create a safer, more personalized plan.
+                  </p>
+                  <div className="space-y-2">
+                    {illnessHistory.slice(0, 3).map((event, idx) => {
+                      const startDate = new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                      const endDate = event.end_date ? new Date(event.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Ongoing';
+                      const isRecent = event.end_date && (new Date() - new Date(event.end_date)) < (30 * 24 * 60 * 60 * 1000); // Within 30 days
+                      
+                      return (
+                        <div key={idx} className={`text-xs p-2 rounded ${isRecent ? 'bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700' : 'bg-green-100 dark:bg-green-900/30'}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-green-900 dark:text-green-100">
+                              {event.category} - {event.severity}
+                            </span>
+                            {isRecent && (
+                              <span className="text-orange-700 dark:text-orange-300 text-xs font-semibold">
+                                Recent
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-green-700 dark:text-green-300 mt-1">
+                            {startDate} → {endDate}
+                          </div>
+                          {event.notes && (
+                            <div className="text-green-600 dark:text-green-400 mt-1 italic">
+                              "{event.notes}"
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {illnessHistory.length > 3 && (
+                      <p className="text-xs text-green-600 dark:text-green-400 italic">
+                        + {illnessHistory.length - 3} more {illnessHistory.length - 3 === 1 ? 'event' : 'events'} in history
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* AI Coaching Context Section */}
+          <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-start gap-3 mb-3">
+              <Brain className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <label htmlFor="aiContext" className="block text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                  Tell Your AI Coach More (Optional)
+                </label>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
+                  Share additional context about your training history, goals, constraints, 
+                  or preferences to help create a more personalized plan. This information will be used when you press <span className="font-semibold">"Generate Training Plan"</span> below.
+                </p>
+                {plan && (
+                  <p className="text-xs text-orange-700 dark:text-orange-300 mb-3 italic">
+                    💡 Already have a plan? Use the <span className="font-semibold">"Adjust Plan"</span> button below to modify your existing plan instead.
+                  </p>
+                )}
+                <Textarea
+                  id="aiContext"
+                  name="aiContext"
+                  value={formData.aiContext}
+                  onChange={handleInputChange}
+                  placeholder="e.g., I'm coming back from a knee injury and need to build back gradually. I prefer morning workouts and have limited time on weekdays but more flexibility on weekends. I've been cycling for 3 years and my best FTP was 280W..."
+                  className="text-sm resize-none"
+                  rows={5}
+                />
+              </div>
+            </div>
+            
+            {/* Helpful Prompts */}
+            <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+              <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
+                💡 Helpful things to mention:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-blue-700 dark:text-blue-300">
+                <div className="flex items-start gap-1">
+                  <span>•</span>
+                  <span>Training history & experience level</span>
+                </div>
+                <div className="flex items-start gap-1">
+                  <span>•</span>
+                  <span>Time constraints & schedule preferences</span>
+                </div>
+                <div className="flex items-start gap-1">
+                  <span>•</span>
+                  <span>Equipment available (trainer, power meter, etc.)</span>
+                </div>
+                <div className="flex items-start gap-1">
+                  <span>•</span>
+                  <span>Specific weaknesses to address</span>
+                </div>
+                <div className="flex items-start gap-1">
+                  <span>•</span>
+                  <span>Past performance goals or PRs</span>
+                </div>
+                <div className="flex items-start gap-1">
+                  <span>•</span>
+                  <span>Preferred training style or philosophy</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -699,7 +1269,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Generate AI Training Plan
+                  Generate Training Plan
                 </>
               )}
             </Button>
@@ -718,7 +1288,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-blue-600" />
-                  Training Plan Progress
+                  Your Training Progress
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
                   {calculateProgress().completed} of {calculateProgress().total} sessions completed
@@ -763,37 +1333,47 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
           
           return (
             <Card className="mb-6 border-2 border-purple-200 overflow-hidden">
-              <div className={`bg-gradient-to-r ${riderProgress.color} p-6 text-white`}>
+              <button
+                onClick={() => setIsRiderTypeExpanded(!isRiderTypeExpanded)}
+                className={`w-full bg-gradient-to-r ${riderProgress.color} p-6 text-white cursor-pointer hover:opacity-95 transition-opacity`}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="text-5xl">{riderProgress.icon}</div>
-                    <div>
+                    <div className="text-left">
                       <h3 className="text-2xl font-bold mb-1">
                         Working Towards: {riderProgress.targetType}
                       </h3>
                       <p className="text-white/90">{riderProgress.description}</p>
+                      {/* Starting Level Badge in Header */}
+                      <div className="mt-2">
+                        <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm font-semibold text-sm`}>
+                          <Award className="w-4 h-4" />
+                          Starting Level: {progressStatus.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="text-5xl font-bold">{riderProgress.progress}%</div>
                     <p className="text-white/80 text-sm mt-1">Progress</p>
+                    <div className="mt-2">
+                      {isRiderTypeExpanded ? (
+                        <ChevronUp className="w-6 h-6 mx-auto" />
+                      ) : (
+                        <ChevronDown className="w-6 h-6 mx-auto" />
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </button>
               
-              <CardContent className="pt-6">
-                {/* Status Badge */}
-                <div className="mb-6">
-                  <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${progressStatus.bgColor} ${progressStatus.color} font-semibold`}>
-                    <Award className="w-4 h-4" />
-                    {progressStatus.status} Level
-                  </span>
-                </div>
-
-                {/* Motivational Message */}
-                <div className="mb-6 p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
-                  <p className="text-purple-900 font-medium">{motivationalMsg}</p>
-                </div>
+              {isRiderTypeExpanded && (
+                <CardContent className="pt-6">
+                  {/* Motivational Message */}
+                  <div className="mb-6 p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
+                    <p className="text-purple-900 font-medium">{motivationalMsg}</p>
+                  </div>
 
                 {/* Target Characteristics */}
                 <div className="mb-6">
@@ -846,18 +1426,19 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                   </div>
                 </div>
 
-                {/* Completion Stats */}
-                <div className="mt-6 grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-blue-50 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-blue-600">{riderProgress.completionRate}%</div>
-                    <div className="text-xs text-gray-600 mt-1">Plan Completion</div>
+                  {/* Completion Stats */}
+                  <div className="mt-6 grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-blue-50 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-blue-600">{riderProgress.completionRate}%</div>
+                      <div className="text-xs text-gray-600 mt-1">Plan Completion</div>
+                    </div>
+                    <div className="p-3 bg-green-50 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-green-600">{riderProgress.alignmentScore}%</div>
+                      <div className="text-xs text-gray-600 mt-1">Training Alignment</div>
+                    </div>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-green-600">{riderProgress.alignmentScore}%</div>
-                    <div className="text-xs text-gray-600 mt-1">Training Alignment</div>
-                  </div>
-                </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
           );
         })()}
@@ -867,7 +1448,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-3">
-                  <CardTitle>Your Training Plan</CardTitle>
+                  <CardTitle>Your Plan</CardTitle>
                   {planLoadedFromStorage && (
                     <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full flex items-center gap-1">
                       <CheckCircle className="w-3 h-3" />
@@ -878,6 +1459,14 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                 <CardDescription>{plan.planSummary}</CardDescription>
               </div>
               <div className="flex gap-2">
+                <Button 
+                  onClick={() => setShowAdaptiveModal(true)}
+                  variant="default"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                  Adjust Plan
+                </Button>
                 <Button 
                   onClick={syncToCalendar} 
                   disabled={syncing} 
@@ -906,18 +1495,63 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-8">
-              {plan.weeks.map((week) => (
-                <div key={week.weekNumber} className="border-l-4 border-blue-500 pl-6">
-                  <div className="mb-4">
-                    <h3 className="text-xl font-bold text-gray-900">
-                      Week {week.weekNumber}: {week.focus}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Total: {week.totalHours}h
-                    </p>
+            <div className="space-y-4">
+              {plan.weeks.map((week) => {
+                const isExpanded = expandedWeeks[week.weekNumber];
+                const isCurrentWeek = getCurrentWeek(plan) === week.weekNumber;
+                
+                // Calculate week completion stats
+                const weekSessions = week.sessions.length;
+                const merged = mergeCompletions(completedSessions, automaticMatches);
+                const weekCompleted = week.sessions.filter((_, idx) => {
+                  const sessionKey = `${week.weekNumber}-${idx}`;
+                  const completion = merged[sessionKey];
+                  return completion && completion.completed;
+                }).length;
+                const weekCompletionPct = weekSessions > 0 ? Math.round((weekCompleted / weekSessions) * 100) : 0;
+                
+                return (
+                <div key={week.weekNumber} className={`border-2 rounded-lg overflow-hidden ${
+                  isCurrentWeek ? 'border-blue-500 shadow-md' : 'border-gray-200'
+                }`}>
+                  <div 
+                    className={`p-4 cursor-pointer transition-colors ${
+                      isCurrentWeek 
+                        ? 'bg-blue-50 hover:bg-blue-100' 
+                        : 'bg-gray-50 hover:bg-gray-100'
+                    }`}
+                    onClick={() => toggleWeekExpanded(week.weekNumber)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {isExpanded ? (
+                          <ChevronUp className="w-5 h-5 text-gray-600" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-gray-600" />
+                        )}
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            Week {week.weekNumber}: {week.focus}
+                            {isCurrentWeek && (
+                              <span className="px-2 py-1 bg-blue-500 text-white text-xs font-semibold rounded">
+                                Current Week
+                              </span>
+                            )}
+                          </h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Total: {week.totalHours}h • {weekCompleted}/{weekSessions} sessions completed ({weekCompletionPct}%)
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {weekCompletionPct === 100 && (
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
+                  {isExpanded && (
+                  <div className="p-4 bg-white space-y-2">
                     {week.sessions.map((session, idx) => {
                       const sessionKey = `${week.weekNumber}-${idx}`;
                       const merged = mergeCompletions(completedSessions, automaticMatches);
@@ -939,7 +1573,11 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                         <div
                           key={idx}
                           className={`p-4 border-2 rounded-lg transition-all cursor-pointer ${
-                            isCompleted 
+                            session.status === 'cancelled'
+                              ? 'border-red-300 bg-red-50 opacity-60'
+                              : session.modified
+                              ? 'border-orange-300 bg-orange-50'
+                              : isCompleted 
                               ? `${completionStatus.borderColor} ${completionStatus.bgColor}` 
                               : isMissed
                               ? 'border-red-200 bg-red-50'
@@ -962,6 +1600,8 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                   <h4 className={`font-semibold ${
                                     isCompleted ? `${completionStatus.color} line-through` : 
                                     isMissed ? 'text-red-700 line-through' :
+                                    session.status === 'cancelled' ? 'text-red-700 line-through' :
+                                    session.modified ? 'text-orange-700' :
                                     'text-gray-900'
                                   }`}>
                                     {session.title}
@@ -982,23 +1622,47 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                       Missed: {completion.missedReason}
                                     </span>
                                   )}
+                                  {session.status === 'cancelled' && (
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded font-semibold border border-red-300">
+                                      <X className="w-3 h-3" />
+                                      Cancelled
+                                    </span>
+                                  )}
+                                  {session.modified && (
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-semibold border border-orange-300">
+                                      <AlertCircle className="w-3 h-3" />
+                                      Modified
+                                    </span>
+                                  )}
                                 </div>
                                 <p className={`text-sm mt-1 ${
                                   isCompleted ? 'text-green-700' : 
                                   isMissed ? 'text-red-700' :
+                                  session.status === 'cancelled' ? 'text-red-600 line-through' :
+                                  session.modified ? 'text-orange-600' :
                                   'text-gray-600'
                                 }`}>
                                   {session.description}
                                 </p>
+                                {session.cancellationReason && (
+                                  <p className="text-xs text-red-600 mt-1 italic">
+                                    Reason: {session.cancellationReason}
+                                  </p>
+                                )}
+                                {session.modificationReason && (
+                                  <p className="text-xs text-orange-600 mt-1 italic">
+                                    Adjustment: {session.modificationReason}
+                                  </p>
+                                )}
                                 <div className="flex items-center gap-4 mt-2 text-xs flex-wrap">
                                   <span className="flex items-center gap-1 text-gray-500">
                                     <Clock className="w-3 h-3" />
                                     {session.duration} min
                                   </span>
-                                  <span className="text-gray-500">{session.day}</span>
                                   {session.date && (
                                     <span className="font-medium text-gray-500">
                                       {new Date(session.date).toLocaleDateString('en-US', { 
+                                        weekday: 'short',
                                         month: 'short', 
                                         day: 'numeric' 
                                       })}
@@ -1119,7 +1783,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                               }}
                                               className="w-full text-left px-3 py-2 hover:bg-red-50 rounded flex items-center gap-2 text-sm"
                                             >
-                                              <Calendar className="w-4 h-4 text-red-600" />
+                                              <CalendarIcon className="w-4 h-4 text-red-600" />
                                               Schedule Conflict
                                             </button>
                                             <button
@@ -1145,14 +1809,81 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                       );
                     })}
                   </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
 
-            {plan.notes && (
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">Coach Notes</h4>
-                <p className="text-sm text-blue-700">{plan.notes}</p>
+            {plan.coachNotes && plan.coachNotes.length > 0 && (() => {
+              const coach = getCoachPersona(getUserCoach());
+              return (
+                <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setIsCoachNotesExpanded(!isCoachNotesExpanded)}
+                    className="w-full p-4 bg-blue-50 hover:bg-blue-100 transition-colors flex items-center justify-between"
+                  >
+                    <h4 className="font-medium text-blue-900 flex items-center gap-2">
+                      <span className="text-xl">{coach.avatar}</span>
+                      Coach Notes ({plan.coachNotes.length})
+                    </h4>
+                    {isCoachNotesExpanded ? (
+                      <ChevronUp className="w-5 h-5 text-blue-600" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-blue-600" />
+                    )}
+                  </button>
+                  {isCoachNotesExpanded && (
+                    <div className="p-4 bg-white space-y-3">
+                      {[...plan.coachNotes].reverse().map((note, idx) => (
+                        <div key={idx} className="border-l-4 border-blue-400 pl-3 py-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">{coach.avatar}</span>
+                            <span className="text-xs font-semibold text-blue-600">
+                              {note.timestamp ? new Date(note.timestamp).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit'
+                              }) : 'Initial Plan'}
+                            </span>
+                            {note.type && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
+                                {note.type}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-blue-700">{note.message || note}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            {/* Legacy support for old plans with single notes field */}
+            {plan.notes && !plan.coachNotes && (
+              <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setIsCoachNotesExpanded(!isCoachNotesExpanded)}
+                  className="w-full p-4 bg-blue-50 hover:bg-blue-100 transition-colors flex items-center justify-between"
+                >
+                  <h4 className="font-medium text-blue-900 flex items-center gap-2">
+                    <Info className="w-4 h-4" />
+                    Coach Notes
+                  </h4>
+                  {isCoachNotesExpanded ? (
+                    <ChevronUp className="w-5 h-5 text-blue-600" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-blue-600" />
+                  )}
+                </button>
+                {isCoachNotesExpanded && (
+                  <div className="p-4 bg-white">
+                    <p className="text-sm text-blue-700">{plan.notes}</p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -1200,6 +1931,24 @@ Are you sure you want to continue?`}
         confirmText="Yes, Replace Plan"
         cancelText="Cancel"
         type="warning"
+      />
+
+      {/* Adaptive Plan Adjustment Modal */}
+      <AdaptivePlanModal
+        isOpen={showAdaptiveModal}
+        onClose={() => setShowAdaptiveModal(false)}
+        onAdjust={handleApplyAdjustments}
+        plan={plan}
+        activities={activities}
+        completedSessions={completedSessions}
+      />
+
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title={successMessage.title}
+        message={successMessage.message}
       />
     </div>
   );

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import ProfileSetup from './pages/ProfileSetup';
 import UserProfile from './pages/UserProfile';
 import PlanGenerator from './pages/PlanGenerator';
+import TodaysWorkout from './pages/TodaysWorkout';
 import Calendar from './pages/Calendar';
 import Settings from './pages/Settings';
 import FTPHistory from './pages/FTPHistory';
@@ -13,6 +15,7 @@ import AllActivities from './pages/AllActivities';
 import RaceAnalytics from './pages/RaceAnalytics';
 import RiderProfile from './pages/RiderProfile';
 import RaceDayPredictor from './pages/RaceDayPredictor';
+import PostRaceAnalysis from './pages/PostRaceAnalysis';
 import Methodology from './pages/Methodology';
 import Form from './pages/Form';
 import ChangelogPage from './pages/ChangelogPage';
@@ -199,8 +202,9 @@ function App() {
   };
 
   return (
-    <Router>
-      <Routes>
+    <ThemeProvider>
+      <Router>
+        <Routes>
         {/* Landing Page */}
         <Route
           path="/"
@@ -309,6 +313,14 @@ function App() {
                     }
                   />
                   <Route
+                    path="/race-analysis"
+                    element={
+                      <PostRaceAnalysis
+                        stravaTokens={stravaTokens}
+                      />
+                    }
+                  />
+                  <Route
                     path="/plan"
                     element={
                       <PlanGenerator
@@ -317,6 +329,10 @@ function App() {
                         userProfile={userProfile}
                       />
                     }
+                  />
+                  <Route
+                    path="/workout/today"
+                    element={<TodaysWorkout />}
                   />
                   <Route
                     path="/calendar"
@@ -371,7 +387,8 @@ function App() {
           }
         />
       </Routes>
-    </Router>
+      </Router>
+    </ThemeProvider>
   );
 }
 

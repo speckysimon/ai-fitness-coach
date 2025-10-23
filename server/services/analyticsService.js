@@ -3,11 +3,15 @@ import { startOfWeek, endOfWeek, isWithinInterval, subWeeks, differenceInDays } 
 class AnalyticsService {
   // Calculate estimated FTP from recent power data
   calculateFTP(activities) {
+    console.log('[FTP Calc] Starting with', activities.length, 'activities');
+    
     const powerActivities = activities.filter(a => 
       a.avgPower && a.avgPower > 0 && a.duration >= 1200 // At least 20 min
     );
+    console.log('[FTP Calc] Power activities (>=20min):', powerActivities.length);
 
     if (powerActivities.length === 0) {
+      console.log('[FTP Calc] No power activities found, returning null');
       return null;
     }
 
@@ -16,28 +20,43 @@ class AnalyticsService {
       .sort((a, b) => (b.normalizedPower || b.avgPower) - (a.normalizedPower || a.avgPower));
 
     // Take best 20-60 min effort in last 6 weeks
-    const recentBest = sortedByPower.find(a => {
+    const sixWeeksAgo = subWeeks(new Date(), 6);
+    const recentPowerActivities = sortedByPower.filter(a => {
       const activityDate = new Date(a.date);
-      const sixWeeksAgo = subWeeks(new Date(), 6);
-      return activityDate >= sixWeeksAgo && a.duration >= 1200 && a.duration <= 3600;
+      return activityDate >= sixWeeksAgo;
     });
+    console.log('[FTP Calc] Recent power activities (last 6 weeks):', recentPowerActivities.length);
+    
+    const recentBest = recentPowerActivities.find(a => a.duration >= 1200 && a.duration <= 3600);
 
     if (recentBest) {
       // FTP is approximately 95% of 20-min power or 100% of 60-min power
       const power = recentBest.normalizedPower || recentBest.avgPower;
       const durationMin = recentBest.duration / 60;
+      console.log('[FTP Calc] Found recent best effort:', {
+        date: recentBest.date,
+        power,
+        durationMin: Math.round(durationMin)
+      });
       
       if (durationMin <= 30) {
-        return Math.round(power * 0.95);
+        const ftp = Math.round(power * 0.95);
+        console.log('[FTP Calc] Returning FTP (95% of 20-30min):', ftp);
+        return ftp;
       } else {
-        return Math.round(power);
+        const ftp = Math.round(power);
+        console.log('[FTP Calc] Returning FTP (100% of 30-60min):', ftp);
+        return ftp;
       }
     }
 
     // Fallback: use average of top 3 normalized powers
+    console.log('[FTP Calc] No recent 20-60min effort, using fallback (top 3 average)');
     const topThree = sortedByPower.slice(0, 3);
     const avgPower = topThree.reduce((sum, a) => sum + (a.normalizedPower || a.avgPower), 0) / topThree.length;
-    return Math.round(avgPower * 0.95);
+    const ftp = Math.round(avgPower * 0.95);
+    console.log('[FTP Calc] Fallback FTP:', ftp);
+    return ftp;
   }
 
   // Calculate TSS (Training Stress Score) for an activity
@@ -146,10 +165,14 @@ class AnalyticsService {
   getTrends(activities, weeks = 6, ftp = null) {
     const now = new Date();
     const trends = [];
+    
+    console.log(`[Trends] Calculating trends for ${weeks} weeks with FTP: ${ftp}, activities: ${activities.length}`);
 
-    for (let i = 0; i < weeks; i++) {
+    // Include current incomplete week (i = -1) plus the requested number of complete weeks
+    for (let i = weeks - 1; i >= 0; i--) {
       const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+      // For current week, use today as end date; for past weeks, use week end
+      const weekEnd = i === 0 ? now : endOfWeek(weekStart, { weekStartsOn: 1 });
 
       const weekActivities = activities.filter(a => {
         const activityDate = new Date(a.date);
@@ -160,16 +183,17 @@ class AnalyticsService {
       const totalDistance = weekActivities.reduce((sum, a) => sum + (a.distance || 0), 0);
       const totalElevation = weekActivities.reduce((sum, a) => sum + (a.elevation || 0), 0);
       
-      // Calculate TSS for the week if FTP is provided
+      // Calculate TSS for the week
       let totalTSS = 0;
-      if (ftp) {
-        totalTSS = weekActivities.reduce((sum, a) => {
-          return sum + this.calculateActivityTSS(a, ftp);
-        }, 0);
-      }
+      weekActivities.forEach(a => {
+        const activityTSS = this.calculateActivityTSS(a, ftp);
+        console.log(`[Trends TSS] ${a.name} (${new Date(a.date).toLocaleDateString()}): ${activityTSS.toFixed(1)} TSS (power: ${a.normalizedPower || a.avgPower || 'none'}, HR: ${a.avgHeartRate || 'none'}, duration: ${Math.round(a.duration/60)}min)`);
+        totalTSS += activityTSS;
+      });
+      console.log(`[Trends TSS] Week ${weekStart.toISOString().split('T')[0]}: ${totalTSS.toFixed(1)} TSS from ${weekActivities.length} activities`);
 
-      trends.unshift({
-        week: weekStart.toISOString().split('T')[0],
+      trends.push({
+        week: (i === 0 ? now : weekStart).toISOString().split('T')[0], // Use today for current week, week start for past weeks
         activities: weekActivities.length,
         time: Math.round(totalTime / 3600),
         distance: Math.round(totalDistance / 1000),

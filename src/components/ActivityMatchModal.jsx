@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { X, CheckCircle, AlertCircle, Zap, Calendar, Clock, TrendingUp, Activity as ActivityIcon } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Zap, Calendar, Clock, TrendingUp, Activity as ActivityIcon, Brain, Loader2, MessageSquare } from 'lucide-react';
 import { Button } from './ui/Button';
+import { Textarea } from './ui/Textarea';
 
 const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, currentMatch, onManualSelect, onRemoveMatch }) => {
   const [selectedActivity, setSelectedActivity] = useState(currentMatch?.activity?.id || null);
+  const [workoutComment, setWorkoutComment] = useState('');
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [analyzingWorkout, setAnalyzingWorkout] = useState(false);
+  const [analysisError, setAnalysisError] = useState(null);
 
   if (!isOpen || !session) return null;
 
@@ -44,6 +49,47 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
       onRemoveMatch(sessionKey);
     }
     onClose();
+  };
+
+  const handleAIAnalysis = async () => {
+    if (!selectedActivity) {
+      setAnalysisError('Please select an activity to analyze');
+      return;
+    }
+
+    setAnalyzingWorkout(true);
+    setAnalysisError(null);
+    setAiAnalysis(null);
+
+    try {
+      const activity = dayActivities.find(a => a.id === selectedActivity);
+      const sessionToken = localStorage.getItem('session_token');
+      
+      const response = await fetch('/api/training/workout/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`
+        },
+        body: JSON.stringify({
+          plannedSession: session,
+          actualActivity: activity,
+          athleteComment: workoutComment
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze workout');
+      }
+
+      const data = await response.json();
+      setAiAnalysis(data);
+    } catch (error) {
+      console.error('Error analyzing workout:', error);
+      setAnalysisError(error.message || 'Failed to analyze workout. Please try again.');
+    } finally {
+      setAnalyzingWorkout(false);
+    }
   };
 
   return (
@@ -215,6 +261,99 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
                   <strong>Manual Override:</strong> Selecting an activity manually will override the automatic match. 
                   Manual selections have a lower weight (70%) in training alignment calculations compared to auto-matches (100%).
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Workout Comment and AI Analysis Section */}
+          {dayActivities.length > 0 && (
+            <div className="mt-6 border-t border-gray-200 pt-6">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-blue-600" />
+                Workout Notes & AI Analysis
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    How did the workout feel? (Optional)
+                  </label>
+                  <Textarea
+                    value={workoutComment}
+                    onChange={(e) => setWorkoutComment(e.target.value)}
+                    placeholder="e.g., Felt great, legs were fresh. Hit all targets easily..."
+                    rows={3}
+                    className="w-full"
+                  />
+                </div>
+
+                <Button
+                  onClick={handleAIAnalysis}
+                  disabled={!selectedActivity || analyzingWorkout}
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white flex items-center justify-center gap-2"
+                >
+                  {analyzingWorkout ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="w-4 h-4" />
+                      AI Coach Analysis
+                    </>
+                  )}
+                </Button>
+
+                {analysisError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-600 mt-0.5" />
+                      <p className="text-sm text-red-800">{analysisError}</p>
+                    </div>
+                  </div>
+                )}
+
+                {aiAnalysis && (
+                  <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg">
+                    <div className="flex items-start gap-3 mb-3">
+                      <Brain className="w-5 h-5 text-purple-600 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900 mb-2">AI Coach Analysis</h4>
+                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{aiAnalysis.analysis}</p>
+                      </div>
+                    </div>
+
+                    {aiAnalysis.deviationLevel && (
+                      <div className={`mt-3 p-3 rounded-lg ${
+                        aiAnalysis.deviationLevel === 'high' ? 'bg-red-100 border border-red-300' :
+                        aiAnalysis.deviationLevel === 'medium' ? 'bg-yellow-100 border border-yellow-300' :
+                        'bg-green-100 border border-green-300'
+                      }`}>
+                        <p className={`text-sm font-medium ${
+                          aiAnalysis.deviationLevel === 'high' ? 'text-red-800' :
+                          aiAnalysis.deviationLevel === 'medium' ? 'text-yellow-800' :
+                          'text-green-800'
+                        }`}>
+                          {aiAnalysis.deviationLevel === 'high' && '⚠️ Significant deviation from plan'}
+                          {aiAnalysis.deviationLevel === 'medium' && '⚡ Moderate deviation from plan'}
+                          {aiAnalysis.deviationLevel === 'low' && '✓ Good alignment with plan'}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiAnalysis.suggestPlanUpdate && (
+                      <div className="mt-3 p-3 bg-orange-100 border border-orange-300 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5" />
+                          <div className="text-sm text-orange-800">
+                            <strong>Recommendation:</strong> Consider using the "Adjust Plan" feature to update your training plan based on this workout.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

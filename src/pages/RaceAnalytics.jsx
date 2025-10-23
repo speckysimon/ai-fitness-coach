@@ -3,6 +3,7 @@ import { Trophy, TrendingUp, TrendingDown, Minus, Calendar, Clock, Zap, Heart, A
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatDuration, formatDistance } from '../lib/utils';
+import { getRaceTypeLabel } from '../lib/raceUtils';
 import ActivityDetailModal from '../components/ActivityDetailModal';
 
 const RaceAnalytics = ({ stravaTokens }) => {
@@ -14,15 +15,35 @@ const RaceAnalytics = ({ stravaTokens }) => {
   useEffect(() => {
     if (stravaTokens) {
       loadRaceData();
+    } else {
+      setLoading(false);
     }
   }, [stravaTokens]);
 
   const loadRaceData = async () => {
     setLoading(true);
     try {
-      // Load race tags
-      const raceTags = JSON.parse(localStorage.getItem('race_tags') || '{}');
-      const raceIds = Object.keys(raceTags).filter(id => raceTags[id]);
+      // Load race tags from backend
+      const sessionToken = localStorage.getItem('session_token');
+      if (!sessionToken) {
+        setLoading(false);
+        return;
+      }
+
+      const raceTagsResponse = await fetch('/api/race-tags', {
+        headers: { 'Authorization': `Bearer ${sessionToken}` }
+      });
+
+      if (!raceTagsResponse.ok) {
+        throw new Error('Failed to fetch race tags');
+      }
+
+      const raceTagsData = await raceTagsResponse.json();
+      const raceTags = raceTagsData.raceTags || {};
+      const raceIds = Object.keys(raceTags).filter(id => raceTags[id]?.isRace);
+
+      console.log('Race tags loaded:', raceTags);
+      console.log('Race IDs:', raceIds);
 
       if (raceIds.length === 0) {
         setRaces([]);
@@ -30,14 +51,11 @@ const RaceAnalytics = ({ stravaTokens }) => {
         return;
       }
 
-      // Always fetch from API for current season (Jan 1st to now)
-      const seasonStart = new Date(new Date().getFullYear(), 0, 1); // January 1st of current year
-      const after = Math.floor(seasonStart.getTime() / 1000);
-      
-      console.log('Fetching race data from season start:', seasonStart.toLocaleDateString());
+      // Fetch activities from Strava (no date filter to ensure we get all tagged races)
+      console.log('Fetching all activities to find tagged races...');
       
       const response = await fetch(
-        `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${after}&per_page=200`
+        `/api/strava/activities?access_token=${stravaTokens.access_token}&per_page=200`
       );
       
       if (!response.ok) {
@@ -46,13 +64,27 @@ const RaceAnalytics = ({ stravaTokens }) => {
       
       const allActivities = await response.json();
       
-      // Filter for race activities from this season
-      const raceActivities = allActivities.filter(activity => raceIds.includes(String(activity.id)));
+      console.log('Total activities fetched:', allActivities.length);
+      console.log('Sample activity IDs:', allActivities.slice(0, 3).map(a => ({ id: a.id, type: typeof a.id })));
+      console.log('Looking for race IDs:', raceIds);
+      
+      // Filter for race activities and attach race type - ensure both are strings for comparison
+      const raceActivities = allActivities.filter(activity => {
+        const isRace = raceIds.includes(String(activity.id));
+        if (isRace) {
+          console.log('Found race:', activity.name, 'ID:', activity.id);
+          // Attach race type to activity
+          activity.raceType = raceTags[String(activity.id)]?.raceType;
+        }
+        return isRace;
+      });
+      
+      console.log('Filtered race activities:', raceActivities.length);
       
       // Sort by date, most recent first
       const sortedRaces = raceActivities.sort((a, b) => new Date(b.date) - new Date(a.date));
       
-      console.log(`Found ${sortedRaces.length} races in current season`);
+      console.log(`Found ${sortedRaces.length} tagged races`);
       
       setRaces(sortedRaces);
 
@@ -206,10 +238,10 @@ const RaceAnalytics = ({ stravaTokens }) => {
           Race Analytics
         </h1>
         <p className="text-gray-600 mt-1">
-          Track your race performance over time - Current Season ({new Date().getFullYear()})
+          Track your race performance over time
         </p>
         <p className="text-sm text-gray-500 mt-1">
-          Showing all races from January 1st, {new Date().getFullYear()} to present
+          Showing all tagged races from your recent activities
         </p>
       </div>
 
@@ -437,6 +469,11 @@ const RaceAnalytics = ({ stravaTokens }) => {
                           year: 'numeric',
                         })}
                       </span>
+                      {race.raceType && (
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
+                          {getRaceTypeLabel(race.raceType)}
+                        </span>
+                      )}
                       <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded font-medium">
                         {race.type}
                       </span>

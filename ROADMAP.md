@@ -2,6 +2,23 @@
 
 ## 🎯 Next Improvements (Prioritized)
 
+### Priority 0: Immediate Fixes (Next Session)
+
+1. **Race Day Predictor UI/UX Improvements** 🎨
+   - Display is chaotic, especially in dark mode
+   - Need better layout and visual hierarchy
+   - Improve readability and component spacing
+   - Fix dark mode styling issues
+   - **Status**: Identified Oct 14, 2025
+   - **Effort**: 2-3 hours
+
+2. **Race Plan Display Bug** 🐛
+   - Race plan content not displaying correctly
+   - OpenAI response parsing issues
+   - Add fallback for failed JSON parsing
+   - **Status**: Critical bug
+   - **Effort**: 1-2 hours
+
 ### Priority 1: Unique Features (High Impact, High Differentiation)
 
 1. **Real-Time Race Execution Mode** ⭐⭐⭐

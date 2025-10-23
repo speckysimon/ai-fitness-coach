@@ -16,7 +16,7 @@ class AIPlannerService {
     return this.openai;
   }
 
-  async generateTrainingPlan({ activities, goals, constraints, currentMetrics, userProfile }) {
+  async generateTrainingPlan({ activities, goals, constraints, currentMetrics, userProfile, raceHistory, trainingPriorities }) {
     // Prepare context for AI
     const ftp = currentMetrics?.ftp || analyticsService.calculateFTP(activities);
     const loadMetrics = analyticsService.calculateTrainingLoad(activities, ftp);
@@ -30,6 +30,8 @@ class AIPlannerService {
       loadMetrics,
       trends,
       userProfile,
+      raceHistory,
+      trainingPriorities,
     });
 
     try {
@@ -58,7 +60,7 @@ class AIPlannerService {
     }
   }
 
-  buildPlanPrompt({ activities, goals, constraints, ftp, loadMetrics, trends, userProfile }) {
+  buildPlanPrompt({ activities, goals, constraints, ftp, loadMetrics, trends, userProfile, raceHistory, trainingPriorities }) {
     const recentActivities = activities.slice(0, 10).map(a => ({
       date: a.date,
       type: a.type,
@@ -78,6 +80,40 @@ class AIPlannerService {
     const powerToWeight = (ftp && userProfile?.weight) 
       ? (ftp / userProfile.weight).toFixed(2) 
       : null;
+
+    // Build race context if available
+    let raceContext = '';
+    if (raceHistory && raceHistory.length > 0) {
+      const latestRace = raceHistory[0];
+      
+      raceContext = `
+RECENT RACE PERFORMANCE:
+- Date: ${latestRace.date}
+- Performance Score: ${latestRace.performanceScore}/100
+- Pacing Score: ${latestRace.pacingScore}/100 ${latestRace.pacingScore < 75 ? '⚠️ NEEDS IMPROVEMENT' : '✅'}
+- Execution Score: ${latestRace.executionScore}/100
+- Tactical Score: ${latestRace.tacticalScore}/100
+
+KEY LEARNINGS FROM RACE:
+Strengths Confirmed:
+${latestRace.whatWentWell.slice(0, 3).map(item => `- ${item}`).join('\n')}
+
+Areas Needing Improvement:
+${latestRace.whatDidntGoWell.slice(0, 3).map(item => `- ${item}`).join('\n')}
+
+TRAINING PRIORITIES (from race analysis):
+${latestRace.trainingFocus.map(focus => `- ${focus}`).join('\n')}
+
+IMPORTANT INSTRUCTIONS FOR PLAN DESIGN:
+1. Design this training plan to specifically address the weaknesses identified in the race analysis
+2. Include sessions that target the training focus areas above
+3. Maintain and build on confirmed strengths
+4. If pacing score was low (< 75), include race simulation sessions with conservative pacing practice
+5. Reference the race learnings in session descriptions to help the athlete understand why each session matters
+
+Example session description: "Threshold Endurance Builder - Based on your recent race, you faded in the final 20km. This session builds late-race endurance at 90-95% FTP."
+`;
+    }
 
     // Map event type to target rider type and training focus
     const eventTypeMapping = {
@@ -125,8 +161,12 @@ class AIPlannerService {
     const daysUntilEvent = goals.eventDate ? 
       Math.ceil((new Date(goals.eventDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
 
-    return `Create a ${goals.duration || 4}-week training plan for an athlete preparing for a ${goals.eventType} event.
+    const planDuration = goals.duration || 4;
+    
+    return `Create a ${planDuration}-week training plan for an athlete preparing for a ${goals.eventType} event.
 
+CRITICAL: The plan MUST contain EXACTLY ${planDuration} weeks. No more, no less.
+${raceContext}
 ATHLETE PROFILE & CURRENT FITNESS:
 - FTP: ${ftp || 'Unknown'} watts${powerToWeight ? ` (${powerToWeight} W/kg)` : ''}
 - Current week load: ${loadMetrics.currentWeek.tss} TSS, ${loadMetrics.currentWeek.time}h
@@ -148,7 +188,7 @@ EVENT GOALS & TARGET PROFILE:
 - Target Rider Type: ${targetProfile.riderType}
 - Training Focus: ${targetProfile.focusDescription}
 - Priority: ${goals.priority || 'Medium'}
-- Duration: ${goals.duration || 4} weeks
+- Duration: ${planDuration} weeks
 
 TRAINING CONSTRAINTS:
 - Available days per week: ${constraints?.daysPerWeek || 5}
@@ -164,8 +204,9 @@ CRITICAL REQUIREMENTS FOR ${goals.eventType.toUpperCase()} PREPARATION:
    - Workouts should simulate race demands and conditions
 
 2. PERIODIZATION:
-   - Plan must be exactly ${goals.duration || 4} weeks long
-   - Final week (Week ${goals.duration || 4}) MUST be a taper week with 40-50% reduced volume
+   - Plan must be EXACTLY ${planDuration} weeks long - generate ${planDuration} week objects
+   - Week numbers must be 1 through ${planDuration} (inclusive)
+   - Final week (Week ${planDuration}) MUST be a taper week with 40-50% reduced volume
    - Taper week maintains intensity but significantly reduces duration
    - Peak training occurs 2 weeks before event
    - Progression: Base → Build → Peak → Taper
@@ -437,6 +478,289 @@ Return JSON:
         structure: [],
         keyPoints: [],
       };
+    }
+  }
+
+  async adjustPlanFromRequest({ plan, activities, completedSessions, adjustmentRequest, context, userDateTime }) {
+    // Analyze current plan state
+    const totalSessions = plan.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
+    const completedCount = Object.values(completedSessions || {}).filter(s => s?.completed).length;
+    const missedCount = Object.values(completedSessions || {}).filter(s => s?.missed).length;
+    const completionRate = totalSessions > 0 ? (completedCount / totalSessions * 100).toFixed(1) : 0;
+
+    // Get recent activities for context
+    const recentActivities = activities.slice(0, 5).map(a => ({
+      date: a.date,
+      name: a.name,
+      type: a.type,
+      duration: Math.round(a.duration / 60),
+      distance: Math.round(a.distance / 1000),
+      tss: a.tss || 0,
+    }));
+
+    // Extract original plan settings
+    const originalGoals = plan.goals || {};
+    const planDuration = plan.weeks.length;
+
+    // Build detailed prompt for AI
+    const prompt = `You are an expert cycling coach helping an athlete adjust their training plan. Analyze the situation and provide specific, actionable adjustments.
+
+ATHLETE'S CURRENT DATE/TIME:
+${userDateTime ? `- Current Date: ${userDateTime.date} (${userDateTime.isoDate})
+- Current Time: ${userDateTime.time}
+- Timezone: ${userDateTime.timezone}
+
+When the athlete refers to "today", "yesterday", or "tomorrow", use this date as reference.` : '- Date/time not provided'}
+
+ORIGINAL PLAN SETTINGS (MUST BE PRESERVED):
+- Event Name: ${originalGoals.eventName || 'Not specified'}
+- Event Date: ${originalGoals.eventDate || 'Not specified'}
+- Event Type: ${originalGoals.eventType || 'Not specified'}
+- Priority: ${originalGoals.priority || 'Not specified'}
+- Plan Duration: ${planDuration} weeks
+- Days per Week: ${originalGoals.daysPerWeek || 'Not specified'}
+- Max Hours per Week: ${originalGoals.maxHoursPerWeek || 'Not specified'}
+
+CURRENT PLAN STATE:
+- Event: ${plan.planSummary || 'Training plan'}
+- Total weeks: ${plan.weeks.length}
+- Total sessions: ${totalSessions}
+- Completed: ${completedCount} (${completionRate}%)
+- Missed: ${missedCount}
+
+RECENT ACTIVITIES (last 5):
+${recentActivities.map(a => `- ${a.date}: ${a.name} (${a.duration}min, ${a.distance}km, ${a.tss} TSS)`).join('\n')}
+
+ATHLETE'S REQUEST:
+"${adjustmentRequest}"
+
+CONTEXT:
+${context ? JSON.stringify(context, null, 2) : 'No additional context'}
+
+INSTRUCTIONS:
+1. Understand what the athlete is asking for (e.g., reschedule missed sessions, reduce intensity, accommodate schedule changes, change training days, etc.)
+2. **CRITICAL**: If the athlete says they DID an activity (past tense), you MUST update that past session to EXACTLY match what they actually did. DO NOT suggest lighter alternatives or "active recovery" - replace the session with the actual activity they completed. Use the activity data from RECENT ACTIVITIES to get the exact details (duration, distance, TSS).
+3. **SCHEDULE CHANGES**: If the athlete requests no training on specific days (e.g., "no training on Mondays"), you MUST:
+   - Move those sessions to different days of the week
+   - Update the "day" field to the new day name (e.g., "Tuesday", "Thursday")
+   - Ensure the new schedule respects rest days and training load distribution
+   - **ACTUALLY CHANGE THE DAY FIELD** - do not just mark them as "modified" - actually change the day
+4. For past sessions: ACCEPT what was done and update the plan to reflect reality
+5. For future sessions: Make adjustments to compensate for the unexpected training load or schedule constraints
+6. Analyze the impact on their training progression
+7. Explain the reasoning behind each change
+8. Ensure the adjustments maintain training principles (progressive overload, recovery, specificity)
+
+Return a JSON object with:
+{
+  "explanation": "Clear explanation of what you're adjusting and why (2-3 sentences)",
+  "changes": [
+    {
+      "type": "Session Modification|Rescheduling|Intensity Adjustment|Session Cancellation|New Session",
+      "description": "Specific change being made",
+      "sessions": ["Week X, Day Y", ...]
+    }
+  ],
+  "adjustedPlan": {
+    // Return the FULL modified plan structure with all weeks and sessions
+    // Keep the same structure as the original plan but with modifications applied
+    "planSummary": "...",
+    "weeks": [
+      {
+        "weekNumber": 1,
+        "focus": "...",
+        "totalHours": X,
+        "sessions": [
+          {
+            "day": "Monday",  // IMPORTANT: Update this to the new day if rescheduling
+            "title": "...",
+            "type": "Recovery|Endurance|Tempo|Threshold|VO2Max|Intervals",
+            "duration": 60,
+            "description": "...",
+            "targets": "...",
+            // DO NOT include "date" field - dates are calculated automatically from the "day" field
+            // Add "modified": true and "modificationReason": "..." for changed sessions
+            // Add "status": "cancelled" and "cancellationReason": "..." for cancelled sessions
+          }
+        ]
+      }
+    ],
+    "notes": "...",
+    "coachNotes": [
+      {
+        "message": "Adjustment explanation",
+        "timestamp": "2025-10-19T09:30:00.000Z",
+        "type": "Adjustment"
+      }
+    ]
+  },
+  "significantChanges": true/false  // true if modifying multiple weeks or major changes
+}
+
+CRITICAL REQUIREMENTS:
+- You MUST return ALL ${planDuration} weeks with ALL sessions
+- Maintain the EXACT structure of the original plan (same number of weeks and sessions per week)
+- Only modify the content of sessions that need adjustment based on the request
+- DO NOT delete or remove any incomplete sessions - they should remain in the plan
+- Mark modified sessions with "modified": true and "modificationReason"
+- For cancelled sessions, set "status": "cancelled" and "cancellationReason"
+- Preserve all existing session data (dates, descriptions, etc.) unless specifically modifying that session
+- Ensure training load progression remains sensible
+- DO NOT include "coachNotes" in your response - this will be handled separately
+
+EXAMPLE 1 - How to handle past activities:
+If athlete says: "I did a ride today instead of a rest day"
+And RECENT ACTIVITIES shows: "2025-10-18: Morning Ride (60min, 25km, 45 TSS)"
+Then you MUST:
+1. Find the rest day on 2025-10-18
+2. Change it to: {
+   "title": "Morning Ride",
+   "type": "Endurance",
+   "duration": 60,
+   "description": "Steady endurance ride (completed)",
+   "modified": true,
+   "modificationReason": "Athlete performed unscheduled ride"
+}
+3. DO NOT change it to "Active Recovery" or suggest lighter alternatives
+4. ACCEPT what was done and adjust future sessions accordingly
+
+EXAMPLE 2 - How to handle schedule changes:
+If athlete says: "No training on Mondays and Wednesdays from Week 2 onwards"
+Then you MUST:
+1. Find all Monday and Wednesday sessions in Week 2 and beyond
+2. Move them to other days (e.g., Tuesday, Thursday, Saturday, Sunday)
+3. Update the "day" field: {
+   "day": "Tuesday",  // Changed from "Monday"
+   "title": "Progressive Endurance Ride",
+   "type": "Endurance",
+   "duration": 150,
+   "description": "Start at a lower intensity and gradually increase to Zone 3. Adjustment: Rescheduled to fit athlete's availability",
+   "modified": true,
+   "modificationReason": "Rescheduled from Monday to accommodate athlete's availability"
+}
+4. Ensure proper rest day distribution and training load balance
+5. DO NOT just mark as modified without changing the day`;
+
+    try {
+      const completion = await this.getOpenAI().chat.completions.create({
+        model: 'gpt-4-turbo-preview',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert cycling and endurance sports coach with deep knowledge of training adaptation, periodization, and athlete management. You help athletes adjust their training plans intelligently based on real-world circumstances while maintaining training principles.`,
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        response_format: { type: 'json_object' },
+      });
+
+      const adjustment = JSON.parse(completion.choices[0].message.content);
+      
+      // Validate that adjustedPlan has the required structure
+      if (!adjustment.adjustedPlan || !adjustment.adjustedPlan.weeks) {
+        throw new Error('Invalid adjusted plan structure');
+      }
+
+      // Remove coachNotes from adjustedPlan - we'll handle this in the frontend
+      // to properly append to existing notes instead of replacing them
+      if (adjustment.adjustedPlan.coachNotes) {
+        delete adjustment.adjustedPlan.coachNotes;
+      }
+
+      return adjustment;
+    } catch (error) {
+      console.error('OpenAI API error in plan adjustment:', error.message);
+      
+      // Fallback: return a simple explanation without changes
+      return {
+        explanation: `I understand you want to adjust your plan. However, I encountered an error processing your request. Please try rephrasing your request or contact support if the issue persists.`,
+        changes: [],
+        adjustedPlan: plan, // Return original plan unchanged
+        significantChanges: false,
+      };
+    }
+  }
+
+  async analyzeWorkout({ plannedSession, actualActivity, athleteComment }) {
+    const prompt = `You are an expert cycling coach analyzing an athlete's workout performance.
+
+PLANNED SESSION:
+- Title: ${plannedSession.title}
+- Type: ${plannedSession.type}
+- Duration: ${plannedSession.duration} minutes
+- Description: ${plannedSession.description}
+${plannedSession.targets ? `- Targets: ${plannedSession.targets}` : ''}
+
+ACTUAL ACTIVITY:
+- Name: ${actualActivity.name}
+- Duration: ${Math.round(actualActivity.duration / 60)} minutes
+- Distance: ${(actualActivity.distance / 1000).toFixed(1)} km
+${actualActivity.avgPower ? `- Average Power: ${Math.round(actualActivity.avgPower)}W` : ''}
+${actualActivity.normalizedPower ? `- Normalized Power: ${Math.round(actualActivity.normalizedPower)}W` : ''}
+${actualActivity.avgHeartRate ? `- Average HR: ${Math.round(actualActivity.avgHeartRate)} bpm` : ''}
+${actualActivity.tss ? `- TSS: ${Math.round(actualActivity.tss)}` : ''}
+
+${athleteComment ? `ATHLETE'S FEEDBACK:\n"${athleteComment}"\n` : ''}
+
+Provide a brief, actionable analysis (2-3 sentences) covering:
+1. How well the actual workout matched the planned session
+2. Key observations about performance (intensity, duration, execution)
+3. Whether this indicates good adaptation or if adjustments are needed
+
+Also determine:
+- deviationLevel: "low" (good match), "medium" (some deviation), or "high" (significant deviation)
+- suggestPlanUpdate: true if the deviation suggests the plan should be adjusted, false otherwise
+
+Return ONLY a JSON object with this structure:
+{
+  "analysis": "Your 2-3 sentence analysis here",
+  "deviationLevel": "low|medium|high",
+  "suggestPlanUpdate": true|false
+}`;
+
+    try {
+      const completion = await this.getOpenAI().chat.completions.create({
+        model: 'gpt-4-turbo-preview',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert cycling coach providing concise, actionable workout analysis. Always respond with valid JSON only.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      });
+
+      const responseText = completion.choices[0].message.content.trim();
+      
+      // Parse JSON response
+      let analysis;
+      try {
+        // Remove markdown code blocks if present
+        const jsonText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        analysis = JSON.parse(jsonText);
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', responseText);
+        // Fallback response
+        analysis = {
+          analysis: responseText,
+          deviationLevel: 'medium',
+          suggestPlanUpdate: false
+        };
+      }
+
+      return analysis;
+    } catch (error) {
+      console.error('Error analyzing workout:', error);
+      throw new Error('Failed to analyze workout');
     }
   }
 }

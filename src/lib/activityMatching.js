@@ -81,8 +81,8 @@ export const matchActivitiesToPlan = (plan, activities) => {
         }
       });
 
-      // Consider it a match if score is above threshold (60%)
-      if (bestScore >= 60) {
+      // Consider it a match if score is above threshold (50%)
+      if (bestScore >= 50) {
         let reason = getMatchReason(bestScore);
         if (dateOffset !== 0) {
           const dayText = dateOffset === 1 ? '1 day later' : dateOffset === -1 ? '1 day earlier' : 
@@ -253,6 +253,7 @@ const getMatchReason = (score) => {
   if (score >= 80) return 'Very good match - activity aligns well with plan';
   if (score >= 70) return 'Good match - activity meets most requirements';
   if (score >= 60) return 'Acceptable match - activity partially aligns with plan';
+  if (score >= 50) return 'Fair match - activity found but does not match session requirements';
   return 'Poor match - activity does not meet session requirements';
 };
 
@@ -265,8 +266,8 @@ export const mergeCompletions = (manualCompletions, automaticMatches) => {
     
     // Only auto-complete if:
     // 1. Not manually marked
-    // 2. Has a good match (>= 60%)
-    if (!merged[sessionKey] && match.matched && match.alignmentScore >= 60) {
+    // 2. Has a good match (>= 50%)
+    if (!merged[sessionKey] && match.matched && match.alignmentScore >= 50) {
       merged[sessionKey] = {
         completed: true,
         automatic: true,

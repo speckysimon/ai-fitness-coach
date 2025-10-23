@@ -235,6 +235,54 @@ const FTPHistory = ({ stravaTokens }) => {
         setDebugInfo(debug);
       }
 
+      // Calculate current FTP using the same backend service as Dashboard
+      let currentFTPValue = null;
+      if (activities.length > 0) {
+        try {
+          // Log activities with power data for debugging
+          const powerActivities = activities.filter(a => a.avgPower && a.avgPower > 0 && a.duration >= 1200);
+          const recentPowerActivities = powerActivities.filter(a => {
+            const activityDate = new Date(a.date);
+            const sixWeeksAgo = new Date();
+            sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
+            return activityDate >= sixWeeksAgo;
+          });
+          console.log('FTP History - Total activities:', activities.length);
+          console.log('FTP History - Power activities (>=20min):', powerActivities.length);
+          console.log('FTP History - Recent power activities (last 6 weeks):', recentPowerActivities.length);
+          if (recentPowerActivities.length > 0) {
+            const best = recentPowerActivities.sort((a, b) => 
+              (b.normalizedPower || b.avgPower) - (a.normalizedPower || a.avgPower)
+            )[0];
+            console.log('FTP History - Best recent effort:', {
+              date: best.date,
+              power: best.normalizedPower || best.avgPower,
+              duration: best.duration,
+              durationMin: Math.round(best.duration / 60)
+            });
+          }
+          
+          const ftpResponse = await fetch('/api/analytics/ftp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ activities }),
+          });
+          
+          if (ftpResponse.ok) {
+            const ftpData = await ftpResponse.json();
+            currentFTPValue = ftpData.ftp;
+            console.log('FTP History - Current FTP from backend:', currentFTPValue);
+            console.log('FTP History - Full response:', ftpData);
+          } else {
+            console.error('FTP History - Backend FTP request failed:', ftpResponse.status);
+          }
+        } catch (error) {
+          console.error('Error fetching FTP from backend:', error);
+        }
+      } else {
+        console.log('FTP History - No activities to send to backend');
+      }
+
       // Calculate FTP for each week
       const history = [];
       console.log('FTP History - Processing', maxWeeks, 'weeks of data');
@@ -278,7 +326,11 @@ const FTPHistory = ({ stravaTokens }) => {
       }
 
       setFtpHistory(filledHistory);
-      setCurrentFTP(filledHistory.length > 0 ? filledHistory[filledHistory.length - 1].ftp : null);
+      // Use backend FTP value if available, otherwise fall back to history
+      const fallbackFTP = filledHistory.length > 0 ? filledHistory[filledHistory.length - 1].ftp : null;
+      const finalFTP = currentFTPValue !== null && currentFTPValue !== undefined ? currentFTPValue : fallbackFTP;
+      console.log('FTP History - Setting currentFTP:', finalFTP, '(backend:', currentFTPValue, ', fallback:', fallbackFTP, ')');
+      setCurrentFTP(finalFTP);
     } catch (error) {
       console.error('Error loading FTP history:', error);
       setError(error.message || 'Failed to load FTP history');
@@ -406,12 +458,18 @@ const FTPHistory = ({ stravaTokens }) => {
             <Zap className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">
               {currentFTP ? `${currentFTP}W` : 'N/A'}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Most recent estimate
             </p>
+            {/* Temporary debug info */}
+            {!currentFTP && ftpHistory.length > 0 && (
+              <p className="text-xs text-orange-600 mt-2">
+                Debug: History has {ftpHistory.length} weeks, latest: {ftpHistory[ftpHistory.length - 1]?.ftp}W
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -438,7 +496,7 @@ const FTPHistory = ({ stravaTokens }) => {
                 <Calendar className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-gray-900">
+                <div className="text-3xl font-bold text-gray-900 dark:text-white">
                   {ftpHistory.filter(h => !h.estimated).length}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">

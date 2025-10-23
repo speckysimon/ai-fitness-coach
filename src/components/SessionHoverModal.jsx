@@ -113,6 +113,9 @@ const SessionHoverModal = ({ session, ftp, position, onClose }) => {
   const breakdown = getZoneBreakdown(session.type, session.duration);
   const zwiftWorkout = getZwiftRecommendation(session.type, session.duration);
 
+  const isCancelled = session.status === 'cancelled';
+  const isModified = session.modified;
+
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
@@ -122,6 +125,33 @@ const SessionHoverModal = ({ session, ftp, position, onClose }) => {
         className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Cancellation/Modification Banner */}
+        {isCancelled && (
+          <div className="bg-red-100 border-b-2 border-red-500 p-4">
+            <div className="flex items-center gap-2 text-red-900">
+              <X className="w-5 h-5" />
+              <div>
+                <p className="font-bold">Session Cancelled</p>
+                <p className="text-sm">{session.cancellationReason || 'Recovery needed'}</p>
+                {session.originalTss && (
+                  <p className="text-xs mt-1">Original TSS: {session.originalTss}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        {isModified && !isCancelled && (
+          <div className="bg-orange-100 border-b-2 border-orange-500 p-4">
+            <div className="flex items-center gap-2 text-orange-900">
+              <Info className="w-5 h-5" />
+              <div>
+                <p className="font-bold">Session Modified</p>
+                <p className="text-sm">{session.modificationReason || 'Plan adjusted'}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-start justify-between">
           <div className="flex-1">

@@ -22,8 +22,27 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
 
   // Load race tags when activities change
   useEffect(() => {
-    const raceTags = JSON.parse(localStorage.getItem('race_tags') || '{}');
-    setRaceActivities(raceTags);
+    const loadRaceTags = async () => {
+      try {
+        const sessionToken = localStorage.getItem('session_token');
+        if (!sessionToken) return;
+
+        const response = await fetch('/api/race-tags', {
+          headers: { 'Authorization': `Bearer ${sessionToken}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setRaceActivities(data.raceTags || {});
+        }
+      } catch (error) {
+        console.error('Error loading race tags:', error);
+      }
+    };
+    
+    if (activities.length > 0) {
+      loadRaceTags();
+    }
   }, [activities]);
 
   const loadCalendarData = async () => {
@@ -208,16 +227,27 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                           );
                         })}
                         {/* Planned sessions */}
-                        {dayPlanned.map((session, idx) => (
-                          <div
-                            key={`planned-${idx}`}
-                            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded truncate border border-blue-500 cursor-pointer hover:bg-blue-200 transition-colors"
-                            title={session.title}
-                            onClick={() => setSelectedSession(session)}
-                          >
-                            📅 {session.type}
-                          </div>
-                        ))}
+                        {dayPlanned.map((session, idx) => {
+                          const isCancelled = session.status === 'cancelled';
+                          const isModified = session.modified;
+                          
+                          return (
+                            <div
+                              key={`planned-${idx}`}
+                              className={`text-xs px-2 py-1 rounded truncate border cursor-pointer transition-colors ${
+                                isCancelled 
+                                  ? 'bg-red-100 text-red-700 border-red-500 line-through hover:bg-red-200'
+                                  : isModified
+                                  ? 'bg-orange-100 text-orange-700 border-orange-500 hover:bg-orange-200'
+                                  : 'bg-blue-100 text-blue-700 border-blue-500 hover:bg-blue-200'
+                              }`}
+                              title={isCancelled ? `Cancelled: ${session.cancellationReason || 'Recovery needed'}` : isModified ? `Modified: ${session.modificationReason || 'Plan adjusted'}` : session.title}
+                              onClick={() => setSelectedSession(session)}
+                            >
+                              {isCancelled ? '❌' : isModified ? '⚠️' : '📅'} {session.type}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );

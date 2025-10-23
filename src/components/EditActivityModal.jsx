@@ -1,30 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { X, Trophy, Save } from 'lucide-react';
 import { Button } from './ui/Button';
+import { setActivityRace, fetchRaceTags, RACE_TYPES } from '../lib/raceUtils';
 
 const EditActivityModal = ({ activity, onClose, onSave }) => {
   const [isRace, setIsRace] = useState(false);
+  const [raceType, setRaceType] = useState('');
 
   useEffect(() => {
-    // Load race tags from localStorage
-    const raceTags = JSON.parse(localStorage.getItem('race_tags') || '{}');
-    setIsRace(raceTags[activity.id] || false);
+    // Load race tags from backend
+    const loadRaceTag = async () => {
+      const raceTags = await fetchRaceTags();
+      const raceData = raceTags[activity.id];
+      if (raceData) {
+        setIsRace(raceData.isRace || false);
+        setRaceType(raceData.raceType || '');
+      } else {
+        setIsRace(false);
+        setRaceType('');
+      }
+    };
+    loadRaceTag();
   }, [activity.id]);
 
-  const handleSave = () => {
-    // Save race tag to localStorage
-    const raceTags = JSON.parse(localStorage.getItem('race_tags') || '{}');
-    if (isRace) {
-      raceTags[activity.id] = true;
-    } else {
-      delete raceTags[activity.id];
-    }
-    localStorage.setItem('race_tags', JSON.stringify(raceTags));
+  const handleSave = async () => {
+    // Save race tag to backend
+    const success = await setActivityRace(activity.id, isRace, raceType);
     
-    if (onSave) {
-      onSave({ ...activity, isRace });
+    if (success) {
+      if (onSave) {
+        onSave({ ...activity, isRace, raceType });
+      }
+      onClose();
+    } else {
+      alert('Failed to save race tag. Please try again.');
     }
-    onClose();
   };
 
   return (
@@ -83,12 +93,31 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
             </label>
           </div>
 
+          {/* Race Type Dropdown */}
           {isRace && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <p className="text-sm text-yellow-800">
-                <Trophy className="w-4 h-4 inline mr-1" />
-                This activity will be displayed with a race trophy icon on your dashboard, activities list, and calendar.
-              </p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Race Type
+                </label>
+                <select
+                  value={raceType}
+                  onChange={(e) => setRaceType(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                >
+                  {RACE_TYPES.map(type => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <Trophy className="w-4 h-4 inline mr-1" />
+                  This activity will be displayed with a race trophy icon and type badge on your dashboard, activities list, and calendar.
+                </p>
+              </div>
             </div>
           )}
         </div>

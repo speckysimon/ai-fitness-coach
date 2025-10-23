@@ -1,20 +1,33 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Activity, Calendar, LogOut, Trash2, CheckCircle2 } from 'lucide-react';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { Activity, Calendar, LogOut, Trash2, CheckCircle2, User, ChevronRight, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import StravaAttribution from '../components/StravaAttribution';
+import CoachAvatarSelector from '../components/CoachAvatarSelector';
+import { getUserTimezone, setUserTimezone, getCommonTimezones, getCurrentDateTime } from '../lib/timezone';
 
 const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogleAuth }) => {
   const [connecting, setConnecting] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const processedRef = useRef(new Set());
+  const [timezone, setTimezone] = useState(getUserTimezone());
+  const [currentTime, setCurrentTime] = useState(getCurrentDateTime());
 
   // Handle OAuth callbacks
   useEffect(() => {
     const stravaSuccess = searchParams.get('strava_success');
-    const googleData = searchParams.get('google_data');
+    const googleSuccess = searchParams.get('google_success');
+    const error = searchParams.get('error');
+
+    // Show error if present
+    if (error && !processedRef.current.has('error')) {
+      processedRef.current.add('error');
+      alert(decodeURIComponent(error));
+      navigate('/settings', { replace: true });
+      return;
+    }
 
     if (stravaSuccess && !processedRef.current.has('strava_success')) {
       processedRef.current.add('strava_success');
@@ -41,23 +54,52 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
       })();
     }
 
-    if (googleData && !processedRef.current.has(googleData)) {
-      processedRef.current.add(googleData);
+    if (googleSuccess && !processedRef.current.has('google_success')) {
+      processedRef.current.add('google_success');
       (async () => {
         try {
-          const data = JSON.parse(decodeURIComponent(googleData));
-          if (data.success && onGoogleAuth) {
-            await onGoogleAuth(data.tokens);
-            console.log('✅ Google tokens saved from Settings');
-            // Clear URL params to prevent re-processing
-            navigate('/settings', { replace: true });
+          console.log('✅ Google OAuth callback received');
+          // Fetch updated user data from backend
+          const sessionToken = localStorage.getItem('session_token');
+          const response = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${sessionToken}`
+            }
+          });
+          const data = await response.json();
+          if (data.success && data.user.googleTokens && onGoogleAuth) {
+            await onGoogleAuth(data.user.googleTokens);
+            console.log('✅ Google tokens loaded from Settings');
           }
+          // Clear URL params to prevent re-processing
+          navigate('/settings', { replace: true });
         } catch (err) {
           console.error('Error processing Google auth:', err);
         }
       })();
     }
   }, [searchParams, onStravaAuth, onGoogleAuth, navigate]);
+
+  // Update current time every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(getCurrentDateTime());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timezone]);
+
+  const handleTimezoneChange = (e) => {
+    const newTimezone = e.target.value;
+    if (newTimezone === 'auto') {
+      localStorage.removeItem('user_timezone');
+      const autoDetected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      setTimezone(autoDetected);
+    } else {
+      setUserTimezone(newTimezone);
+      setTimezone(newTimezone);
+    }
+    setCurrentTime(getCurrentDateTime());
+  };
 
   const clearData = () => {
     if (confirm('Are you sure you want to clear all local data? This cannot be undone.')) {
@@ -92,8 +134,19 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
   const connectGoogle = async () => {
     setConnecting(true);
     try {
-      const response = await fetch('/api/google/auth');
+      const sessionToken = localStorage.getItem('session_token');
+      if (!sessionToken) {
+        alert('Session expired. Please login again.');
+        navigate('/login');
+        return;
+      }
+      const response = await fetch(`/api/google/auth?session_token=${sessionToken}&state=settings`);
       const data = await response.json();
+      if (data.error) {
+        alert(data.error);
+        setConnecting(false);
+        return;
+      }
       window.location.href = data.authUrl;
     } catch (err) {
       alert('Failed to initiate Google authentication');
@@ -177,8 +230,8 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
     <div className="space-y-8 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-1">Manage your connections and preferences</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your connections and preferences</p>
       </div>
 
       {/* Connected Accounts */}
@@ -271,6 +324,82 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
         </CardContent>
       </Card>
 
+      {/* User Profile */}
+      <Card>
+        <CardHeader>
+          <CardTitle>User Profile</CardTitle>
+          <CardDescription>Manage your personal information</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link 
+            to="/profile"
+            className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900 dark:text-gray-100">Edit Profile</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Update your name, age, weight, height, and gender</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </Link>
+        </CardContent>
+      </Card>
+
+      {/* Coach Avatar Selector */}
+      <CoachAvatarSelector />
+
+      {/* Timezone Preferences */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            Timezone & Date Settings
+          </CardTitle>
+          <CardDescription>Configure your timezone for accurate AI training adjustments</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Current Time Display */}
+          <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Current Time</p>
+                <p className="text-2xl font-bold text-gray-900 tabular-nums">{currentTime.time}</p>
+                <p className="text-sm text-gray-600 mt-1">{currentTime.date}</p>
+              </div>
+              <div className="px-3 py-2 bg-blue-100 rounded-lg">
+                <p className="text-xs text-gray-600">Timezone</p>
+                <p className="text-sm font-semibold text-blue-700">{timezone.split('/').pop().replace('_', ' ')}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Timezone Selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Timezone
+            </label>
+            <select
+              value={localStorage.getItem('user_timezone') || 'auto'}
+              onChange={handleTimezoneChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {getCommonTimezones().map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-gray-500">
+              💡 This timezone is used when you tell the AI about "today", "yesterday", or specific dates. It ensures accurate plan adjustments.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* API Configuration */}
       <Card>
         <CardHeader>
@@ -333,8 +462,8 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm text-gray-600">
-            <p><strong>AI Fitness Coach</strong> v1.0.0</p>
-            <p>A lightweight AI-assisted training coach that integrates with Strava and Google Calendar.</p>
+            <p><strong>RiderLabs</strong> v2.5.0</p>
+            <p>Data-driven cycling performance platform powered by AI. Integrates with Strava and Google Calendar.</p>
             <p className="pt-4 border-t border-gray-200">
               Built with React, Express, OpenAI, and modern web technologies.
             </p>

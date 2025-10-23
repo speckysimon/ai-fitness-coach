@@ -14,11 +14,11 @@ const Landing = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🎯</span>
+                <span className="text-2xl">🔬</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">AI Fitness Coach</h1>
-                <p className="text-xs text-gray-500">Train Smarter. Race Faster.</p>
+                <h1 className="text-xl font-bold text-gray-900">RiderLabs</h1>
+                <p className="text-xs text-gray-500">Performance Engineered</p>
               </div>
             </div>
             <div className="flex gap-4">
@@ -46,20 +46,20 @@ const Landing = () => {
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-6">
               <Zap className="w-4 h-4" />
-              World's First AI-Powered Team Race Strategy
+              Data-Driven Cycling Performance Platform
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-              Your AI Cycling Coach
+              Where Performance is
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                For You & Your Team
+                Engineered
               </span>
             </h1>
             
             <p className="text-xl text-gray-600 mb-8">
-              Get personalized training plans, race-day strategies, and team coordination 
-              powered by AI. Train like a pro, race like a team, win together.
+              AI-powered training plans, race-day strategies, and post-race analysis. 
+              Complete learning loop from training to racing to improvement.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
@@ -502,12 +502,12 @@ const Landing = () => {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-xl">🎯</span>
+                  <span className="text-xl">🔬</span>
                 </div>
-                <span className="text-white font-bold">AI Fitness Coach</span>
+                <span className="text-white font-bold">RiderLabs</span>
               </div>
               <p className="text-sm">
-                Train smarter. Race faster. Win together.
+                Where Performance is Engineered
               </p>
             </div>
             
@@ -541,7 +541,7 @@ const Landing = () => {
           </div>
           
           <div className="border-t border-gray-800 pt-8 text-center text-sm">
-            <p>&copy; 2025 AI Fitness Coach. All rights reserved.</p>
+            <p>&copy; 2025 RiderLabs. All rights reserved.</p>
             <p className="mt-2">Powered by Strava • Built for cyclists</p>
           </div>
         </div>

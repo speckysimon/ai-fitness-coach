@@ -13,7 +13,6 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
     gender: '',
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [currentFTP, setCurrentFTP] = useState(null);
 
   useEffect(() => {
     if (userProfile) {
@@ -26,19 +25,6 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
       });
     }
   }, [userProfile]);
-
-  // Load FTP from cached metrics
-  useEffect(() => {
-    const cachedMetrics = localStorage.getItem('cached_metrics');
-    if (cachedMetrics) {
-      try {
-        const metrics = JSON.parse(cachedMetrics);
-        setCurrentFTP(metrics.ftp || null);
-      } catch (error) {
-        console.error('Error loading cached metrics:', error);
-      }
-    }
-  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -109,12 +95,12 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <User className="w-8 h-8 text-blue-600" />
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+          <User className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           User Profile
         </h1>
-        <p className="text-gray-600 mt-2">
-          Manage your personal information for better training insights
+        <p className="text-gray-600 dark:text-gray-400 mt-2">
+          Manage your basic personal information. For performance metrics and training zones, visit the <a href="/rider-profile" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium">Rider Profile</a> page.
         </p>
       </div>
 
@@ -159,7 +145,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Email (Read-only) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 Email
               </label>
@@ -167,13 +153,13 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 type="email"
                 value={userProfile?.email || ''}
                 disabled
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-not-allowed"
               />
             </div>
 
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Full Name
               </label>
@@ -184,15 +170,15 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 placeholder="John Doe"
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  !isEditing ? 'bg-gray-50 text-gray-600' : ''
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                  !isEditing ? 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : ''
                 }`}
               />
             </div>
 
             {/* Age */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Age
               </label>
@@ -205,15 +191,15 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 placeholder="30"
                 min="13"
                 max="100"
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  !isEditing ? 'bg-gray-50 text-gray-600' : ''
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                  !isEditing ? 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : ''
                 }`}
               />
             </div>
 
             {/* Gender */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Gender
               </label>
@@ -222,8 +208,8 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 value={formData.gender}
                 onChange={handleInputChange}
                 disabled={!isEditing}
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  !isEditing ? 'bg-gray-50 text-gray-600' : ''
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                  !isEditing ? 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : ''
                 }`}
               >
                 <option value="">Select gender</option>
@@ -235,7 +221,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
 
             {/* Height */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Ruler className="w-4 h-4" />
                 Height (cm)
               </label>
@@ -249,15 +235,15 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 min="100"
                 max="250"
                 step="0.1"
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  !isEditing ? 'bg-gray-50 text-gray-600' : ''
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                  !isEditing ? 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : ''
                 }`}
               />
             </div>
 
             {/* Weight */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Weight className="w-4 h-4" />
                 Weight (kg)
               </label>
@@ -271,8 +257,8 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 min="30"
                 max="200"
                 step="0.1"
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  !isEditing ? 'bg-gray-50 text-gray-600' : ''
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                  !isEditing ? 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : ''
                 }`}
               />
             </div>
@@ -280,81 +266,34 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
         </CardContent>
       </Card>
 
-      {/* Calculated Metrics */}
-      {(formData.height && formData.weight) && (
+      {/* BMI Card */}
+      {bmi && (
         <Card>
           <CardHeader>
-            <CardTitle>Health Metrics</CardTitle>
+            <CardTitle>Body Mass Index (BMI)</CardTitle>
             <CardDescription>
-              Calculated from your profile data
+              Calculated from your height and weight
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* BMI */}
-              <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Body Mass Index (BMI)</div>
-                <div className="text-3xl font-bold text-blue-600">{bmi}</div>
-                {bmiCategory && (
-                  <div className={`text-sm font-medium mt-1 ${bmiCategory.color}`}>
+            <div className="flex items-center gap-6">
+              <div className="text-5xl font-bold text-blue-600 dark:text-blue-400">
+                {bmi}
+              </div>
+              {bmiCategory && (
+                <div>
+                  <div className={`text-xl font-semibold ${bmiCategory.color}`}>
                     {bmiCategory.text}
                   </div>
-                )}
-              </div>
-
-              {/* Power-to-Weight */}
-              <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Power-to-Weight</div>
-                <div className="text-3xl font-bold text-purple-600">
-                  {currentFTP && formData.weight
-                    ? (currentFTP / parseFloat(formData.weight)).toFixed(2)
-                    : '--'}
-                </div>
-                <div className="text-sm text-gray-500 mt-1">W/kg</div>
-              </div>
-
-              {/* Age Category */}
-              {formData.age && (
-                <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">Age Category</div>
-                  <div className="text-3xl font-bold text-green-600">
-                    {parseInt(formData.age) < 30
-                      ? 'U30'
-                      : parseInt(formData.age) < 40
-                      ? '30-39'
-                      : parseInt(formData.age) < 50
-                      ? '40-49'
-                      : parseInt(formData.age) < 60
-                      ? '50-59'
-                      : '60+'}
-                  </div>
-                  <div className="text-sm text-gray-500 mt-1">Years</div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    BMI Category
+                  </p>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
       )}
-
-      {/* Info Card */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <User className="w-5 h-5 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 mb-2">Why we need this information</h3>
-              <ul className="text-sm text-gray-700 space-y-1">
-                <li>• <strong>Age:</strong> Helps calculate age-graded performance and recovery needs</li>
-                <li>• <strong>Height & Weight:</strong> Used for power-to-weight ratios and BMI calculations</li>
-                <li>• <strong>Gender:</strong> Assists in providing gender-specific training recommendations</li>
-                <li>• All data is stored locally on your device and never shared</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
