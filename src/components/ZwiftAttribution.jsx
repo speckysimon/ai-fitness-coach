@@ -7,13 +7,11 @@ import React from 'react';
 const ZwiftAttribution = ({ className = '' }) => {
   return (
     <div className={`flex items-center gap-2 text-sm ${className}`}>
-      <img
-        src="https://static.zwift.com/images/zwift-logo-horizontal-color-on-white.png"
-        alt="Zwift®"
-        className="h-5 w-auto"
-        loading="lazy"
-      />
-      <span className="text-xs text-muted-foreground">Workout Recommendations</span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-lg font-bold text-orange-600">Z</span>
+        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Zwift®</span>
+      </div>
+      <span className="text-xs text-muted-foreground">Workouts</span>
     </div>
   );
 };
