@@ -44,7 +44,8 @@ router.get('/callback', async (req, res) => {
     const oauthData = pendingOAuthStates.get(state);
     if (!oauthData) {
       logger.error('Invalid or expired OAuth state');
-      return res.redirect(`http://localhost:3000/setup?error=${encodeURIComponent('Invalid or expired authentication request')}`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/setup?error=${encodeURIComponent('Invalid or expired authentication request')}`);
     }
     
     // Clean up the state
@@ -54,7 +55,8 @@ router.get('/callback', async (req, res) => {
     const session = sessionDb.findByToken(oauthData.sessionToken);
     if (!session) {
       logger.error('Session expired during OAuth');
-      return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent('Session expired, please login again')}`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Session expired, please login again')}`);
     }
     
     const response = await axios.post('https://www.strava.com/oauth/token', {
@@ -75,13 +77,15 @@ router.get('/callback', async (req, res) => {
     });
     
     // Redirect back to frontend
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const redirectPath = oauthData.page === 'settings' ? 'settings' : 'setup';
-    const redirectUrl = `http://localhost:3000/${redirectPath}?strava_success=true`;
+    const redirectUrl = `${frontendUrl}/${redirectPath}?strava_success=true`;
     
     res.redirect(redirectUrl);
   } catch (error) {
     logger.error('Strava OAuth error:', error.response?.data || error.message);
-    res.redirect(`http://localhost:3000/setup?error=${encodeURIComponent('Failed to authenticate with Strava')}`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/setup?error=${encodeURIComponent('Failed to authenticate with Strava')}`);
   }
 });
 
