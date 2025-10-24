@@ -141,7 +141,7 @@ const Login = ({ onLogin }) => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {isRegister && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Full Name
                   </label>
                   <input
@@ -156,7 +156,7 @@ const Login = ({ onLogin }) => {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Email
                 </label>
                 <input
@@ -170,7 +170,7 @@ const Login = ({ onLogin }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Password
                 </label>
                 <input
@@ -185,7 +185,7 @@ const Login = ({ onLogin }) => {
 
               {isRegister && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Confirm Password
                   </label>
                   <input
