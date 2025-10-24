@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Activity, Calendar, Target, Settings, LogOut, Zap, List, BookOpen, TrendingUp, Package, Trophy, User, Crosshair, UserCircle, Dumbbell, Award } from 'lucide-react';
 import StravaAttribution from './StravaAttribution';
 import GarminAttribution from './GarminAttribution';
+import ZwiftAttribution from './ZwiftAttribution';
 import ThemeSwitcher from './ThemeSwitcher';
 
 const Layout = ({ children, onLogout, userProfile }) => {
@@ -101,6 +102,7 @@ const Layout = ({ children, onLogout, userProfile }) => {
             <div className="space-y-2">
               <StravaAttribution className="px-4" />
               <GarminAttribution className="px-4" />
+              <ZwiftAttribution className="px-4" />
             </div>
             <div className="px-4 mt-3 flex gap-3 text-xs text-muted-foreground">
               <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
