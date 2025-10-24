@@ -59,7 +59,7 @@ const SessionDetail = ({ session, ftp }) => {
     return zones[type] || zones['Endurance'];
   };
 
-  // Recommend Zwift workouts based on session type
+  // Recommend Zwift® workouts based on session type
   const getZwiftRecommendation = (type, duration) => {
     const recommendations = {
       'Recovery': [
@@ -234,7 +234,7 @@ const SessionDetail = ({ session, ftp }) => {
             <div>
               <h5 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
                 <span className="text-orange-600 font-bold">Z</span>
-                Zwift Workout Recommendation
+                Zwift® Workout Recommendation
               </h5>
               <div className="bg-orange-50 p-4 rounded border border-orange-200">
                 <div className="flex items-start justify-between">
@@ -259,6 +259,10 @@ const SessionDetail = ({ session, ftp }) => {
                       Search for this workout in Zwift's workout library or use a similar workout 
                       that matches the duration and intensity profile.
                     </span>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    <strong>Disclaimer:</strong> Zwift<sup>®</sup> is a registered trademark of Zwift, Inc. 
+                    RiderLabs is not affiliated with, endorsed by, or sponsored by Zwift, Inc.
                   </p>
                 </div>
               </div>

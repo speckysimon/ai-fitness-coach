@@ -3,6 +3,7 @@ import { TrendingUp, Zap, Calendar, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { format, subWeeks, startOfWeek, endOfWeek, isWithinInterval, startOfYear, differenceInWeeks } from 'date-fns';
+import logger from '../lib/logger';
 
 const FTPHistory = ({ stravaTokens }) => {
   const [ftpHistory, setFtpHistory] = useState([]);
@@ -14,10 +15,8 @@ const FTPHistory = ({ stravaTokens }) => {
 
   useEffect(() => {
     if (stravaTokens && stravaTokens.access_token) {
-      console.log('FTP History - Loading data with tokens');
       loadFTPHistory();
     } else {
-      console.log('FTP History - No valid tokens, setting loading to false');
       setLoading(false);
     }
   }, [stravaTokens]); // Only reload when tokens change, not when timeRange changes
@@ -113,7 +112,7 @@ const FTPHistory = ({ stravaTokens }) => {
 
       return newTokens;
     } catch (error) {
-      console.error('Token refresh error:', error);
+      logger.error('Token refresh error:', error);
       throw error;
     }
   };
@@ -137,7 +136,6 @@ const FTPHistory = ({ stravaTokens }) => {
         // Check if token is expired (expires_at is in seconds)
         const nowSeconds = Math.floor(Date.now() / 1000);
         if (tokensToUse.expires_at && tokensToUse.expires_at < nowSeconds) {
-          console.log('FTP History - Token expired, refreshing...');
           try {
             tokensToUse = await refreshAccessToken();
           } catch (refreshError) {
@@ -154,8 +152,6 @@ const FTPHistory = ({ stravaTokens }) => {
           Math.floor(Date.now() / 1000) - (24 * 7 * 24 * 60 * 60)
         );
         
-        console.log('FTP History - Fetching activities after:', new Date(fetchFrom * 1000).toISOString());
-        
         const userId = localStorage.getItem('current_user') ? JSON.parse(localStorage.getItem('current_user')).email : 'anonymous';
         const response = await fetch(
           `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${fetchFrom}&per_page=200&user_id=${encodeURIComponent(userId)}`
@@ -163,7 +159,6 @@ const FTPHistory = ({ stravaTokens }) => {
         
         // Handle 401/403 by attempting token refresh
         if (response.status === 401 || response.status === 403) {
-          console.log('FTP History - Got 401/403, attempting token refresh...');
           try {
             tokensToUse = await refreshAccessToken();
             // Retry the request with new token
@@ -189,7 +184,7 @@ const FTPHistory = ({ stravaTokens }) => {
           }
         } else if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.error('FTP History - API Error:', response.status, errorData);
+          logger.error('FTP History API Error:', response.status, errorData);
           throw new Error(errorData.details || errorData.error || `HTTP ${response.status}: Failed to fetch activities`);
         } else {
           const data = await response.json();
@@ -202,8 +197,6 @@ const FTPHistory = ({ stravaTokens }) => {
           activities = data;
         }
         
-        console.log('FTP History - Fetched activities:', activities.length);
-        
         // Collect debug info
         const debug = {
           totalActivities: activities.length,
@@ -212,24 +205,16 @@ const FTPHistory = ({ stravaTokens }) => {
           suitable: 0,
         };
         
-        // Log sample activity to see structure
+        // Collect debug info for display
         if (activities.length > 0) {
-          console.log('FTP History - Sample activity:', activities[0]);
-          
-          // Count activities with power data
           const withPower = activities.filter(a => a.avgPower && a.avgPower > 0);
           debug.withPower = withPower.length;
-          console.log('FTP History - Activities with power:', withPower.length);
           
-          // Count activities long enough
           const longEnough = activities.filter(a => a.duration >= 1200);
           debug.longEnough = longEnough.length;
-          console.log('FTP History - Activities >= 20min:', longEnough.length);
           
-          // Count activities with both
           const suitable = activities.filter(a => a.avgPower && a.avgPower > 0 && a.duration >= 1200);
           debug.suitable = suitable.length;
-          console.log('FTP History - Suitable for FTP calc:', suitable.length);
         }
         
         setDebugInfo(debug);
@@ -247,14 +232,14 @@ const FTPHistory = ({ stravaTokens }) => {
             sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
             return activityDate >= sixWeeksAgo;
           });
-          console.log('FTP History - Total activities:', activities.length);
-          console.log('FTP History - Power activities (>=20min):', powerActivities.length);
-          console.log('FTP History - Recent power activities (last 6 weeks):', recentPowerActivities.length);
+          logger.debug('FTP History - Total activities:', activities.length);
+          logger.debug('FTP History - Power activities (>=20min):', powerActivities.length);
+          logger.debug('FTP History - Recent power activities (last 6 weeks):', recentPowerActivities.length);
           if (recentPowerActivities.length > 0) {
             const best = recentPowerActivities.sort((a, b) => 
               (b.normalizedPower || b.avgPower) - (a.normalizedPower || a.avgPower)
             )[0];
-            console.log('FTP History - Best recent effort:', {
+            logger.debug('FTP History - Best recent effort:', {
               date: best.date,
               power: best.normalizedPower || best.avgPower,
               duration: best.duration,
@@ -271,21 +256,16 @@ const FTPHistory = ({ stravaTokens }) => {
           if (ftpResponse.ok) {
             const ftpData = await ftpResponse.json();
             currentFTPValue = ftpData.ftp;
-            console.log('FTP History - Current FTP from backend:', currentFTPValue);
-            console.log('FTP History - Full response:', ftpData);
           } else {
-            console.error('FTP History - Backend FTP request failed:', ftpResponse.status);
+            logger.error('FTP History - Backend FTP request failed:', ftpResponse.status);
           }
         } catch (error) {
-          console.error('Error fetching FTP from backend:', error);
+          logger.error('Error fetching FTP from backend:', error);
         }
-      } else {
-        console.log('FTP History - No activities to send to backend');
       }
 
       // Calculate FTP for each week
       const history = [];
-      console.log('FTP History - Processing', maxWeeks, 'weeks of data');
 
       for (let i = 0; i < maxWeeks; i++) {
         const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
@@ -301,8 +281,6 @@ const FTPHistory = ({ stravaTokens }) => {
         }
       }
       
-      console.log('FTP History - Calculated FTP for', history.length, 'weeks');
-
       // Fill in gaps with previous FTP value (carry forward)
       const filledHistory = [];
       let lastFTP = null;
@@ -329,10 +307,9 @@ const FTPHistory = ({ stravaTokens }) => {
       // Use backend FTP value if available, otherwise fall back to history
       const fallbackFTP = filledHistory.length > 0 ? filledHistory[filledHistory.length - 1].ftp : null;
       const finalFTP = currentFTPValue !== null && currentFTPValue !== undefined ? currentFTPValue : fallbackFTP;
-      console.log('FTP History - Setting currentFTP:', finalFTP, '(backend:', currentFTPValue, ', fallback:', fallbackFTP, ')');
       setCurrentFTP(finalFTP);
     } catch (error) {
-      console.error('Error loading FTP history:', error);
+      logger.error('Error loading FTP history:', error);
       setError(error.message || 'Failed to load FTP history');
     } finally {
       setLoading(false);
@@ -360,13 +337,13 @@ const FTPHistory = ({ stravaTokens }) => {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">FTP History</h1>
-          <p className="text-gray-600 mt-1">Track your Functional Threshold Power over time</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">FTP History</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Track your Functional Threshold Power over time</p>
         </div>
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col items-center justify-center h-96 text-gray-500">
-              <Zap className="w-16 h-16 mb-4 text-gray-300" />
+            <div className="flex flex-col items-center justify-center h-96 text-gray-500 dark:text-gray-400">
+              <Zap className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600" />
               <p className="text-lg font-medium">Connect Strava to View FTP History</p>
               <p className="text-sm mt-2 text-center max-w-md">
                 Connect your Strava account in Settings to track your FTP progression based on your power data.
@@ -383,7 +360,7 @@ const FTPHistory = ({ stravaTokens }) => {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading FTP history...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading FTP history...</p>
         </div>
       </div>
     );
@@ -394,17 +371,17 @@ const FTPHistory = ({ stravaTokens }) => {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">FTP History</h1>
-          <p className="text-gray-600 mt-1">Track your Functional Threshold Power over time</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">FTP History</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Track your Functional Threshold Power over time</p>
         </div>
-        <Card className="bg-red-50 border-red-200">
+        <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h3 className="font-semibold text-red-900 mb-2">Error Loading FTP History</h3>
-                <p className="text-sm text-red-800">{error}</p>
-                <p className="text-sm text-red-700 mt-3">
+                <h3 className="font-semibold text-red-900 dark:text-red-200 mb-2">Error Loading FTP History</h3>
+                <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
+                <p className="text-sm text-red-700 dark:text-red-400 mt-3">
                   This is likely due to an expired or invalid Strava token. Try reconnecting Strava in Settings.
                 </p>
               </div>
@@ -425,13 +402,13 @@ const FTPHistory = ({ stravaTokens }) => {
 
       {/* Debug Info Banner - only show when no FTP data */}
       {!loading && ftpHistory.length === 0 && debugInfo && debugInfo.totalActivities > 0 && (
-        <Card className="bg-yellow-50 border-yellow-200">
+        <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h3 className="font-semibold text-yellow-900 mb-2">No FTP Data Found</h3>
-                <div className="text-sm text-yellow-800 space-y-1">
+                <h3 className="font-semibold text-yellow-900 dark:text-yellow-200 mb-2">No FTP Data Found</h3>
+                <div className="text-sm text-yellow-800 dark:text-yellow-300 space-y-1">
                   <p>• Total activities: <strong>{debugInfo.totalActivities}</strong></p>
                   <p>• Activities with power data: <strong>{debugInfo.withPower}</strong></p>
                   <p>• Activities ≥ 20 minutes: <strong>{debugInfo.longEnough}</strong></p>
@@ -455,7 +432,7 @@ const FTPHistory = ({ stravaTokens }) => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Current FTP</CardTitle>
-            <Zap className="h-4 w-4 text-yellow-500" />
+            <Zap className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -478,10 +455,10 @@ const FTPHistory = ({ stravaTokens }) => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{timeRange}-Week Change</CardTitle>
-                <TrendingUp className={`h-4 w-4 ${change.change >= 0 ? 'text-green-500' : 'text-red-500'}`} />
+                <TrendingUp className={`h-4 w-4 ${change.change >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`} />
               </CardHeader>
               <CardContent>
-                <div className={`text-3xl font-bold ${change.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <div className={`text-3xl font-bold ${change.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   {change.change >= 0 ? '+' : ''}{change.change}W
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -493,7 +470,7 @@ const FTPHistory = ({ stravaTokens }) => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Data Points</CardTitle>
-                <Calendar className="h-4 w-4 text-blue-500" />
+                <Calendar className="h-4 w-4 text-blue-500 dark:text-blue-400" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -510,7 +487,7 @@ const FTPHistory = ({ stravaTokens }) => {
 
       {/* Time Range Selector */}
       <div className="flex items-center gap-4">
-        <span className="text-sm font-medium text-gray-700">Time Range:</span>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Time Range:</span>
         <div className="flex gap-2 flex-wrap">
           {[8, 12, 16, 24].map((weeks) => (
             <button
@@ -519,7 +496,7 @@ const FTPHistory = ({ stravaTokens }) => {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 timeRange === weeks
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               {weeks} weeks
@@ -574,11 +551,11 @@ const FTPHistory = ({ stravaTokens }) => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-                          <p className="font-semibold text-gray-900">{data.weekFull}</p>
-                          <p className="text-blue-600 font-bold text-lg">{data.ftp}W</p>
+                        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                          <p className="font-semibold text-gray-900 dark:text-white">{data.weekFull}</p>
+                          <p className="text-blue-600 dark:text-blue-400 font-bold text-lg">{data.ftp}W</p>
                           {data.estimated && (
-                            <p className="text-xs text-gray-500 italic">Estimated (no new data)</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 italic">Estimated (no new data)</p>
                           )}
                         </div>
                       );
@@ -598,8 +575,8 @@ const FTPHistory = ({ stravaTokens }) => {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex flex-col items-center justify-center h-96 text-gray-500">
-              <Zap className="w-16 h-16 mb-4 text-gray-300" />
+            <div className="flex flex-col items-center justify-center h-96 text-gray-500 dark:text-gray-400">
+              <Zap className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600" />
               <p className="text-lg font-medium">No FTP data available</p>
               <p className="text-sm mt-2">Complete rides with a power meter to see your FTP history</p>
               {debugInfo && (
@@ -625,12 +602,12 @@ const FTPHistory = ({ stravaTokens }) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Info className="w-5 h-5 text-blue-500" />
+            <Info className="w-5 h-5 text-blue-500 dark:text-blue-400" />
             How FTP is Calculated
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3 text-sm text-gray-600">
+          <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
             <p>
               <strong>FTP (Functional Threshold Power)</strong> is the highest average power you can sustain for approximately one hour.
             </p>
@@ -643,7 +620,7 @@ const FTPHistory = ({ stravaTokens }) => {
               <li>60-minute efforts: FTP = 100% of average power</li>
               <li>Uses Normalized Power when available for more accuracy</li>
             </ul>
-            <p className="pt-2 border-t border-gray-200">
+            <p className="pt-2 border-t border-gray-200 dark:border-gray-700">
               <strong>Tip:</strong> Regular FTP tests or hard sustained efforts will give you the most accurate tracking.
             </p>
           </div>

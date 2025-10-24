@@ -154,7 +154,7 @@ const TodaysWorkout = () => {
     return zones[type] || zones['Endurance'];
   };
 
-  // Recommend Zwift workouts
+  // Recommend Zwift® workouts
   const getZwiftRecommendation = (type, duration) => {
     const recommendations = {
       'Recovery': [
@@ -209,11 +209,11 @@ const TodaysWorkout = () => {
 
   if (!plan || !currentSession) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 flex items-center justify-center p-4">
         <div className="text-center">
-          <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">No Training Plan Found</h2>
-          <p className="text-gray-600 mb-6">Create a training plan to see your workouts</p>
+          <Calendar className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">No Training Plan Found</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">Create a training plan to see your workouts</p>
           <Button onClick={() => navigate('/plan')}>
             Go to Plan Generator
           </Button>
@@ -223,19 +223,19 @@ const TodaysWorkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
             >
               <Home className="w-5 h-5" />
               <span className="font-medium">Home</span>
             </button>
-            <h1 className="text-xl font-bold text-gray-900">Today's Workout</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Today's Workout</h1>
             <div className="w-20"></div> {/* Spacer for centering */}
           </div>
         </div>
@@ -256,7 +256,7 @@ const TodaysWorkout = () => {
           </Button>
           
           <div className="text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Session {sessionIndex + 1} of {allSessions.length}
             </p>
           </div>
@@ -273,7 +273,7 @@ const TodaysWorkout = () => {
         </div>
 
         {/* Workout Card */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
           {/* Header Section */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
             <div className="flex items-center justify-between mb-4">
@@ -288,7 +288,7 @@ const TodaysWorkout = () => {
                     })}
                   </p>
                   {isToday(currentSession.date) && (
-                    <span className="inline-block mt-1 px-2 py-0.5 bg-white bg-opacity-20 rounded text-xs font-semibold">
+                    <span className="inline-block mt-1 px-2 py-0.5 bg-white dark:bg-gray-800 bg-opacity-20 rounded text-xs font-semibold">
                       TODAY
                     </span>
                   )}
@@ -313,8 +313,8 @@ const TodaysWorkout = () => {
 
           {/* Description */}
           <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
-            <p className="text-gray-700 leading-relaxed text-lg">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Description</h3>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
               {currentSession.description}
             </p>
           </div>
@@ -325,30 +325,30 @@ const TodaysWorkout = () => {
               <Target className="w-5 h-5 text-blue-600" />
               Main Set
             </h3>
-            <p className="text-gray-700 bg-blue-50 p-4 rounded-lg border border-blue-200 text-lg">
+            <p className="text-gray-700 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 text-lg">
               {getZoneBreakdown(currentSession.type, currentSession.duration).mainSet}
             </p>
           </div>
 
           {/* Time in Zones */}
-          <div className="p-6 bg-gray-50">
+          <div className="p-6 bg-gray-50 dark:bg-gray-900">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-600" />
               Time in Zones
             </h3>
             <div className="space-y-3">
               {getZoneBreakdown(currentSession.type, currentSession.duration).zones.map((zone, idx) => (
-                <div key={idx} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div key={idx} className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className={`w-4 h-4 rounded ${zone.color}`} />
-                      <span className="font-semibold text-gray-900 text-lg">{zone.name}</span>
+                      <span className="font-semibold text-gray-900 dark:text-gray-100 text-lg">{zone.name}</span>
                     </div>
-                    <span className="text-2xl font-bold text-gray-900">
+                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {Math.round(zone.time)} min
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-600">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4" />
                       <span>Power: {zone.power}</span>
@@ -370,31 +370,31 @@ const TodaysWorkout = () => {
 
           {/* Targets */}
           {currentSession.targets && (
-            <div className="p-6 border-b border-gray-200 bg-white">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-blue-600" />
                 Additional Targets
               </h3>
-              <p className="text-gray-700 leading-relaxed text-lg">
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
                 {currentSession.targets}
               </p>
             </div>
           )}
 
           {/* Zwift Recommendation */}
-          <div className="p-6 bg-orange-50 border-t border-orange-200">
+          <div className="p-6 bg-orange-50 dark:bg-orange-900/20 border-t border-orange-200 dark:border-orange-800">
             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <span className="text-orange-600 font-bold text-xl">Z</span>
-              Zwift Workout Recommendation
+              Zwift® Workout Recommendation
             </h3>
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-orange-200">
-              <p className="font-semibold text-lg text-orange-900 mb-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-orange-200 dark:border-orange-800">
+              <p className="font-semibold text-lg text-orange-900 dark:text-orange-300 mb-2">
                 {getZwiftRecommendation(currentSession.type, currentSession.duration).name}
               </p>
-              <p className="text-gray-700 mb-3">
+              <p className="text-gray-700 dark:text-gray-300 mb-3">
                 {getZwiftRecommendation(currentSession.type, currentSession.duration).description}
               </p>
-              <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
+              <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mb-3">
                 <span className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   {getZwiftRecommendation(currentSession.type, currentSession.duration).duration} min
@@ -403,22 +403,27 @@ const TodaysWorkout = () => {
                   {currentSession.type}
                 </span>
               </div>
-              <div className="pt-3 border-t border-orange-200">
-                <p className="text-sm text-gray-600 flex items-start gap-2">
+              <div className="pt-3 border-t border-orange-200 dark:border-orange-800">
+                <p className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
                   <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>
                     Search for this workout in Zwift's workout library or use a similar workout 
                     that matches the duration and intensity profile.
                   </span>
                 </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 pt-3 border-t border-orange-200 dark:border-orange-700">
+                  <strong>Disclaimer:</strong> Zwift® is a registered trademark of Zwift, Inc. 
+                  RiderLabs is not affiliated with, endorsed by, or sponsored by Zwift, Inc. 
+                  Workout recommendations are suggestions only.
+                </p>
               </div>
             </div>
           </div>
 
           {/* Key Points */}
-          <div className="p-6 bg-blue-50">
+          <div className="p-6 bg-blue-50 dark:bg-blue-900/20">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Key Points</h3>
-            <ul className="text-gray-700 space-y-2 list-disc list-inside">
+            <ul className="text-gray-700 dark:text-gray-300 space-y-2 list-disc list-inside">
               {currentSession.targets && <li className="text-lg">{currentSession.targets}</li>}
               <li className="text-lg">Stay hydrated throughout the session</li>
               <li className="text-lg">Focus on smooth, consistent effort</li>

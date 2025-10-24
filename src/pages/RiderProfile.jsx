@@ -3,6 +3,7 @@ import { User, Zap, TrendingUp, Mountain, AlertTriangle, Calendar, Trophy, Targe
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import logger from '../lib/logger';
 import { 
   calculatePowerCurve, 
   classifyRiderType, 
@@ -42,7 +43,7 @@ const RiderProfile = ({ stravaTokens }) => {
           height: profile.height || 0
         });
       } catch (error) {
-        console.error('Error loading user profile:', error);
+        logger.error('Error loading user profile:', error);
       }
     }
   }, []);
@@ -62,7 +63,7 @@ const RiderProfile = ({ stravaTokens }) => {
           const metrics = JSON.parse(cachedMetrics);
           setFtp(metrics.ftp || null);
         } catch (error) {
-          console.error('Error loading cached metrics:', error);
+          logger.error('Error loading cached metrics:', error);
         }
       }
     }
@@ -127,16 +128,13 @@ const RiderProfile = ({ stravaTokens }) => {
       const manualFtpValue = localStorage.getItem('manual_ftp');
       if (manualFtpValue) {
         currentFtp = parseInt(manualFtpValue);
-        console.log('🔧 Using manual FTP for classification:', currentFtp);
       } else {
         const cachedMetrics = localStorage.getItem('cached_metrics');
         if (cachedMetrics) {
           const metrics = JSON.parse(cachedMetrics);
           currentFtp = metrics.ftp;
-          console.log('📊 Using cached FTP for classification:', currentFtp);
         }
       }
-      console.log('⚡ Final FTP for rider type classification:', currentFtp);
 
       // Calculate power curve for full season
       const curve = calculatePowerCurve(allActivities);
@@ -144,9 +142,6 @@ const RiderProfile = ({ stravaTokens }) => {
 
       // Classify rider type for full season
       const profile = classifyRiderType(allActivities, curve, currentFtp);
-      console.log('🚴 Rider Profile calculated:', profile);
-      console.log('🚴 Has scores?', profile?.scores);
-      console.log('🚴 Profile type:', profile?.type);
       setRiderProfile(profile);
 
       // Calculate recent profile (last 3 months)
@@ -171,7 +166,7 @@ const RiderProfile = ({ stravaTokens }) => {
       setEfficiencyMetrics(efficiency);
 
     } catch (error) {
-      console.error('Error loading profile data:', error);
+      logger.error('Error loading profile data:', error);
     } finally {
       setLoading(false);
     }
@@ -199,7 +194,7 @@ const RiderProfile = ({ stravaTokens }) => {
         setHrZones(data.zones);
       }
     } catch (error) {
-      console.error('Error calculating FTHR:', error);
+      logger.error('Error calculating FTHR:', error);
     }
   };
 
@@ -457,11 +452,6 @@ const RiderProfile = ({ stravaTokens }) => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Debug logging */}
-      {console.log('🔍 Render check - riderProfile:', riderProfile)}
-      {console.log('🔍 Render check - riderProfile.scores:', riderProfile?.scores)}
-      {console.log('🔍 Render check - condition result:', !!(riderProfile && riderProfile.scores))}
 
       {/* HR Zones & Rider Type - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

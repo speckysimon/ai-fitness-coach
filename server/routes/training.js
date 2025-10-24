@@ -1,6 +1,7 @@
 import express from 'express';
 import { aiPlannerService } from '../services/aiPlannerService.js';
 import { analyticsService } from '../services/analyticsService.js';
+import { getDb } from '../db.js';
 
 const router = express.Router();
 
@@ -112,6 +113,113 @@ router.post('/workout/analyze', async (req, res) => {
   } catch (error) {
     console.error('Error analyzing workout:', error.message);
     res.status(500).json({ error: 'Failed to analyze workout' });
+  }
+});
+
+// ========================================
+// DATABASE CRUD ENDPOINTS
+// ========================================
+
+// Save training plan to database
+router.post('/plan', async (req, res) => {
+  const { userId, planData, eventType, durationWeeks, daysPerWeek, maxHoursPerWeek, goals, generatedAt } = req.body;
+  
+  if (!userId || !planData) {
+    return res.status(400).json({ error: 'User ID and plan data required' });
+  }
+
+  try {
+    const db = getDb();
+    const result = db.prepare(`
+      INSERT INTO training_plans (
+        user_id, plan_data, event_type, duration_weeks, days_per_week,
+        max_hours_per_week, goals, generated_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(
+      userId,
+      JSON.stringify(planData),
+      eventType,
+      durationWeeks,
+      daysPerWeek,
+      maxHoursPerWeek,
+      goals,
+      generatedAt
+    );
+    
+    res.json({ 
+      success: true, 
+      planId: result.lastInsertRowid,
+      message: 'Training plan saved successfully' 
+    });
+  } catch (error) {
+    console.error('Error saving training plan:', error.message);
+    res.status(500).json({ error: 'Failed to save training plan' });
+  }
+});
+
+// Get current training plan for user
+router.get('/plan/:userId', async (req, res) => {
+  const { userId } = req.params;
+  
+  try {
+    const db = getDb();
+    const plan = db.prepare(`
+      SELECT * FROM training_plans 
+      WHERE user_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `).get(userId);
+    
+    if (!plan) {
+      return res.json({ plan: null });
+    }
+    
+    // Parse JSON data
+    plan.plan_data = JSON.parse(plan.plan_data);
+    
+    res.json({ plan });
+  } catch (error) {
+    console.error('Error loading training plan:', error.message);
+    res.status(500).json({ error: 'Failed to load training plan' });
+  }
+});
+
+// Update training plan (for completions, adjustments)
+router.put('/plan/:planId', async (req, res) => {
+  const { planId } = req.params;
+  const { planData } = req.body;
+  
+  if (!planData) {
+    return res.status(400).json({ error: 'Plan data required' });
+  }
+
+  try {
+    const db = getDb();
+    db.prepare(`
+      UPDATE training_plans 
+      SET plan_data = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(JSON.stringify(planData), planId);
+    
+    res.json({ success: true, message: 'Training plan updated successfully' });
+  } catch (error) {
+    console.error('Error updating training plan:', error.message);
+    res.status(500).json({ error: 'Failed to update training plan' });
+  }
+});
+
+// Delete training plan
+router.delete('/plan/:planId', async (req, res) => {
+  const { planId } = req.params;
+  
+  try {
+    const db = getDb();
+    db.prepare('DELETE FROM training_plans WHERE id = ?').run(planId);
+    
+    res.json({ success: true, message: 'Training plan deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting training plan:', error.message);
+    res.status(500).json({ error: 'Failed to delete training plan' });
   }
 });
 

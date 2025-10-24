@@ -1,5 +1,6 @@
 import express from 'express';
 import { userDb, sessionDb, stravaTokenDb, googleTokenDb } from '../db.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -25,8 +26,6 @@ router.post('/register', (req, res) => {
     // Create session
     const sessionToken = sessionDb.create(userId);
 
-    console.log('✅ User registered:', email);
-
     res.json({
       success: true,
       sessionToken,
@@ -43,7 +42,7 @@ router.post('/register', (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error('Registration error:', error);
     res.status(500).json({ error: 'Failed to register user' });
   }
 });
@@ -69,8 +68,6 @@ router.post('/login', (req, res) => {
     // Get OAuth tokens
     const stravaTokens = stravaTokenDb.findByUserId(user.id);
     const googleTokens = googleTokenDb.findByUserId(user.id);
-
-    console.log('✅ User logged in:', email);
 
     res.json({
       success: true,
@@ -98,7 +95,7 @@ router.post('/login', (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login error:', error);
     res.status(500).json({ error: 'Failed to login' });
   }
 });
@@ -162,7 +159,7 @@ router.get('/me', (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get user error:', error);
+    logger.error('Get user error:', error);
     res.status(500).json({ error: 'Failed to get user' });
   }
 });
@@ -188,8 +185,6 @@ router.put('/profile', (req, res) => {
 
     const user = userDb.findById(session.user_id);
 
-    console.log('✅ Profile updated:', user.email);
-
     res.json({
       success: true,
       user: {
@@ -205,7 +200,7 @@ router.put('/profile', (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Update profile error:', error);
+    logger.error('Update profile error:', error);
     res.status(500).json({ error: 'Failed to update profile' });
   }
 });
@@ -228,12 +223,9 @@ router.post('/strava-tokens', (req, res) => {
 
     stravaTokenDb.upsert(session.user_id, tokens);
 
-    const user = userDb.findById(session.user_id);
-    console.log('✅ Strava tokens saved for:', user.email);
-
     res.json({ success: true });
   } catch (error) {
-    console.error('Save Strava tokens error:', error);
+    logger.error('Save Strava tokens error:', error);
     res.status(500).json({ error: 'Failed to save Strava tokens' });
   }
 });
@@ -256,12 +248,9 @@ router.post('/google-tokens', (req, res) => {
 
     googleTokenDb.upsert(session.user_id, tokens);
 
-    const user = userDb.findById(session.user_id);
-    console.log('✅ Google tokens saved for:', user.email);
-
     res.json({ success: true });
   } catch (error) {
-    console.error('Save Google tokens error:', error);
+    logger.error('Save Google tokens error:', error);
     res.status(500).json({ error: 'Failed to save Google tokens' });
   }
 });
@@ -282,12 +271,9 @@ router.delete('/strava-tokens', (req, res) => {
 
     stravaTokenDb.delete(session.user_id);
 
-    const user = userDb.findById(session.user_id);
-    console.log('✅ Strava disconnected for:', user.email);
-
     res.json({ success: true });
   } catch (error) {
-    console.error('Disconnect Strava error:', error);
+    logger.error('Disconnect Strava error:', error);
     res.status(500).json({ error: 'Failed to disconnect Strava' });
   }
 });
@@ -308,12 +294,9 @@ router.delete('/google-tokens', (req, res) => {
 
     googleTokenDb.delete(session.user_id);
 
-    const user = userDb.findById(session.user_id);
-    console.log('✅ Google Calendar disconnected for:', user.email);
-
     res.json({ success: true });
   } catch (error) {
-    console.error('Disconnect Google error:', error);
+    logger.error('Disconnect Google error:', error);
     res.status(500).json({ error: 'Failed to disconnect Google Calendar' });
   }
 });

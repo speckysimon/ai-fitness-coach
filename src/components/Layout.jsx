@@ -106,6 +106,10 @@ const Layout = ({ children, onLogout, userProfile }) => {
               <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
               <Link to="/terms" className="hover:text-foreground">Terms</Link>
             </div>
+            <div className="px-4 mt-3 text-[10px] text-muted-foreground leading-relaxed">
+              Zwift®, Strava®, and Google Calendar™ are trademarks of their respective owners. 
+              Not affiliated.
+            </div>
           </div>
 
           {/* Logout */}

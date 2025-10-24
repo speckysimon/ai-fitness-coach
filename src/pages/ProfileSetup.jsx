@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Calendar, Ruler, Weight, Users, ArrowRight, SkipForward } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import logger from '../lib/logger';
 
 const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
   const navigate = useNavigate();
@@ -50,9 +51,9 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
             gender: updatedProfile.gender,
           }),
         });
-        console.log('✅ Profile saved to backend');
+        logger.info('Profile saved to backend');
       } catch (err) {
-        console.error('Failed to save profile to backend:', err);
+        logger.error('Failed to save profile to backend:', err);
       }
     }
     

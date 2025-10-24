@@ -1,5 +1,6 @@
 import express from 'express';
 import OpenAI from 'openai';
+import { getDb } from '../db.js';
 
 const router = express.Router();
 
@@ -428,5 +429,138 @@ CRITICAL ANALYSIS REQUIREMENTS:
 
   return prompt;
 }
+
+// ========================================
+// RACE ANALYSES DATABASE CRUD ENDPOINTS
+// ========================================
+
+// Save race analysis to database
+router.post('/analysis', async (req, res) => {
+  const { 
+    userId, activityId, raceName, raceDate, raceType,
+    overallScore, pacingScore, executionScore, tacticalScore,
+    analysisData 
+  } = req.body;
+  
+  if (!userId || !activityId || !analysisData) {
+    return res.status(400).json({ error: 'User ID, activity ID, and analysis data required' });
+  }
+
+  try {
+    const db = getDb();
+    
+    // Check if analysis already exists for this activity
+    const existing = db.prepare(`
+      SELECT id FROM race_analyses 
+      WHERE user_id = ? AND activity_id = ?
+    `).get(userId, activityId);
+    
+    if (existing) {
+      // Update existing analysis
+      db.prepare(`
+        UPDATE race_analyses 
+        SET race_name = ?, race_date = ?, race_type = ?,
+            overall_score = ?, pacing_score = ?, execution_score = ?, tactical_score = ?,
+            analysis_data = ?, updated_at = datetime('now')
+        WHERE id = ?
+      `).run(
+        raceName, raceDate, raceType,
+        overallScore, pacingScore, executionScore, tacticalScore,
+        JSON.stringify(analysisData),
+        existing.id
+      );
+      
+      res.json({ 
+        success: true, 
+        analysisId: existing.id,
+        message: 'Race analysis updated successfully' 
+      });
+    } else {
+      // Insert new analysis
+      const result = db.prepare(`
+        INSERT INTO race_analyses (
+          user_id, activity_id, race_name, race_date, race_type,
+          overall_score, pacing_score, execution_score, tactical_score,
+          analysis_data, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).run(
+        userId, activityId, raceName, raceDate, raceType,
+        overallScore, pacingScore, executionScore, tacticalScore,
+        JSON.stringify(analysisData)
+      );
+      
+      res.json({ 
+        success: true, 
+        analysisId: result.lastInsertRowid,
+        message: 'Race analysis saved successfully' 
+      });
+    }
+  } catch (error) {
+    console.error('Error saving race analysis:', error.message);
+    res.status(500).json({ error: 'Failed to save race analysis' });
+  }
+});
+
+// Get all race analyses for user
+router.get('/analyses/:userId', async (req, res) => {
+  const { userId } = req.params;
+  
+  try {
+    const db = getDb();
+    const analyses = db.prepare(`
+      SELECT * FROM race_analyses 
+      WHERE user_id = ? 
+      ORDER BY race_date DESC
+    `).all(userId);
+    
+    // Parse JSON data
+    analyses.forEach(analysis => {
+      analysis.analysis_data = JSON.parse(analysis.analysis_data);
+    });
+    
+    res.json({ analyses });
+  } catch (error) {
+    console.error('Error loading race analyses:', error.message);
+    res.status(500).json({ error: 'Failed to load race analyses' });
+  }
+});
+
+// Get single race analysis
+router.get('/analysis/:analysisId', async (req, res) => {
+  const { analysisId } = req.params;
+  
+  try {
+    const db = getDb();
+    const analysis = db.prepare(`
+      SELECT * FROM race_analyses WHERE id = ?
+    `).get(analysisId);
+    
+    if (!analysis) {
+      return res.status(404).json({ error: 'Race analysis not found' });
+    }
+    
+    analysis.analysis_data = JSON.parse(analysis.analysis_data);
+    
+    res.json({ analysis });
+  } catch (error) {
+    console.error('Error loading race analysis:', error.message);
+    res.status(500).json({ error: 'Failed to load race analysis' });
+  }
+});
+
+// Delete race analysis
+router.delete('/analysis/:analysisId', async (req, res) => {
+  const { analysisId } = req.params;
+  
+  try {
+    const db = getDb();
+    db.prepare('DELETE FROM race_analyses WHERE id = ?').run(analysisId);
+    
+    res.json({ success: true, message: 'Race analysis deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting race analysis:', error.message);
+    res.status(500).json({ error: 'Failed to delete race analysis' });
+  }
+});
 
 export default router;

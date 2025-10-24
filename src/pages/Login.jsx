@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn, UserPlus, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import logger from '../lib/logger';
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -95,7 +96,7 @@ const Login = ({ onLogin }) => {
         }
       }
     } catch (err) {
-      console.error('Authentication error:', err);
+      logger.error('Authentication error:', err);
       setError('Failed to connect to server. Please try again.');
     }
   };

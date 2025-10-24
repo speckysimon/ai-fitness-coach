@@ -18,7 +18,7 @@ const PrivacyPolicy = () => {
       <Card>
         <CardContent className="pt-6">
           <p className="text-gray-700">
-            AI Fitness Coach ("we", "our", or "us") is committed to protecting your privacy. 
+            RiderLabs ("we", "our", or "us") is committed to protecting your privacy. 
             This Privacy Policy explains how we collect, use, and safeguard your information 
             when you use our training application.
           </p>

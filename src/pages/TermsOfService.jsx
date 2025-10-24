@@ -18,7 +18,7 @@ const TermsOfService = () => {
       <Card>
         <CardContent className="pt-6">
           <p className="text-gray-700">
-            Welcome to AI Fitness Coach. By using our service, you agree to these Terms of Service. 
+            Welcome to RiderLabs. By using our service, you agree to these Terms of Service. 
             Please read them carefully before using the application.
           </p>
         </CardContent>
@@ -31,7 +31,7 @@ const TermsOfService = () => {
         </CardHeader>
         <CardContent>
           <p className="text-gray-700">
-            By accessing or using AI Fitness Coach, you agree to be bound by these Terms of Service 
+            By accessing or using RiderLabs, you agree to be bound by these Terms of Service 
             and our Privacy Policy. If you do not agree to these terms, please do not use our service.
           </p>
         </CardContent>
@@ -43,7 +43,7 @@ const TermsOfService = () => {
           <CardTitle>2. Service Description</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-700 mb-3">AI Fitness Coach provides:</p>
+          <p className="text-gray-700 mb-3">RiderLabs provides:</p>
           <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
             <li>Integration with Strava to analyze your training activities</li>
             <li>AI-powered training plan generation</li>
@@ -120,7 +120,7 @@ const TermsOfService = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-orange-900 font-semibold">
-            IMPORTANT: AI Fitness Coach is NOT a substitute for professional medical or coaching advice.
+            IMPORTANT: RiderLabs is NOT a substitute for professional medical or coaching advice.
           </p>
           <ul className="list-disc list-inside text-orange-800 space-y-2 ml-4">
             <li>Always consult with a qualified healthcare provider before starting any exercise program</li>
@@ -142,7 +142,7 @@ const TermsOfService = () => {
         </CardHeader>
         <CardContent>
           <p className="text-gray-700 mb-3">
-            AI Fitness Coach is provided "AS IS" without warranties of any kind. We are not liable for:
+            RiderLabs is provided "AS IS" without warranties of any kind. We are not liable for:
           </p>
           <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
             <li>Injuries or health issues resulting from training</li>
@@ -161,7 +161,7 @@ const TermsOfService = () => {
         </CardHeader>
         <CardContent>
           <p className="text-gray-700">
-            Your use of AI Fitness Coach is subject to our{' '}
+            Your use of RiderLabs is subject to our{' '}
             <a href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</a>. 
             We collect and process data as described in that policy. You retain ownership of your data 
             and can delete it at any time.
@@ -176,9 +176,40 @@ const TermsOfService = () => {
         </CardHeader>
         <CardContent>
           <p className="text-gray-700">
-            AI Fitness Coach and its original content, features, and functionality are owned by us 
+            RiderLabs and its original content, features, and functionality are owned by us 
             and are protected by international copyright, trademark, and other intellectual property laws. 
             Your training data and generated plans remain your property.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Third-Party Trademarks */}
+      <Card>
+        <CardHeader>
+          <CardTitle>9. Third-Party Trademarks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-700 mb-3">
+            RiderLabs references third-party products and services for informational purposes only:
+          </p>
+          <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
+            <li>
+              <strong>Zwift®</strong> is a registered trademark of Zwift, Inc. 
+              RiderLabs is not affiliated with, endorsed by, or sponsored by Zwift, Inc.
+            </li>
+            <li>
+              <strong>Strava®</strong> is a registered trademark of Strava, Inc. 
+              RiderLabs is not affiliated with, endorsed by, or sponsored by Strava, Inc.
+            </li>
+            <li>
+              <strong>Google Calendar™</strong> is a trademark of Google LLC. 
+              RiderLabs is not affiliated with, endorsed by, or sponsored by Google LLC.
+            </li>
+          </ul>
+          <p className="text-gray-700 mt-3">
+            All workout recommendations, activity integrations, and third-party references are 
+            provided for informational purposes only. Users should verify availability and 
+            compatibility independently.
           </p>
         </CardContent>
       </Card>
@@ -186,7 +217,7 @@ const TermsOfService = () => {
       {/* Service Availability */}
       <Card>
         <CardHeader>
-          <CardTitle>9. Service Availability</CardTitle>
+          <CardTitle>10. Service Availability</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
@@ -201,7 +232,7 @@ const TermsOfService = () => {
       {/* Account Termination */}
       <Card>
         <CardHeader>
-          <CardTitle>10. Account Termination</CardTitle>
+          <CardTitle>11. Account Termination</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-gray-700 mb-3">
@@ -221,7 +252,7 @@ const TermsOfService = () => {
       {/* Changes to Terms */}
       <Card>
         <CardHeader>
-          <CardTitle>11. Changes to Terms</CardTitle>
+          <CardTitle>12. Changes to Terms</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-gray-700">
@@ -235,7 +266,7 @@ const TermsOfService = () => {
       {/* Governing Law */}
       <Card>
         <CardHeader>
-          <CardTitle>12. Governing Law</CardTitle>
+          <CardTitle>13. Governing Law</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-gray-700">
@@ -265,7 +296,7 @@ const TermsOfService = () => {
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="pt-6">
           <p className="text-blue-900 font-medium">
-            By using AI Fitness Coach, you acknowledge that you have read, understood, and agree 
+            By using RiderLabs, you acknowledge that you have read, understood, and agree 
             to be bound by these Terms of Service and our Privacy Policy.
           </p>
         </CardContent>

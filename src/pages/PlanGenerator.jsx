@@ -42,6 +42,8 @@ import {
   getCompletionStatus
 } from '../lib/activityMatching';
 import confetti from 'canvas-confetti';
+import { planService } from '../services/planService';
+import { migrationService } from '../services/migrationService';
 
 const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const [activities, setActivities] = useState([]);
@@ -67,6 +69,9 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const [successMessage, setSuccessMessage] = useState({ title: '', message: '' });
   const [expandedWeeks, setExpandedWeeks] = useState({});
   const [isRiderTypeExpanded, setIsRiderTypeExpanded] = useState(false);
+  const [currentPlanId, setCurrentPlanId] = useState(null);
+  const [backendSyncStatus, setBackendSyncStatus] = useState('idle'); // idle, syncing, synced, error
+  const [migrationNeeded, setMigrationNeeded] = useState(false);
   const [formData, setFormData] = useState({
     eventName: '',
     eventDate: '',
@@ -89,17 +94,87 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       setCompletedSessions(JSON.parse(saved));
     }
     
-    // Load existing plan from localStorage
-    const savedPlan = localStorage.getItem('training_plan');
-    if (savedPlan) {
-      setPlan(JSON.parse(savedPlan));
-      setPlanLoadedFromStorage(true);
-      setIsFormExpanded(false); // Collapse form when plan exists
-    }
+    // Load existing plan from backend (with localStorage fallback)
+    loadPlanFromBackend();
+    
+    // Check if migration is needed
+    checkMigrationStatus();
     
     // Load illness/injury history
     loadIllnessHistory();
   }, [stravaTokens]);
+
+  const loadPlanFromBackend = async () => {
+    if (!userProfile?.id) {
+      // No user ID, fall back to localStorage
+      const savedPlan = localStorage.getItem('training_plan');
+      if (savedPlan) {
+        setPlan(JSON.parse(savedPlan));
+        setPlanLoadedFromStorage(true);
+        setIsFormExpanded(false);
+      }
+      return;
+    }
+
+    try {
+      const result = await planService.loadPlan(userProfile.id);
+      
+      if (result.plan) {
+        setPlan(result.plan);
+        setPlanLoadedFromStorage(true);
+        setIsFormExpanded(false);
+        
+        if (result.planId) {
+          setCurrentPlanId(result.planId);
+        }
+        
+        if (result.needsMigration) {
+          setMigrationNeeded(true);
+        }
+        
+        setBackendSyncStatus(result.source === 'backend' ? 'synced' : 'localStorage');
+      }
+    } catch (error) {
+      console.error('Error loading plan:', error);
+      setBackendSyncStatus('error');
+    }
+  };
+
+  const checkMigrationStatus = () => {
+    const status = migrationService.getMigrationStatus();
+    if (status.needsAnyMigration) {
+      setMigrationNeeded(true);
+    }
+  };
+
+  // Helper function to save plan with dual-write (localStorage + backend)
+  const savePlanWithBackend = async (planData) => {
+    if (!userProfile?.id) {
+      // No user ID, just save to localStorage
+      localStorage.setItem('training_plan', JSON.stringify(planData));
+      return;
+    }
+
+    try {
+      setBackendSyncStatus('syncing');
+      
+      if (currentPlanId) {
+        // Update existing plan
+        await planService.updatePlan(currentPlanId, planData);
+      } else {
+        // Save new plan
+        const result = await planService.savePlan(userProfile.id, planData);
+        if (result.planId) {
+          setCurrentPlanId(result.planId);
+        }
+      }
+      
+      setBackendSyncStatus('synced');
+    } catch (error) {
+      console.error('Error saving plan to backend:', error);
+      setBackendSyncStatus('error');
+    }
+  };
 
   const loadIllnessHistory = async () => {
     try {
@@ -115,7 +190,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         setIllnessHistory(data.events || []);
       }
     } catch (error) {
-      console.error('Error loading illness history:', error);
+      logger.error('Error loading illness history:', error);
     }
   };
 
@@ -391,14 +466,13 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       
       return newTokens;
     } catch (error) {
-      console.error('Token refresh error:', error);
+      logger.error('Token refresh error:', error);
       throw error;
     }
   };
 
   const loadActivities = async () => {
     if (!stravaTokens) {
-      console.log('No Strava tokens available');
       return;
     }
 
@@ -408,7 +482,6 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       // Check if token is expired and refresh if needed
       const nowSeconds = Math.floor(Date.now() / 1000);
       if (tokensToUse.expires_at && tokensToUse.expires_at < nowSeconds) {
-        console.log('Plan Generator - Token expired, refreshing...');
         try {
           tokensToUse = await refreshAccessToken();
         } catch (refreshError) {
@@ -427,11 +500,8 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 
       // Handle 401/403 errors by refreshing token and retrying
       if (response.status === 401 || response.status === 403) {
-        console.log('Plan Generator - Got 401/403, attempting token refresh...');
         try {
           const newTokens = await refreshAccessToken();
-          console.log('Plan Generator - Token refreshed successfully');
-          console.log('Plan Generator - New token:', newTokens.access_token.substring(0, 20) + '...');
           
           // Wait a moment for token to propagate
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -441,11 +511,8 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             `/api/strava/activities?access_token=${newTokens.access_token}&after=${sixWeeksAgo}&per_page=100`
           );
           
-          console.log('Plan Generator - Retry response status:', retryResponse.status);
-          
           if (retryResponse.ok) {
             const data = await retryResponse.json();
-            console.log('Plan Generator - Retry successful, loaded activities:', data.length);
             setActivities(data);
 
             // Calculate FTP for power targets
@@ -469,19 +536,16 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             return;
           } else {
             const errorText = await retryResponse.text();
-            console.error('Retry failed with status:', retryResponse.status, 'Response:', errorText);
-            // Continue to try parsing the original response
+            logger.error('Retry failed:', retryResponse.status, errorText);
           }
         } catch (refreshError) {
-          console.error('Token refresh error:', refreshError);
-          // Continue to try parsing the original response
+          logger.error('Token refresh error:', refreshError);
         }
       }
 
       // Try to parse response even if status isn't perfect
       if (response.ok) {
         const data = await response.json();
-        console.log('Plan Generator - Loaded activities:', data.length);
         setActivities(data);
 
         // Calculate FTP for power targets
@@ -503,14 +567,14 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         setFthr(fthrData.fthr);
         setHrZones(fthrData.zones);
       } else {
-        console.error('Failed to fetch activities, status:', response.status);
+        logger.error('Failed to fetch activities:', response.status);
         setActivities([]);
         setFtp(null);
         setFthr(null);
         setHrZones(null);
       }
     } catch (error) {
-      console.error('Error loading activities:', error);
+      logger.error('Error loading activities:', error);
       setActivities([]);
       setFtp(null);
     }
@@ -665,22 +729,22 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       
       setPlan(planWithDates);
       
-      // Save plan to localStorage for persistence
-      localStorage.setItem('training_plan', JSON.stringify(planWithDates));
+      // Save plan with dual-write (localStorage + backend)
+      await savePlanWithBackend(planWithDates);
       setPlanLoadedFromStorage(false); // This is a newly generated plan
       
       // Clear completed sessions for new plan
       setCompletedSessions({});
       localStorage.removeItem('completed_sessions');
     } catch (error) {
-      console.error('Error generating plan:', error);
+      logger.error('Error generating plan:', error);
       alert('Failed to generate training plan. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApplyAdjustments = (adjustedPlan, explanation) => {
+  const handleApplyAdjustments = async (adjustedPlan, explanation) => {
     // Preserve plan metadata but recalculate dates if days changed
     const planWithPreservedDates = {
       ...adjustedPlan,
@@ -770,9 +834,9 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
     
     planWithPreservedDates.coachNotes = [...existingNotes, adjustmentNote];
     
-    // Save adjusted plan
+    // Save adjusted plan with dual-write (localStorage + backend)
     setPlan(planWithPreservedDates);
-    localStorage.setItem('training_plan', JSON.stringify(planWithPreservedDates));
+    await savePlanWithBackend(planWithPreservedDates);
     
     // Re-run activity matching to match activities to adjusted sessions
     // This will automatically match the completed activity to the correct session
@@ -851,7 +915,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         throw new Error(result.error || 'Unknown error occurred while syncing');
       }
     } catch (error) {
-      console.error('Error syncing to calendar:', error);
+      logger.error('Error syncing to calendar:', error);
       alert(`Failed to sync to calendar: ${error.message}`);
     } finally {
       setSyncing(false);

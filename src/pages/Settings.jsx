@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 import StravaAttribution from '../components/StravaAttribution';
 import CoachAvatarSelector from '../components/CoachAvatarSelector';
 import { getUserTimezone, setUserTimezone, getCommonTimezones, getCurrentDateTime } from '../lib/timezone';
+import { preferencesService } from '../services/preferencesService';
 
 const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogleAuth }) => {
   const [connecting, setConnecting] = useState(false);
@@ -88,15 +89,27 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
     return () => clearInterval(interval);
   }, [timezone]);
 
-  const handleTimezoneChange = (e) => {
+  const handleTimezoneChange = async (e) => {
     const newTimezone = e.target.value;
     if (newTimezone === 'auto') {
       localStorage.removeItem('user_timezone');
       const autoDetected = Intl.DateTimeFormat().resolvedOptions().timeZone;
       setTimezone(autoDetected);
+      
+      // Save to backend
+      const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      if (userProfile.id) {
+        await preferencesService.updateField(userProfile.id, 'timezone', autoDetected);
+      }
     } else {
       setUserTimezone(newTimezone);
       setTimezone(newTimezone);
+      
+      // Save to backend
+      const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      if (userProfile.id) {
+        await preferencesService.updateField(userProfile.id, 'timezone', newTimezone);
+      }
     }
     setCurrentTime(getCurrentDateTime());
   };

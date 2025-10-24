@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Activity, Calendar, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
+import logger from '../lib/logger';
 
 const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
       setProcessingOAuth(true);
       (async () => {
         try {
-          console.log('✅ Strava OAuth callback received');
+          logger.info('Strava OAuth callback received');
           // Fetch updated user data from backend
           const sessionToken = localStorage.getItem('session_token');
           const response = await fetch('/api/auth/me', {
@@ -40,13 +41,13 @@ const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
           const data = await response.json();
           if (data.success && data.user.stravaTokens) {
             await onStravaAuth(data.user.stravaTokens);
-            console.log('✅ Tokens loaded successfully');
+            logger.info('Tokens loaded successfully');
           }
           // Clear URL params after successful save
           setSearchParams({});
           setProcessingOAuth(false);
         } catch (err) {
-          console.error('❌ Error processing Strava auth:', err);
+          logger.error('Error processing Strava auth:', err);
           setError('Failed to process Strava authentication');
           setSearchParams({});
           setProcessingOAuth(false);

@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine, Area, AreaChart } from 'recharts';
 import { calculateRaceDayForm } from '../lib/riderAnalytics';
 import { parseGPX, generateRouteProfile } from '../lib/gpxParser';
+import logger from '../lib/logger';
 
 const RaceDayPredictor = ({ stravaTokens }) => {
   const [activities, setActivities] = useState([]);
@@ -59,7 +60,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
       setFormData(form);
 
     } catch (error) {
-      console.error('Error loading form data:', error);
+      logger.error('Error loading form data:', error);
     } finally {
       setLoading(false);
     }
@@ -90,7 +91,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
       // Clear previous race plan
       setRacePlan(null);
     } catch (error) {
-      console.error('Error parsing GPX:', error);
+      logger.error('Error parsing GPX:', error);
       alert(`Failed to parse GPX file: ${error.message}`);
     }
   };
@@ -149,7 +150,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
 
       setRacePlan(data);
     } catch (error) {
-      console.error('Error generating race plan:', error);
+      logger.error('Error generating race plan:', error);
       alert(`Failed to generate race plan:\n\n${error.message}\n\nPlease ensure your OpenAI API key is configured in the environment variables.`);
     } finally {
       setGeneratingPlan(false);
@@ -165,30 +166,30 @@ const RaceDayPredictor = ({ stravaTokens }) => {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'high': return 'border-red-500 bg-red-50';
-      case 'medium': return 'border-yellow-500 bg-yellow-50';
-      case 'low': return 'border-blue-500 bg-blue-50';
-      default: return 'border-gray-500 bg-gray-50';
+      case 'high': return 'border-red-500 bg-red-50 dark:bg-red-900/20 dark:border-red-700';
+      case 'medium': return 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700';
+      case 'low': return 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700';
+      default: return 'border-gray-500 bg-gray-50 dark:bg-gray-800 dark:border-gray-600';
     }
   };
 
   const getPriorityBadge = (priority) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-700';
-      case 'medium': return 'bg-yellow-100 text-yellow-700';
-      case 'low': return 'bg-blue-100 text-blue-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'high': return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+      case 'medium': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
+      case 'low': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
     }
   };
 
   const getTaperPhaseColor = (phase) => {
     switch (phase) {
-      case 'build': return 'bg-blue-100 text-blue-700';
-      case 'pre-taper': return 'bg-yellow-100 text-yellow-700';
-      case 'taper': return 'bg-orange-100 text-orange-700';
-      case 'final-prep': return 'bg-green-100 text-green-700';
-      case 'post-race': return 'bg-gray-100 text-gray-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'build': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+      case 'pre-taper': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
+      case 'taper': return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300';
+      case 'final-prep': return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+      case 'post-race': return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
     }
   };
 
@@ -197,7 +198,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Analyzing your race day form...</p>
+          <p className="text-gray-600 dark:text-gray-400">Analyzing your race day form...</p>
         </div>
       </div>
     );
@@ -207,22 +208,22 @@ const RaceDayPredictor = ({ stravaTokens }) => {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Target className="w-8 h-8 text-blue-600" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+            <Target className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             Race Day Form Predictor
           </h1>
-          <p className="text-gray-600 mt-1">Predict your race readiness based on training load and recovery</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Predict your race readiness based on training load and recovery</p>
         </div>
 
         <Card>
           <CardContent className="pt-12 pb-12">
             <div className="text-center">
-              <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Not Enough Data Yet</h3>
-              <p className="text-gray-600 mb-6">
+              <Target className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Not Enough Data Yet</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 We need at least 10 activities to predict your race day form.
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 Keep training and check back soon! Current activities: {activities.length}/10
               </p>
             </div>
@@ -231,23 +232,139 @@ const RaceDayPredictor = ({ stravaTokens }) => {
       </div>
     );
   }
+};
 
+const generateRacePlan = async () => {
+  if (!gpxRoute || !formData) {
+    alert('Please upload a route and ensure form data is loaded');
+    return;
+  }
+
+  setGeneratingPlan(true);
+  try {
+    // Get rider profile from localStorage
+    const cachedProfile = localStorage.getItem('rider_profile');
+    const riderProfile = cachedProfile ? JSON.parse(cachedProfile) : null;
+
+    // Get training plan status
+    const trainingPlan = localStorage.getItem('training_plan');
+    const completedSessions = localStorage.getItem('completed_sessions');
+    
+    let trainingStatus = null;
+    if (trainingPlan && completedSessions) {
+      const plan = JSON.parse(trainingPlan);
+      const completed = JSON.parse(completedSessions);
+      const total = plan.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
+      const completedCount = Object.values(completed).filter(c => c && c.completed).length;
+      
+      trainingStatus = {
+        completion: Math.round((completedCount / total) * 100),
+        targetRiderType: plan.eventType || 'All Rounder',
+        alignmentScore: 85 // This would come from actual calculation
+      };
+    }
+
+    const response = await fetch('/api/race/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        routeAnalysis: gpxRoute.analysis,
+        riderProfile: riderProfile ? {
+          type: riderProfile.type,
+          ftp: ftp,
+          weight: riderProfile.weight,
+          strengths: riderProfile.strengths
+        } : null,
+        currentForm: formData,
+        trainingPlan: trainingStatus
+      }),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.details || data.error || 'Failed to generate race plan');
+    }
+
+    setRacePlan(data);
+  } catch (error) {
+    logger.error('Error generating race plan:', error);
+    alert(`Failed to generate race plan:\n\n${error.message}\n\nPlease ensure your OpenAI API key is configured in the environment variables.`);
+  } finally {
+    setGeneratingPlan(false);
+  }
+};
+
+const getInsightIcon = (iconName) => {
+  const icons = {
+    Zap, AlertTriangle, TrendingUp, TrendingDown, Calendar, Moon, Trophy, Activity
+  };
+  return icons[iconName] || Zap;
+};
+
+const getPriorityColor = (priority) => {
+  switch (priority) {
+    case 'high': return 'border-red-500 bg-red-50 dark:bg-red-900/20 dark:border-red-700';
+    case 'medium': return 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700';
+    case 'low': return 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700';
+    default: return 'border-gray-500 bg-gray-50 dark:bg-gray-800 dark:border-gray-600';
+  }
+};
+
+const getPriorityBadge = (priority) => {
+  switch (priority) {
+    case 'high': return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+    case 'medium': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
+    case 'low': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+    default: return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
+  }
+};
+
+const getTaperPhaseColor = (phase) => {
+  switch (phase) {
+    case 'build': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+    case 'pre-taper': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
+    case 'taper': return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300';
+    case 'final-prep': return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+    case 'post-race': return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
+    default: return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
+  }
+};
+
+if (loading) {
+  return (
+    <div className="flex items-center justify-center h-96">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600 dark:text-gray-400">Analyzing your race day form...</p>
+      </div>
+    </div>
+  );
+}
+
+if (!formData || formData.status === 'insufficient_data') {
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <Target className="w-8 h-8 text-blue-600" />
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+          <Target className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           Race Day Form Predictor
         </h1>
-        <p className="text-gray-600 mt-1">Predict your race readiness based on training load and recovery</p>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Predict your race readiness based on training load and recovery</p>
       </div>
 
-      {/* Date Selector */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Calendar className="w-5 h-5 text-gray-600" />
+        <CardContent className="pt-12 pb-12">
+          <div className="text-center">
+            <Target className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Not Enough Data Yet</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              We need at least 10 activities to predict your race day form.
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Keep training and check back soon! Current activities: {activities.length}/10
+            </p>
+            <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Select Race Date
@@ -256,13 +373,13 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                 type="date"
                 value={selectedRaceDate}
                 onChange={handleDateChange}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             {formData.taperAdvice && formData.taperAdvice.daysToRace !== undefined && (
               <div className="text-right">
-                <div className="text-3xl font-bold text-blue-600">{formData.taperAdvice.daysToRace}</div>
-                <div className="text-sm text-gray-600">days to race</div>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{formData.taperAdvice.daysToRace}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">days to race</div>
               </div>
             )}
           </div>
@@ -288,32 +405,32 @@ const RaceDayPredictor = ({ stravaTokens }) => {
 
         {/* Key Metrics */}
         <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Metrics</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Key Metrics</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {/* Fitness (CTL) */}
             <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Fitness (CTL)</span>
-                <Activity className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Fitness (CTL)</span>
+                <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className="text-3xl font-bold text-blue-600">{formData.metrics.fitness}</div>
-              <div className="text-xs text-gray-500 mt-1">42-day average load</div>
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{formData.metrics.fitness}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">42-day average load</div>
             </div>
 
             {/* Fatigue (ATL) */}
             <div className="p-4 bg-orange-50 rounded-lg border-2 border-orange-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Fatigue (ATL)</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Fatigue (ATL)</span>
                 <AlertTriangle className="w-5 h-5 text-orange-600" />
               </div>
               <div className="text-3xl font-bold text-orange-600">{formData.metrics.fatigue}</div>
-              <div className="text-xs text-gray-500 mt-1">7-day average load</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">7-day average load</div>
             </div>
 
             {/* Form (TSB) */}
             <div className={`p-4 rounded-lg border-2 ${formData.metrics.form >= 5 ? 'bg-green-50 border-green-200' : formData.metrics.form >= 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Form (TSB)</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Form (TSB)</span>
                 <TrendingUp className={`w-5 h-5 ${formData.metrics.form >= 5 ? 'text-green-600' : formData.metrics.form >= 0 ? 'text-yellow-600' : 'text-red-600'}`} />
               </div>
               <div className={`text-3xl font-bold ${formData.metrics.form >= 5 ? 'text-green-600' : formData.metrics.form >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
@@ -325,7 +442,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
             {/* Performance Trend */}
             <div className="p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Performance</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Performance</span>
                 {formData.metrics.performanceTrend >= 0 ? 
                   <TrendingUp className="w-5 h-5 text-purple-600" /> : 
                   <TrendingDown className="w-5 h-5 text-purple-600" />

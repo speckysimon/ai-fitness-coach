@@ -2,6 +2,7 @@ import express from 'express';
 import { sessionDb, adaptationEventDb, planAdjustmentDb, wellnessLogDb, workoutComparisonDb } from '../db.js';
 import adaptiveTrainingService from '../services/adaptiveTrainingService.js';
 import planModificationService from '../services/planModificationService.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -42,8 +43,6 @@ router.post('/illness', verifySession, async (req, res) => {
 
     // If illness has ended, trigger AI analysis
     if (endDate) {
-      console.log('🤖 Illness ended, triggering AI analysis...');
-      
       // This will be called by frontend after logging
       // We'll return a flag to indicate analysis should be triggered
     }
@@ -55,7 +54,7 @@ router.post('/illness', verifySession, async (req, res) => {
       shouldAnalyze: !!endDate
     });
   } catch (error) {
-    console.error('Error logging illness:', error);
+    logger.error('Error logging illness:', error);
     res.status(500).json({ error: 'Failed to log illness/injury' });
   }
 });
@@ -84,7 +83,7 @@ router.post('/wellness', verifySession, (req, res) => {
       message: 'Wellness logged successfully' 
     });
   } catch (error) {
-    console.error('Error logging wellness:', error);
+    logger.error('Error logging wellness:', error);
     res.status(500).json({ error: 'Failed to log wellness' });
   }
 });
@@ -103,7 +102,7 @@ router.get('/history', verifySession, (req, res) => {
       wellness
     });
   } catch (error) {
-    console.error('Error fetching history:', error);
+    logger.error('Error fetching history:', error);
     res.status(500).json({ error: 'Failed to fetch adaptation history' });
   }
 });
@@ -118,7 +117,7 @@ router.get('/adjustments/pending', verifySession, (req, res) => {
       adjustments: pending
     });
   } catch (error) {
-    console.error('Error fetching pending adjustments:', error);
+    logger.error('Error fetching pending adjustments:', error);
     res.status(500).json({ error: 'Failed to fetch pending adjustments' });
   }
 });
@@ -135,7 +134,7 @@ router.post('/adjustments/:id/accept', verifySession, (req, res) => {
       message: 'Adjustment accepted' 
     });
   } catch (error) {
-    console.error('Error accepting adjustment:', error);
+    logger.error('Error accepting adjustment:', error);
     res.status(500).json({ error: 'Failed to accept adjustment' });
   }
 });
@@ -152,7 +151,7 @@ router.post('/adjustments/:id/reject', verifySession, (req, res) => {
       message: 'Adjustment rejected' 
     });
   } catch (error) {
-    console.error('Error rejecting adjustment:', error);
+    logger.error('Error rejecting adjustment:', error);
     res.status(500).json({ error: 'Failed to reject adjustment' });
   }
 });
@@ -163,11 +162,7 @@ router.put('/illness/:id', verifySession, (req, res) => {
     const eventId = parseInt(req.params.id);
     const { endDate, notes } = req.body;
 
-    console.log(`Updating event ${eventId} with:`, { endDate, notes });
-
     const result = adaptationEventDb.update(eventId, { endDate, notes });
-    
-    console.log('Update result:', result);
 
     res.json({ 
       success: true,
@@ -175,7 +170,7 @@ router.put('/illness/:id', verifySession, (req, res) => {
       changes: result.changes
     });
   } catch (error) {
-    console.error('Error updating event:', error);
+    logger.error('Error updating event:', error);
     res.status(500).json({ error: 'Failed to update event', details: error.message });
   }
 });
@@ -192,7 +187,7 @@ router.delete('/illness/:id', verifySession, (req, res) => {
       message: 'Event deleted successfully' 
     });
   } catch (error) {
-    console.error('Error deleting event:', error);
+    logger.error('Error deleting event:', error);
     res.status(500).json({ error: 'Failed to delete event' });
   }
 });
@@ -207,7 +202,7 @@ router.get('/active', verifySession, (req, res) => {
       events: activeEvents
     });
   } catch (error) {
-    console.error('Error fetching active events:', error);
+    logger.error('Error fetching active events:', error);
     res.status(500).json({ error: 'Failed to fetch active events' });
   }
 });
@@ -223,7 +218,7 @@ router.get('/wellness', verifySession, (req, res) => {
       wellness
     });
   } catch (error) {
-    console.error('Error fetching wellness:', error);
+    logger.error('Error fetching wellness:', error);
     res.status(500).json({ error: 'Failed to fetch wellness data' });
   }
 });
@@ -245,7 +240,7 @@ router.post('/analyze', verifySession, async (req, res) => {
       ...result
     });
   } catch (error) {
-    console.error('Error analyzing training:', error);
+    logger.error('Error analyzing training:', error);
     res.status(500).json({ error: 'Failed to analyze training' });
   }
 });
@@ -290,7 +285,7 @@ router.post('/apply-adjustment', verifySession, async (req, res) => {
       summary
     });
   } catch (error) {
-    console.error('Error applying adjustment:', error);
+    logger.error('Error applying adjustment:', error);
     res.status(500).json({ error: 'Failed to apply adjustment' });
   }
 });

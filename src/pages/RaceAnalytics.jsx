@@ -179,10 +179,10 @@ const RaceAnalytics = ({ stravaTokens }) => {
   };
 
   const getTrendIcon = (value) => {
-    if (!value) return <Minus className="w-4 h-4 text-gray-400" />;
+    if (!value) return <Minus className="w-4 h-4 text-gray-400 dark:text-gray-500" />;
     if (value > 0) return <TrendingUp className="w-4 h-4 text-green-500" />;
     if (value < 0) return <TrendingDown className="w-4 h-4 text-red-500" />;
-    return <Minus className="w-4 h-4 text-gray-400" />;
+    return <Minus className="w-4 h-4 text-gray-400 dark:text-gray-500" />;
   };
 
   const trends = calculateTrends();
@@ -194,7 +194,7 @@ const RaceAnalytics = ({ stravaTokens }) => {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading race analytics...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading race analytics...</p>
         </div>
       </div>
     );
@@ -204,22 +204,22 @@ const RaceAnalytics = ({ stravaTokens }) => {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <Trophy className="w-8 h-8 text-yellow-600" />
             Race Analytics
           </h1>
-          <p className="text-gray-600 mt-1">Track your race performance over time</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Track your race performance over time</p>
         </div>
 
         <Card>
           <CardContent className="pt-12 pb-12">
             <div className="text-center">
-              <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Races Tagged Yet</h3>
-              <p className="text-gray-600 mb-6">
+              <Trophy className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No Races Tagged Yet</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Start by tagging some of your activities as races to see performance analytics here.
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-500">
                 Go to <strong>All Activities</strong> and click the edit button on any activity to mark it as a race.
               </p>
             </div>
@@ -240,7 +240,7 @@ const RaceAnalytics = ({ stravaTokens }) => {
         <p className="text-gray-600 mt-1">
           Track your race performance over time
         </p>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
           Showing all tagged races from your recent activities
         </p>
       </div>
@@ -365,7 +365,7 @@ const RaceAnalytics = ({ stravaTokens }) => {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[300px] text-gray-500">
+              <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-500">
                 <p>No power data available for races</p>
               </div>
             )}
@@ -405,7 +405,7 @@ const RaceAnalytics = ({ stravaTokens }) => {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[300px] text-gray-500">
+              <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-500">
                 <p>No heart rate data available for races</p>
               </div>
             )}
@@ -459,9 +459,9 @@ const RaceAnalytics = ({ stravaTokens }) => {
                     <Trophy className="w-6 h-6 text-yellow-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">{race.name}</h4>
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">{race.name}</h4>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-sm text-gray-500 flex items-center gap-1">
+                      <span className="text-sm text-gray-500 dark:text-gray-500 flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         {new Date(race.date).toLocaleDateString('en-US', {
                           month: 'short',
@@ -480,25 +480,25 @@ const RaceAnalytics = ({ stravaTokens }) => {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-6 text-sm text-gray-600">
+                <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
                   <div className="text-right">
                     <div className="font-medium">{formatDuration(race.duration)}</div>
-                    <div className="text-xs text-gray-500">Duration</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-500">Duration</div>
                   </div>
                   <div className="text-right">
                     <div className="font-medium">{formatDistance(race.distance)}</div>
-                    <div className="text-xs text-gray-500">Distance</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-500">Distance</div>
                   </div>
                   {race.avgSpeed && (
                     <div className="text-right">
                       <div className="font-medium">{(race.avgSpeed * 3.6).toFixed(1)} km/h</div>
-                      <div className="text-xs text-gray-500">Avg Speed</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">Avg Speed</div>
                     </div>
                   )}
                   {race.avgPower && (
                     <div className="text-right">
                       <div className="font-medium text-yellow-600">{Math.round(race.avgPower)}W</div>
-                      <div className="text-xs text-gray-500">Avg Power</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">Avg Power</div>
                     </div>
                   )}
                 </div>

@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { adaptationEventDb, planAdjustmentDb, workoutComparisonDb } from '../db.js';
+import logger from '../utils/logger.js';
 
 class AdaptiveTrainingService {
   constructor() {
@@ -20,32 +21,18 @@ class AdaptiveTrainingService {
    */
   async analyzeAndAdapt(userId, userData) {
     try {
-      console.log(`🤖 Analyzing training for user ${userId}...`);
-      console.log('User data received:', JSON.stringify(userData, null, 2));
-      
       // 1. Gather all relevant data
       const data = await this.gatherData(userId, userData);
-      console.log('Data gathered:', { 
-        activitiesCount: data.activities?.length || 0,
-        hasPlan: !!data.plan,
-        illnessesCount: data.illnesses?.length || 0,
-        activeIllnessesCount: data.activeIllnesses?.length || 0
-      });
       
       // 2. Detect issues or opportunities
       const issues = await this.detectIssues(data);
       
-      console.log(`📊 Detected ${issues.length} issues/opportunities:`, issues);
-      
       // 3. If issues found, generate adjustment
       if (issues.length > 0) {
-        console.log('Generating AI adjustment...');
         const adjustment = await this.generateAdjustment(data, issues);
         
         // 4. Save adjustment to database
         const adjustmentId = await this.saveAdjustment(userId, adjustment, issues);
-        
-        console.log(`✅ Adjustment created: ${adjustmentId}`);
         
         return {
           needsAdjustment: true,
@@ -55,15 +42,13 @@ class AdaptiveTrainingService {
         };
       }
       
-      console.log('✅ No issues detected, plan is on track');
       return { 
         needsAdjustment: false,
         message: 'Training plan is on track' 
       };
       
     } catch (error) {
-      console.error('Error in analyzeAndAdapt:', error);
-      console.error('Stack trace:', error.stack);
+      logger.error('Error in analyzeAndAdapt:', error);
       throw error;
     }
   }
@@ -267,8 +252,6 @@ class AdaptiveTrainingService {
   async generateAdjustment(data, issues) {
     const prompt = this.buildPrompt(data, issues);
     
-    console.log('🤖 Calling OpenAI for adjustment recommendation...');
-    
     const openai = this.getOpenAI();
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -301,11 +284,7 @@ class AdaptiveTrainingService {
       content = content.replace(/^```\s*/, '').replace(/```\s*$/, '');
     }
     
-    console.log('Raw AI response:', content);
-    
     const adjustment = JSON.parse(content);
-    
-    console.log('✅ AI adjustment generated:', adjustment);
     
     return adjustment;
   }
@@ -380,21 +359,12 @@ Return JSON with this exact structure:
     // Link to the first issue's event if it exists
     const eventId = issues[0]?.data?.id || null;
     
-    console.log('💾 Saving adjustment to database...');
-    console.log('User ID:', userId);
-    console.log('Event ID:', eventId);
-    console.log('Adjustment type:', adjustment.action);
-    console.log('Changes:', adjustment.changes);
-    console.log('Reasoning:', adjustment.reasoning);
-    
     const adjustmentId = planAdjustmentDb.create(userId, {
       eventId,
       type: adjustment.action,
       changes: adjustment.changes,
       reasoning: adjustment.reasoning
     });
-    
-    console.log('✅ Adjustment saved with ID:', adjustmentId);
     
     return adjustmentId;
   }

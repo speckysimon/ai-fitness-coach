@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
 import ActivityDetailModal from '../components/ActivityDetailModal';
 import SessionHoverModal from '../components/SessionHoverModal';
+import logger from '../lib/logger';
 
 const Calendar = ({ stravaTokens, googleTokens }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -36,7 +37,7 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
           setRaceActivities(data.raceTags || {});
         }
       } catch (error) {
-        console.error('Error loading race tags:', error);
+        logger.error('Error loading race tags:', error);
       }
     };
     
@@ -93,7 +94,7 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
         setFtp(metrics.ftp);
       }
     } catch (error) {
-      console.error('Error loading calendar data:', error);
+      logger.error('Error loading calendar data:', error);
     } finally {
       setLoading(false);
     }
@@ -133,14 +134,14 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Training Calendar</h1>
-          <p className="text-gray-600 mt-1">Past activities and upcoming planned sessions</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Training Calendar</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Past activities and upcoming planned sessions</p>
         </div>
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={previousMonth}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <h2 className="text-xl font-semibold text-gray-900 min-w-[200px] text-center">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white min-w-[200px] text-center">
             {format(currentMonth, 'MMMM yyyy')}
           </h2>
           <Button variant="outline" size="icon" onClick={nextMonth}>
@@ -153,11 +154,11 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
       <div className="flex items-center gap-6 text-sm">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-green-100 border-2 border-green-500 rounded"></div>
-          <span className="text-gray-700">Completed</span>
+          <span className="text-gray-700 dark:text-gray-300">Completed</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-blue-100 border-2 border-blue-500 rounded"></div>
-          <span className="text-gray-700">Planned</span>
+          <span className="text-gray-700 dark:text-gray-300">Planned</span>
         </div>
       </div>
 
@@ -173,7 +174,7 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
               {/* Week day headers */}
               <div className="grid grid-cols-7 gap-2 mb-2">
                 {weekDays.map(day => (
-                  <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                  <div key={day} className="text-center text-sm font-medium text-gray-500 dark:text-gray-400 py-2">
                     {day}
                   </div>
                 ))}
@@ -196,10 +197,10 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                     <div
                       key={day.toISOString()}
                       className={`aspect-square border rounded-lg p-2 ${
-                        isToday ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                        isToday ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700'
                       } ${!isSameMonth(day, currentMonth) ? 'opacity-50' : ''}`}
                     >
-                      <div className="text-sm font-medium text-gray-900 mb-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
                         {format(day, 'd')}
                       </div>
                       <div className="space-y-1">
@@ -212,7 +213,7 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                               className={`text-xs px-2 py-1 rounded truncate border cursor-pointer transition-colors flex items-center gap-1 ${
                                 isRace 
                                   ? 'bg-yellow-100 text-yellow-700 border-yellow-500 hover:bg-yellow-200' 
-                                  : 'bg-green-100 text-green-700 border-green-500 hover:bg-green-200'
+                                  : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-500 dark:border-green-600 hover:bg-green-200 dark:hover:bg-green-900/40'
                               }`}
                               title={activity.name}
                               onClick={() => setSelectedActivity(activity)}
@@ -239,7 +240,7 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                                   ? 'bg-red-100 text-red-700 border-red-500 line-through hover:bg-red-200'
                                   : isModified
                                   ? 'bg-orange-100 text-orange-700 border-orange-500 hover:bg-orange-200'
-                                  : 'bg-blue-100 text-blue-700 border-blue-500 hover:bg-blue-200'
+                                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-500 dark:border-blue-600 hover:bg-blue-200 dark:hover:bg-blue-900/40'
                               }`}
                               title={isCancelled ? `Cancelled: ${session.cancellationReason || 'Recovery needed'}` : isModified ? `Modified: ${session.modificationReason || 'Plan adjusted'}` : session.title}
                               onClick={() => setSelectedSession(session)}
@@ -265,8 +266,8 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
             <CardTitle className="text-base">This Month</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{activities.length}</div>
-            <p className="text-sm text-gray-600">Activities completed</p>
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">{activities.length}</div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Activities completed</p>
           </CardContent>
         </Card>
 
@@ -275,10 +276,10 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
             <CardTitle className="text-base">Total Time</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">
               {Math.round(activities.reduce((sum, a) => sum + (a.duration || 0), 0) / 3600)}h
             </div>
-            <p className="text-sm text-gray-600">Training hours</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Training hours</p>
           </CardContent>
         </Card>
 
@@ -287,10 +288,10 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
             <CardTitle className="text-base">Total Distance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900">
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">
               {Math.round(activities.reduce((sum, a) => sum + (a.distance || 0), 0) / 1000)} km
             </div>
-            <p className="text-sm text-gray-600">Covered this month</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Covered this month</p>
           </CardContent>
         </Card>
       </div>

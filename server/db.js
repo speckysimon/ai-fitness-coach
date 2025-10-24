@@ -682,4 +682,7 @@ setInterval(() => {
 
 console.log('✅ Database initialized');
 
+// Export getDb function for CRUD operations
+export const getDb = () => db;
+
 export default db;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { raceAnalysisService } from '../services/raceAnalysisService';
 import { Trophy, TrendingUp, CheckCircle, AlertCircle, Brain, Loader2, Calendar, Clock, Zap, Heart, Target, Award, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -224,15 +225,38 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
 
       const analysisData = await response.json();
       
-      // Store analysis
-      const storedAnalyses = JSON.parse(localStorage.getItem('race_analyses') || '{}');
-      storedAnalyses[selectedActivity.id] = {
+      // Store analysis with dual-write (localStorage + backend)
+      const fullAnalysisData = {
         ...analysisData,
         feedback,
         analyzedAt: new Date().toISOString(),
-        activityDate: selectedActivity.date
+        activityDate: selectedActivity.date,
+        activityId: selectedActivity.id,
+        raceName: selectedActivity.name,
+        raceDate: selectedActivity.date,
+        raceType: selectedActivity.type,
+        scores: {
+          overall: analysisData.performanceScore,
+          pacing: analysisData.pacingScore,
+          execution: analysisData.executionScore,
+          tactical: analysisData.tacticalScore,
+        }
       };
-      localStorage.setItem('race_analyses', JSON.stringify(storedAnalyses));
+      
+      // Save to backend (with localStorage fallback)
+      const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      if (userProfile.id) {
+        await raceAnalysisService.saveAnalysis(
+          userProfile.id,
+          selectedActivity.id,
+          fullAnalysisData
+        );
+      } else {
+        // Fallback to localStorage only
+        const storedAnalyses = JSON.parse(localStorage.getItem('race_analyses') || '[]');
+        storedAnalyses.push(fullAnalysisData);
+        localStorage.setItem('race_analyses', JSON.stringify(storedAnalyses));
+      }
 
       setAnalysis(analysisData);
       setShowFeedbackForm(false);
@@ -268,15 +292,15 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Post-Race Analysis</h1>
-          <p className="text-gray-600 mt-1">Analyze your race performance and get AI-powered insights</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Post-Race Analysis</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Analyze your race performance and get AI-powered insights</p>
         </div>
         <Card>
           <CardContent className="pt-12 pb-12">
             <div className="text-center">
-              <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Strava Connection Required</h3>
-              <p className="text-gray-600 mb-6">
+              <AlertCircle className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Strava Connection Required</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Connect your Strava account to analyze your race activities.
               </p>
               <Button
@@ -319,12 +343,12 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
               {raceActivities.map(activity => (
                 <div
                   key={activity.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Trophy className="w-4 h-4 text-yellow-600" />
-                      <h3 className="font-semibold text-gray-900">{activity.name}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100">{activity.name}</h3>
                       {activity.analysis && (
                         <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded font-medium">
                           Analyzed
@@ -379,11 +403,11 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
               {potentialRaces.map(activity => (
                 <div
                   key={activity.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">{activity.name}</h3>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{activity.name}</h3>
+                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
                         {new Date(activity.date).toLocaleDateString()}
@@ -416,9 +440,9 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
       {/* Feedback Form Modal */}
       {showFeedbackForm && selectedActivity && !analysis && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
                 Post-Race Feedback
               </h2>
               <p className="text-gray-600 mb-6">
@@ -428,7 +452,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
               <div className="space-y-6">
                 {/* Overall Feeling */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     How did you feel overall?
                   </label>
                   <div className="flex gap-2">
@@ -448,13 +472,13 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
 
                 {/* Plan Adherence */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Did you follow your race plan?
                   </label>
                   <select
                     value={feedback.planAdherence}
                     onChange={(e) => handleFeedbackChange('planAdherence', e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-lg"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="yes">Yes, closely</option>
                     <option value="mostly">Mostly, with some adjustments</option>
@@ -465,7 +489,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
 
                 {/* What Went Well */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     What went well? (Optional)
                   </label>
                   <Textarea
@@ -478,7 +502,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
 
                 {/* What Didn't Go Well */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     What didn't go well? (Optional)
                   </label>
                   <Textarea
@@ -491,7 +515,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
 
                 {/* Lessons */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Any surprises or lessons? (Optional)
                   </label>
                   <Textarea
@@ -505,7 +529,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                 {/* Placement */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Placement (Optional)
                     </label>
                     <input
@@ -513,11 +537,11 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                       value={feedback.placement}
                       onChange={(e) => handleFeedbackChange('placement', e.target.value)}
                       placeholder="e.g., 2nd"
-                      className="w-full p-2 border border-gray-300 rounded-lg"
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Total Riders (Optional)
                     </label>
                     <input
@@ -525,14 +549,14 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                       value={feedback.totalRiders}
                       onChange={(e) => handleFeedbackChange('totalRiders', e.target.value)}
                       placeholder="e.g., 50"
-                      className="w-full p-2 border border-gray-300 rounded-lg"
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+              <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <Button
                   onClick={() => setShowFeedbackForm(false)}
                   variant="outline"
@@ -565,15 +589,15 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
       {/* Analysis Display Modal */}
       {analysis && selectedActivity && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               {/* Header */}
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                     Race Analysis
                   </h2>
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 dark:text-gray-400">
                     {selectedActivity.name} • {new Date(selectedActivity.date).toLocaleDateString()}
                   </p>
                 </div>
@@ -582,7 +606,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                     setAnalysis(null);
                     setSelectedActivity(null);
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   ✕
                 </button>

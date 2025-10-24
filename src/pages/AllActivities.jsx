@@ -6,6 +6,7 @@ import ActivityDetailModal from '../components/ActivityDetailModal';
 import EditActivityModal from '../components/EditActivityModal';
 import { formatDuration, formatDistance, formatDate } from '../lib/utils';
 import { getRaceTypeLabel } from '../lib/raceUtils';
+import logger from '../lib/logger';
 
 const AllActivities = ({ stravaTokens }) => {
   const [activities, setActivities] = useState([]);
@@ -53,13 +54,10 @@ const AllActivities = ({ stravaTokens }) => {
   };
 
   useEffect(() => {
-    console.log('AllActivities - stravaTokens:', stravaTokens);
     if (stravaTokens && stravaTokens.access_token) {
-      console.log('AllActivities - Loading activities...');
       setCurrentTokens(stravaTokens);
       loadAllActivities();
     } else {
-      console.log('AllActivities - No valid Strava tokens');
       setLoading(false);
     }
   }, [stravaTokens]);
@@ -70,7 +68,6 @@ const AllActivities = ({ stravaTokens }) => {
       throw new Error('No refresh token available');
     }
 
-    console.log('AllActivities - Refreshing access token...');
     const response = await fetch('/api/strava/refresh-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -94,7 +91,6 @@ const AllActivities = ({ stravaTokens }) => {
 
     setCurrentTokens(newTokens);
     localStorage.setItem('strava_tokens', JSON.stringify(newTokens));
-    console.log('AllActivities - Token refreshed successfully');
     
     return newTokens;
   };
@@ -115,7 +111,7 @@ const AllActivities = ({ stravaTokens }) => {
           setRaceActivities(data.raceTags || {});
         }
       } catch (error) {
-        console.error('Error loading race tags:', error);
+        logger.error('Error loading race tags:', error);
       }
     };
     loadRaceTags();
@@ -131,7 +127,6 @@ const AllActivities = ({ stravaTokens }) => {
       // Check cache version - if old cache format, clear it
       const cacheVersion = localStorage.getItem('cache_version');
       if (cacheVersion !== '2.0') {
-        console.log('AllActivities - Old cache detected, clearing...');
         localStorage.removeItem('cached_activities');
         localStorage.removeItem('cache_timestamp');
         localStorage.setItem('cache_version', '2.0');
@@ -144,19 +139,16 @@ const AllActivities = ({ stravaTokens }) => {
       const cacheValid = cacheAge < 30 * 60 * 1000; // 30 minutes
 
       if (cachedActivities && cacheValid) {
-        console.log('AllActivities - Using cached activities');
         const activities = JSON.parse(cachedActivities);
         await processActivitiesData(activities, currentTokens);
         return;
       }
 
-      console.log('AllActivities - Cache miss or expired, fetching from Strava...');
       let tokensToUse = currentTokens;
 
       // Check if token is expired (expires_at is in seconds)
       const now = Math.floor(Date.now() / 1000);
       if (tokensToUse.expires_at && tokensToUse.expires_at < now) {
-        console.log('AllActivities - Token expired, refreshing...');
         try {
           tokensToUse = await refreshAccessToken();
         } catch (refreshError) {
@@ -168,20 +160,11 @@ const AllActivities = ({ stravaTokens }) => {
       }
 
       // Fetch all activities (no date restriction)
-      console.log('AllActivities - Fetching all activities...');
-      console.log('AllActivities - Access token present:', !!tokensToUse.access_token);
-      
       const url = `/api/strava/activities?access_token=${tokensToUse.access_token}&per_page=200`;
-      console.log('AllActivities - Fetching from:', url.replace(tokensToUse.access_token, 'TOKEN'));
-      
       const response = await fetch(url);
-      
-      console.log('AllActivities - Response status:', response.status);
-      console.log('AllActivities - Response ok:', response.ok);
       
       // Handle 401/403 - token might be expired
       if (response.status === 401 || response.status === 403) {
-        console.log('AllActivities - Got 401/403, attempting token refresh...');
         try {
           tokensToUse = await refreshAccessToken();
           // Retry the request with new token
@@ -194,10 +177,8 @@ const AllActivities = ({ stravaTokens }) => {
           }
           
           const data = await retryResponse.json();
-          console.log('AllActivities - Received activities after refresh:', data.length);
           
           if (!data || data.length === 0) {
-            console.log('AllActivities - No activities returned from API');
             setActivities([]);
             setFilteredActivities([]);
             setLoading(false);
@@ -217,16 +198,13 @@ const AllActivities = ({ stravaTokens }) => {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('AllActivities - API error:', errorText);
+        logger.error('AllActivities API error:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('AllActivities - Received activities:', data.length);
-      console.log('AllActivities - First activity:', data[0]);
       
       if (!data || data.length === 0) {
-        console.log('AllActivities - No activities returned from API');
         setActivities([]);
         setFilteredActivities([]);
         setLoading(false);
@@ -236,12 +214,11 @@ const AllActivities = ({ stravaTokens }) => {
       // Cache the fetched data
       localStorage.setItem('cached_activities', JSON.stringify(data));
       localStorage.setItem('cache_timestamp', Date.now().toString());
-      console.log('AllActivities - Cached', data.length, 'activities');
       
       // Process the data
       await processActivitiesData(data, tokensToUse);
     } catch (error) {
-      console.error('AllActivities - Error loading activities:', error);
+      logger.error('Error loading activities:', error);
       setActivities([]);
       setFilteredActivities([]);
     } finally {
@@ -264,11 +241,8 @@ const AllActivities = ({ stravaTokens }) => {
           const ftpData = await ftpResponse.json();
           currentFtp = ftpData.ftp;
           setFtp(ftpData.ftp);
-        } else {
-          console.warn('AllActivities - FTP calculation failed, continuing without it');
         }
       } catch (ftpError) {
-        console.warn('AllActivities - FTP calculation error:', ftpError);
         // Continue without FTP
       }
       
@@ -281,28 +255,24 @@ const AllActivities = ({ stravaTokens }) => {
       // Sort by date, most recent first
       const sortedData = activitiesWithTSS.sort((a, b) => new Date(b.date) - new Date(a.date));
       
-      console.log('AllActivities - Setting activities:', sortedData.length);
       setActivities(sortedData);
       setFilteredActivities(sortedData); // Set initial filtered activities immediately
     } catch (error) {
-      console.error('AllActivities - Error processing activities:', error);
+      logger.error('Error processing activities:', error);
       throw error;
     }
   };
 
   const filterAndSortActivities = () => {
-    console.log('Filtering activities. Total:', activities.length);
     let filtered = [...activities];
 
     // Apply race filter
     if (showRacesOnly) {
-      console.log('Race filter ON');
       filtered = filtered.filter(activity => raceActivities[activity.id]);
     }
 
     // Apply search filter
     if (searchTerm) {
-      console.log('Search filter:', searchTerm);
       filtered = filtered.filter(activity =>
         activity.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -310,7 +280,6 @@ const AllActivities = ({ stravaTokens }) => {
 
     // Apply type filter
     if (filterType !== 'All') {
-      console.log('Type filter:', filterType);
       filtered = filtered.filter(activity => activity.type === filterType);
     }
 
@@ -327,7 +296,6 @@ const AllActivities = ({ stravaTokens }) => {
       }
     });
 
-    console.log('Filtered activities:', filtered.length);
     setFilteredActivities(filtered);
   };
 
@@ -366,7 +334,7 @@ const AllActivities = ({ stravaTokens }) => {
       case 'Workout':
         return <div className="text-red-600 text-xl">💪</div>;
       default:
-        return <Activity className="w-5 h-5 text-gray-600" />;
+        return <Activity className="w-5 h-5 text-gray-600 dark:text-gray-400" />;
     }
   };
 
@@ -395,7 +363,7 @@ const AllActivities = ({ stravaTokens }) => {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading all activities...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading all activities...</p>
         </div>
       </div>
     );
@@ -405,9 +373,9 @@ const AllActivities = ({ stravaTokens }) => {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <Activity className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Connect Strava to View Activities</h3>
-          <p className="text-gray-600 mb-4">You need to connect your Strava account to see your activities here.</p>
+          <Activity className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Connect Strava to View Activities</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">You need to connect your Strava account to see your activities here.</p>
           <Button onClick={() => window.location.href = '/settings'}>
             Go to Settings
           </Button>
@@ -420,40 +388,40 @@ const AllActivities = ({ stravaTokens }) => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">All Activities</h1>
-        <p className="text-gray-600 mt-1">Complete history of your workouts this year</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">All Activities</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Complete history of your workouts this year</p>
       </div>
 
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-            <p className="text-xs text-gray-500 mt-1">Total Activities</p>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.total}</div>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Total Activities</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {Math.round(stats.totalDistance / 1000)} km
             </div>
-            <p className="text-xs text-gray-500 mt-1">Total Distance</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Total Distance</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {Math.round(stats.totalTime / 3600)}h
             </div>
-            <p className="text-xs text-gray-500 mt-1">Total Time</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Total Time</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-900">
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {Math.round(stats.totalElevation)} m
             </div>
-            <p className="text-xs text-gray-500 mt-1">Total Elevation</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Total Elevation</p>
           </CardContent>
         </Card>
       </div>
@@ -466,24 +434,24 @@ const AllActivities = ({ stravaTokens }) => {
               {/* Search */}
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
                   <input
                     type="text"
                     placeholder="Search activities..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
 
               {/* Type Filter */}
               <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-gray-500" />
+                <Filter className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {getActivityTypes().map(type => (
                     <option key={type} value={type}>{type}</option>
@@ -493,11 +461,11 @@ const AllActivities = ({ stravaTokens }) => {
 
               {/* Sort */}
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-gray-500" />
+                <TrendingUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="date">Date (Newest)</option>
                   <option value="distance">Distance</option>
@@ -527,7 +495,7 @@ const AllActivities = ({ stravaTokens }) => {
                 )}
               </button>
               {showRacesOnly && (
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   Showing {filteredActivities.length} race{filteredActivities.length !== 1 ? 's' : ''}
                 </span>
               )}
@@ -566,7 +534,7 @@ const AllActivities = ({ stravaTokens }) => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-900 truncate">{activity.name}</h4>
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate">{activity.name}</h4>
                         {isRace && (
                           <>
                             <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded">
@@ -581,36 +549,36 @@ const AllActivities = ({ stravaTokens }) => {
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-1">
-                        <span className="text-sm text-gray-500 flex items-center gap-1">
+                        <span className="text-sm text-gray-500 dark:text-gray-500 flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {formatDate(activity.date)}
                         </span>
-                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded">
                           {activity.type}
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-6 text-sm text-gray-600">
+                    <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
                       <div className="text-right">
                         <div className="font-medium">{formatDuration(activity.duration)}</div>
-                        <div className="text-xs text-gray-500">Duration</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-500">Duration</div>
                       </div>
                       <div className="text-right">
                         <div className="font-medium">{formatDistance(activity.distance)}</div>
-                        <div className="text-xs text-gray-500">Distance</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-500">Distance</div>
                       </div>
                       {activity.elevation > 0 && (
                         <div className="text-right">
                           <div className="font-medium">{Math.round(activity.elevation)}m</div>
-                          <div className="text-xs text-gray-500">Elevation</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-500">Elevation</div>
                         </div>
                       )}
                       {activity.tss > 0 && (
                         <div className="text-right">
                           <div className="font-medium text-blue-600">{activity.tss}</div>
-                          <div className="text-xs text-gray-500">TSS</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-500">TSS</div>
                         </div>
                       )}
                     </div>
@@ -619,7 +587,7 @@ const AllActivities = ({ stravaTokens }) => {
                         e.stopPropagation();
                         setEditingActivity(activity);
                       }}
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                       title="Edit activity"
                     >
                       <Edit2 className="w-4 h-4" />
@@ -630,8 +598,8 @@ const AllActivities = ({ stravaTokens }) => {
             })}
 
             {filteredActivities.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                <Activity className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <div className="text-center py-12 text-gray-500 dark:text-gray-500">
+                <Activity className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                 <p>No activities found matching your filters</p>
               </div>
             )}
@@ -666,7 +634,7 @@ const AllActivities = ({ stravaTokens }) => {
                 }
               }
             } catch (error) {
-              console.error('Error reloading race tags:', error);
+              logger.error('Error reloading race tags:', error);
             }
           }}
         />
