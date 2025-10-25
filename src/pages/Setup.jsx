@@ -3,7 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Activity, Calendar, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
+import StravaWelcomeModal from '../components/StravaWelcomeModal';
 import logger from '../lib/logger';
+import { trackFunnel, trackMilestone } from '../lib/analytics';
 
 const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
   const navigate = useNavigate();
@@ -11,6 +13,7 @@ const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [processingOAuth, setProcessingOAuth] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const processedRef = useRef(new Set());
 
   // Handle OAuth callbacks - only run once when URL params change
@@ -42,6 +45,11 @@ const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
           if (data.success && data.user.stravaTokens) {
             await onStravaAuth(data.user.stravaTokens);
             logger.info('Tokens loaded successfully');
+            // Track successful Strava connection
+            trackFunnel.stravaConnected();
+            trackMilestone.stravaConnected();
+            // Show welcome modal
+            setShowWelcomeModal(true);
           }
           // Clear URL params after successful save
           setSearchParams({});
@@ -98,9 +106,12 @@ const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
 
   const connectStrava = async () => {
     try {
+      // Track Strava connect click
+      trackFunnel.stravaConnectClicked();
+      
       const sessionToken = localStorage.getItem('session_token');
       if (!sessionToken) {
-        setError('Session expired. Please login again.');
+        setError('No session token found');
         navigate('/login');
         return;
       }
@@ -268,6 +279,12 @@ const Setup = ({ onStravaAuth, onGoogleAuth, stravaTokens, googleTokens }) => {
           </p>
         </div>
       </div>
+
+      {/* Strava Welcome Modal */}
+      <StravaWelcomeModal 
+        isOpen={showWelcomeModal} 
+        onClose={() => setShowWelcomeModal(false)} 
+      />
     </div>
   );
 };

@@ -5,6 +5,7 @@ import StravaAttribution from './StravaAttribution';
 import GarminAttribution from './GarminAttribution';
 import ZwiftAttribution from './ZwiftAttribution';
 import ThemeSwitcher from './ThemeSwitcher';
+import FeedbackWidget from './FeedbackWidget';
 
 const Layout = ({ children, onLogout, userProfile }) => {
   const location = useLocation();
@@ -133,6 +134,9 @@ const Layout = ({ children, onLogout, userProfile }) => {
           {children}
         </main>
       </div>
+
+      {/* Feedback Widget */}
+      <FeedbackWidget />
     </div>
   );
 };

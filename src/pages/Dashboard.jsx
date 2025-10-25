@@ -11,6 +11,7 @@ import AITrainingCoach from '../components/AITrainingCoach';
 import LogIllnessModal from '../components/LogIllnessModal';
 import PlanAdjustmentNotification from '../components/PlanAdjustmentNotification';
 import DashboardClock from '../components/DashboardClock';
+import WeatherWidget from '../components/WeatherWidget';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard = ({ stravaTokens, onLogout }) => {
@@ -578,6 +579,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
           <p className="text-gray-600 mt-1">Your training overview and progress</p>
         </div>
         <div className="flex items-center gap-4">
+          <WeatherWidget />
           <DashboardClock />
           <Button
             onClick={handleForceRefresh}

@@ -12,6 +12,7 @@ import raceRoutes from './routes/race.js';
 import raceTagRoutes from './routes/raceTags.js';
 import adaptationRoutes from './routes/adaptation.js';
 import userRoutes from './routes/user.js';
+import feedbackRoutes from './routes/feedback.js';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use('/api/race', raceRoutes);
 app.use('/api/race-tags', raceTagRoutes);
 app.use('/api/adaptation', adaptationRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

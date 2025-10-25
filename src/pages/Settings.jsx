@@ -429,6 +429,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
               <li>• <strong>Strava API:</strong> Get your credentials from <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener noreferrer" className="underline">Strava API Settings</a></li>
               <li>• <strong>OpenAI API:</strong> Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline">OpenAI Platform</a></li>
               <li>• <strong>Google Calendar API:</strong> Set up OAuth credentials in <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+              <li>• <strong>OpenWeather API:</strong> Get your free API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="underline">OpenWeather</a> (add as VITE_OPENWEATHER_API_KEY)</li>
             </ul>
           </div>
         </CardContent>

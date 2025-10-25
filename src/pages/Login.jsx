@@ -4,6 +4,7 @@ import { LogIn, UserPlus, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import logger from '../lib/logger';
+import { trackFunnel } from '../lib/analytics';
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -63,6 +64,11 @@ const Login = ({ onLogin }) => {
       }
 
       if (data.success) {
+        // Track signup/login
+        if (isRegister) {
+          trackFunnel.signupStarted();
+        }
+        
         // Save session token
         localStorage.setItem('session_token', data.sessionToken);
         
