@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <!-- RL Logo Icon -->
+  <g transform="translate(50, 80)">
+    <!-- F shape (left part) -->
+    <path d="M 0 0 L 170 0 L 170 50 L 50 50 L 50 100 L 150 100 L 150 150 L 0 150 Z" fill="#3d5a73"/>
+    
+    <!-- R shape (middle) -->
+    <path d="M 100 190 L 250 190 L 250 240 L 150 240 L 150 290 L 200 290 L 280 350 L 200 350 L 150 290 L 100 290 Z" fill="#3d5a73"/>
+    <path d="M 150 190 L 250 190 L 250 240 L 150 240 Z" fill="#3d5a73"/>
+    <line x1="50" y1="120" x2="350" y2="350" stroke="white" stroke-width="30"/>
+    
+    <!-- L shape (right part) -->
+    <path d="M 300 80 L 350 80 L 350 300 L 450 300 L 450 350 L 300 350 Z" fill="#3d5a73"/>
+  </g>
+  
+  <!-- RiderLabs Text -->
+  <text x="250" y="450" font-family="Arial, sans-serif" font-size="60" font-weight="bold" fill="#3d5a73" text-anchor="middle">RiderLabs</text>
+</svg>

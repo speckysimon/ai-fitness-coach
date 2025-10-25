@@ -34,9 +34,7 @@ const Layout = ({ children, onLogout, userProfile }) => {
           {/* Logo */}
           <div className="px-6 py-6 border-b border-border flex-shrink-0">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🔬</span>
-              </div>
+              <img src="/favicon.svg" alt="RiderLabs" className="w-10 h-10" />
               <div>
                 <h1 className="text-xl font-bold text-foreground">RiderLabs</h1>
                 <p className="text-xs text-muted-foreground">Performance Engineered</p>

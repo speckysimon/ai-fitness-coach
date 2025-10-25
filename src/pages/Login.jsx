@@ -113,9 +113,7 @@ const Login = ({ onLogin }) => {
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-3xl">🔬</span>
-            </div>
+            <img src="/favicon.svg" alt="RiderLabs" className="w-12 h-12" />
             <h1 className="text-4xl font-bold text-gray-900">RiderLabs</h1>
           </div>
           <p className="text-gray-600">Where Performance is Engineered</p>

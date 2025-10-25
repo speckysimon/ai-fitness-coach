@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <!-- RL Logo Icon Only -->
+  <g transform="translate(20, 50)">
+    <!-- F shape (left part) -->
+    <path d="M 0 0 L 140 0 L 140 40 L 40 40 L 40 80 L 120 80 L 120 120 L 0 120 Z" fill="#3d5a73"/>
+    
+    <!-- R shape (middle) -->
+    <path d="M 80 150 L 200 150 L 200 190 L 120 190 L 120 230 L 160 230 L 220 280 L 160 280 L 120 230 L 80 230 Z" fill="#3d5a73"/>
+    <path d="M 120 150 L 200 150 L 200 190 L 120 190 Z" fill="#3d5a73"/>
+    <line x1="40" y1="100" x2="280" y2="280" stroke="white" stroke-width="25"/>
+    
+    <!-- L shape (right part) -->
+    <path d="M 240 60 L 280 60 L 280 240 L 360 240 L 360 280 L 240 280 Z" fill="#3d5a73"/>
+  </g>
+</svg>
