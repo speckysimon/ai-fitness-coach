@@ -44,6 +44,7 @@ import {
 import confetti from 'canvas-confetti';
 import { planService } from '../services/planService';
 import { migrationService } from '../services/migrationService';
+import logger from '../lib/logger';
 
 const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const [activities, setActivities] = useState([]);

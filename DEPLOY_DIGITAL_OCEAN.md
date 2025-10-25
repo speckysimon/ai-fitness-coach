@@ -4,7 +4,53 @@ Complete guide to deploy RiderLabs on Digital Ocean with SSL, custom domain, and
 
 ---
 
-## 🚀 Quick Start (15 minutes)
+## ⚡ Quick Deploy (Existing Setup)
+
+**For updating existing production deployment:**
+
+```bash
+# 1. SSH into droplet
+ssh root@riderlabs.io
+
+# 2. Switch to riderlabs user
+su - riderlabs
+
+# 3. Navigate to project
+cd ~/ai-fitness-coach
+
+# 4. Pull latest changes
+git pull origin main
+
+# 5. Install dependencies (including dev dependencies for build)
+npm install
+
+# 6. Build frontend
+npm run build
+
+# 7. Run database migrations (if any)
+node server/migrations/run-migrations.js
+
+# 8. Restart application with updated env vars
+pm2 restart riderlabs --update-env
+
+# 9. Verify deployment
+pm2 logs riderlabs --lines 30
+```
+
+**⚠️ IMPORTANT NOTES:**
+- Use `npm install` (NOT `npm ci --production`) to get dev dependencies needed for build
+- Use `pm2 restart riderlabs --update-env` to reload environment variables from `.env`
+- Environment file location: `/home/riderlabs/ai-fitness-coach/.env`
+- Hard refresh browser (Cmd+Shift+R) after deployment to clear cache
+
+**One-liner for quick updates:**
+```bash
+ssh root@riderlabs.io "su - riderlabs -c 'cd ~/ai-fitness-coach && git pull && npm install && npm run build && node server/migrations/run-migrations.js && pm2 restart riderlabs --update-env && pm2 logs riderlabs --lines 20'"
+```
+
+---
+
+## 🚀 Quick Start (15 minutes - First Time Setup)
 
 ### Prerequisites
 - Digital Ocean account
