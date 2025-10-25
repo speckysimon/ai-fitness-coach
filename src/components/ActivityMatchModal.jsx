@@ -319,7 +319,22 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
                     <div className="flex items-start gap-3 mb-3">
                       <Brain className="w-5 h-5 text-purple-600 mt-0.5" />
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 mb-2">AI Coach Analysis</h4>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-semibold text-gray-900">AI Coach Analysis</h4>
+                          {aiAnalysis.workoutQuality && (
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              aiAnalysis.workoutQuality === 'excellent' ? 'bg-green-100 text-green-800 border border-green-300' :
+                              aiAnalysis.workoutQuality === 'good' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                              aiAnalysis.workoutQuality === 'fair' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                              'bg-red-100 text-red-800 border border-red-300'
+                            }`}>
+                              {aiAnalysis.workoutQuality === 'excellent' && '🌟 Excellent Workout'}
+                              {aiAnalysis.workoutQuality === 'good' && '💪 Good Workout'}
+                              {aiAnalysis.workoutQuality === 'fair' && '👍 Fair Workout'}
+                              {aiAnalysis.workoutQuality === 'poor' && '⚠️ Needs Attention'}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{aiAnalysis.analysis}</p>
                       </div>
                     </div>

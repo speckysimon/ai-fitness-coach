@@ -701,25 +701,42 @@ ACTUAL ACTIVITY:
 - Distance: ${(actualActivity.distance / 1000).toFixed(1)} km
 ${actualActivity.avgPower ? `- Average Power: ${Math.round(actualActivity.avgPower)}W` : ''}
 ${actualActivity.normalizedPower ? `- Normalized Power: ${Math.round(actualActivity.normalizedPower)}W` : ''}
+${actualActivity.maxPower ? `- Max Power: ${Math.round(actualActivity.maxPower)}W` : ''}
 ${actualActivity.avgHeartRate ? `- Average HR: ${Math.round(actualActivity.avgHeartRate)} bpm` : ''}
+${actualActivity.maxHeartRate ? `- Max HR: ${Math.round(actualActivity.maxHeartRate)} bpm` : ''}
 ${actualActivity.tss ? `- TSS: ${Math.round(actualActivity.tss)}` : ''}
+${actualActivity.elevation ? `- Elevation: ${Math.round(actualActivity.elevation)}m` : ''}
 
 ${athleteComment ? `ATHLETE'S FEEDBACK:\n"${athleteComment}"\n` : ''}
 
-Provide a brief, actionable analysis (2-3 sentences) covering:
-1. How well the actual workout matched the planned session
-2. Key observations about performance (intensity, duration, execution)
-3. Whether this indicates good adaptation or if adjustments are needed
+Provide a comprehensive analysis covering:
+
+1. WORKOUT QUALITY ASSESSMENT (2-3 sentences):
+   - Evaluate the overall quality of the workout based on power/HR numbers
+   - Highlight strong points (e.g., "You hit excellent power numbers", "Strong sustained effort", "Good max power output")
+   - Comment on workout execution and intensity distribution
+
+2. PLAN ALIGNMENT (1-2 sentences):
+   - How well the actual workout matched the planned session
+   - If there was deviation, explain what type of training was actually performed (e.g., "Despite the deviation, this was a strong workout targeted more at threshold power rather than the planned endurance ride")
+
+3. ADAPTATION & RECOMMENDATIONS (1 sentence):
+   - Whether this indicates good adaptation or if adjustments are needed
+   - Any specific recommendations for future sessions
+
+Be encouraging and specific. Use actual numbers when available. If the workout was good but different from plan, acknowledge both the quality AND the deviation.
 
 Also determine:
 - deviationLevel: "low" (good match), "medium" (some deviation), or "high" (significant deviation)
 - suggestPlanUpdate: true if the deviation suggests the plan should be adjusted, false otherwise
+- workoutQuality: "excellent" (outstanding performance), "good" (solid workout), "fair" (acceptable), or "poor" (concerning performance)
 
 Return ONLY a JSON object with this structure:
 {
-  "analysis": "Your 2-3 sentence analysis here",
+  "analysis": "Your comprehensive 4-6 sentence analysis here",
   "deviationLevel": "low|medium|high",
-  "suggestPlanUpdate": true|false
+  "suggestPlanUpdate": true|false,
+  "workoutQuality": "excellent|good|fair|poor"
 }`;
 
     try {
@@ -736,7 +753,7 @@ Return ONLY a JSON object with this structure:
           },
         ],
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 800,
       });
 
       const responseText = completion.choices[0].message.content.trim();
@@ -753,7 +770,8 @@ Return ONLY a JSON object with this structure:
         analysis = {
           analysis: responseText,
           deviationLevel: 'medium',
-          suggestPlanUpdate: false
+          suggestPlanUpdate: false,
+          workoutQuality: 'good'
         };
       }
 
