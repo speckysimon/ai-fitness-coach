@@ -126,7 +126,7 @@ class StravaService {
         headers: { Authorization: `Bearer ${accessToken}` },
         params: {
           page: params.page || 1,
-          per_page: params.per_page || 30,
+          per_page: params.per_page || 200, // Default to 200 to fetch more activities
           before: params.before,
           after: params.after,
         },

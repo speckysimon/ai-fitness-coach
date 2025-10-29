@@ -91,7 +91,7 @@ router.get('/callback', async (req, res) => {
 
 // Get athlete activities
 router.get('/activities', async (req, res) => {
-  const { access_token, before, after, page = 1, per_page = 30, user_id } = req.query;
+  const { access_token, before, after, page = 1, per_page = 200, user_id } = req.query;
   
   if (!access_token) {
     return res.status(401).json({ error: 'Access token required' });
