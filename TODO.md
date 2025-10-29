@@ -146,6 +146,7 @@
 
 ### Critical
 - Training plan generation not working (OpenAI API issue suspected)
+- Manual activity edit not saving (Oct 29, 2025)
 
 ### Minor
 - None currently identified
@@ -165,6 +166,6 @@
 
 ---
 
-**Last Updated:** October 24, 2025, 11:55pm  
+**Last Updated:** October 29, 2025, 7:17pm  
 **Status:** Production Live 🚀  
-**Next Session:** Fix training plan generation + comprehensive testing
+**Next Session:** Fix training plan generation + manual activity edit + comprehensive testing
