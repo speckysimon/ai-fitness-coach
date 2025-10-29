@@ -110,9 +110,25 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       // No user ID, fall back to localStorage
       const savedPlan = localStorage.getItem('training_plan');
       if (savedPlan) {
-        setPlan(JSON.parse(savedPlan));
+        const parsedPlan = JSON.parse(savedPlan);
+        setPlan(parsedPlan);
         setPlanLoadedFromStorage(true);
         setIsFormExpanded(false);
+        
+        // Restore form data from plan goals
+        if (parsedPlan.goals) {
+          setFormData({
+            eventName: parsedPlan.goals.eventName || '',
+            eventDate: parsedPlan.goals.eventDate || '',
+            startDate: parsedPlan.goals.startDate || new Date().toISOString().split('T')[0],
+            eventType: parsedPlan.goals.eventType || 'Endurance',
+            priority: parsedPlan.goals.priority || 'High Priority',
+            daysPerWeek: parsedPlan.goals.daysPerWeek || 5,
+            maxHoursPerWeek: parsedPlan.goals.maxHoursPerWeek || 10,
+            preference: parsedPlan.goals.preference || 'Both',
+            aiContext: parsedPlan.goals.aiContext || '',
+          });
+        }
       }
       return;
     }
@@ -124,6 +140,21 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         setPlan(result.plan);
         setPlanLoadedFromStorage(true);
         setIsFormExpanded(false);
+        
+        // Restore form data from plan goals
+        if (result.plan.goals) {
+          setFormData({
+            eventName: result.plan.goals.eventName || '',
+            eventDate: result.plan.goals.eventDate || '',
+            startDate: result.plan.goals.startDate || new Date().toISOString().split('T')[0],
+            eventType: result.plan.goals.eventType || 'Endurance',
+            priority: result.plan.goals.priority || 'High Priority',
+            daysPerWeek: result.plan.goals.daysPerWeek || 5,
+            maxHoursPerWeek: result.plan.goals.maxHoursPerWeek || 10,
+            preference: result.plan.goals.preference || 'Both',
+            aiContext: result.plan.goals.aiContext || '',
+          });
+        }
         
         if (result.planId) {
           setCurrentPlanId(result.planId);
@@ -711,11 +742,31 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 
       const planData = await response.json();
       
+      // Validate that AI returned all weeks
+      if (!planData.weeks || planData.weeks.length !== duration) {
+        logger.error(`AI returned ${planData.weeks?.length || 0} weeks but expected ${duration} weeks`);
+        alert(`Warning: The AI generated ${planData.weeks?.length || 0} weeks instead of ${duration} weeks. Please try regenerating the plan.`);
+      }
+      
       // Add dates to all sessions
       const planWithDates = addDatesToSessions(planData, formData.startDate);
       
       // Add event type to plan for rider type tracking
       planWithDates.eventType = formData.eventType;
+      
+      // Store original goals in the plan for future regeneration
+      planWithDates.goals = {
+        eventName: formData.eventName,
+        eventDate: formData.eventDate,
+        startDate: formData.startDate,
+        eventType: formData.eventType,
+        priority: formData.priority,
+        daysPerWeek: parseInt(formData.daysPerWeek),
+        maxHoursPerWeek: parseInt(formData.maxHoursPerWeek),
+        preference: formData.preference,
+        aiContext: formData.aiContext,
+        duration: duration
+      };
       
       // Add coach note if race history exists
       if (raceHistory.length > 0) {

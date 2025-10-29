@@ -36,7 +36,7 @@ class AIPlannerService {
 
     try {
       const completion = await this.getOpenAI().chat.completions.create({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4-turbo',
         messages: [
           {
             role: 'system',
@@ -204,8 +204,9 @@ CRITICAL REQUIREMENTS FOR ${goals.eventType.toUpperCase()} PREPARATION:
    - Workouts should simulate race demands and conditions
 
 2. PERIODIZATION:
-   - Plan must be EXACTLY ${planDuration} weeks long - generate ${planDuration} week objects
-   - Week numbers must be 1 through ${planDuration} (inclusive)
+   - **CRITICAL**: Plan must be EXACTLY ${planDuration} weeks long - you MUST generate ALL ${planDuration} week objects
+   - Week numbers must be 1 through ${planDuration} (inclusive) - DO NOT SKIP ANY WEEKS
+   - If you generate fewer than ${planDuration} weeks, the plan will be incomplete and broken
    - Final week (Week ${planDuration}) MUST be a taper week with 40-50% reduced volume
    - Taper week maintains intensity but significantly reduces duration
    - Peak training occurs 2 weeks before event
@@ -488,14 +489,17 @@ Return JSON:
     const missedCount = Object.values(completedSessions || {}).filter(s => s?.missed).length;
     const completionRate = totalSessions > 0 ? (completedCount / totalSessions * 100).toFixed(1) : 0;
 
-    // Get recent activities for context
+    // Get recent activities for context (including manual activities)
     const recentActivities = activities.slice(0, 5).map(a => ({
       date: a.date,
       name: a.name,
-      type: a.type,
+      type: a.sport_type || a.type, // Use sport_type for manual activities
       duration: Math.round(a.duration / 60),
       distance: Math.round(a.distance / 1000),
       tss: a.tss || 0,
+      manual: a.manual || false, // Flag manual activities
+      intensityLevel: a.intensityLevel || null,
+      perceivedExertion: a.perceivedExertion || null
     }));
 
     // Extract original plan settings
@@ -529,7 +533,18 @@ CURRENT PLAN STATE:
 - Missed: ${missedCount}
 
 RECENT ACTIVITIES (last 5):
-${recentActivities.map(a => `- ${a.date}: ${a.name} (${a.duration}min, ${a.distance}km, ${a.tss} TSS)`).join('\n')}
+${recentActivities.map(a => {
+  let activityStr = `- ${a.date}: ${a.name} (${a.duration}min, ${a.distance}km, ${a.tss} TSS)`;
+  if (a.manual) {
+    activityStr += ` [MANUAL: ${a.type}`;
+    if (a.intensityLevel) activityStr += `, ${a.intensityLevel} intensity`;
+    if (a.perceivedExertion) activityStr += `, RPE ${a.perceivedExertion}/10`;
+    activityStr += `]`;
+  }
+  return activityStr;
+}).join('\n')}
+
+NOTE: Activities marked [MANUAL] were logged manually by the athlete (e.g., gym sessions, cross-training) and include additional context like intensity level and perceived exertion (RPE). These activities are just as important as Strava activities when adjusting the training plan.
 
 ATHLETE'S REQUEST:
 "${adjustmentRequest}"
@@ -643,7 +658,7 @@ Then you MUST:
 
     try {
       const completion = await this.getOpenAI().chat.completions.create({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4-turbo',
         messages: [
           {
             role: 'system',
@@ -741,7 +756,7 @@ Return ONLY a JSON object with this structure:
 
     try {
       const completion = await this.getOpenAI().chat.completions.create({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4-turbo',
         messages: [
           {
             role: 'system',

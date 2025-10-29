@@ -5,6 +5,43 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 const ChangelogPage = () => {
   const versions = [
     {
+      version: '2.6.0',
+      date: '2025-10-28',
+      type: 'major',
+      changes: {
+        features: [
+          '🏋️ Manual Activity System - Log gym, yoga, strength training, and cross-training activities',
+          '14 sport categories (Cycling, Running, Swimming, Strength, Yoga, etc.)',
+          '6 intensity levels with automatic TSS calculation',
+          'RPE (Rate of Perceived Exertion) tracking on 1-10 scale',
+          'Optional metrics: HR, calories, elevation, location, indoor/outdoor flag',
+          'Beautiful modal UI with real-time TSS estimation',
+          'Manual activities integrate with AI plan adjustments',
+          'Edit and delete functionality for manual activities',
+          '🎨 Visual indicators - Purple/pink gradient badges for manual activities',
+          '✏️ Edit button (pencil icon) for manual activities',
+          '🗑️ Delete button with confirmation for manual activities',
+          '🏆 Trophy icon for race tagging (Strava activities)',
+        ],
+        improvements: [
+          'Plan regeneration now preserves original event details in form',
+          'Form data auto-fills when regenerating plans',
+          'Goals stored with plan for future reference',
+          'AI model upgraded from gpt-4-turbo-preview to gpt-4-turbo (faster)',
+          'Strengthened AI prompt to ensure all weeks are generated',
+          'Frontend validation alerts if AI returns incomplete plan',
+          'Better icon separation: Trophy for races, Pencil for editing',
+        ],
+        fixes: [
+          '🐛 CRITICAL: Fixed missing weeks in AI-generated training plans',
+          '🐛 Fixed form data disappearing after plan generation',
+          '🐛 Fixed goals not being saved with training plans',
+          'Added validation to detect incomplete AI responses',
+          'Plan goals now persist through localStorage and backend',
+        ],
+      },
+    },
+    {
       version: '2.5.0',
       date: '2025-10-23',
       type: 'major',

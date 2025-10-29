@@ -476,7 +476,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm text-gray-600">
-            <p><strong>RiderLabs</strong> v2.5.0</p>
+            <p><strong>RiderLabs</strong> v2.6.0</p>
             <p>Data-driven cycling performance platform powered by AI. Integrates with Strava and Google Calendar.</p>
             <p className="pt-4 border-t border-gray-200">
               Built with React, Express, OpenAI, and modern web technologies.

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Filter, Search, Calendar, TrendingUp, Home, Mountain, Trophy, Edit2 } from 'lucide-react';
+import { Activity, Filter, Search, Calendar, TrendingUp, Home, Mountain, Trophy, Edit2, Plus, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import ActivityDetailModal from '../components/ActivityDetailModal';
 import EditActivityModal from '../components/EditActivityModal';
+import ManualActivityModal from '../components/ManualActivityModal';
+import { fetchManualActivities, mergeActivities, isManualActivity } from '../lib/manualActivityUtils';
 import { formatDuration, formatDistance, formatDate } from '../lib/utils';
 import { getRaceTypeLabel } from '../lib/raceUtils';
 import logger from '../lib/logger';
@@ -13,6 +15,7 @@ const AllActivities = ({ stravaTokens }) => {
   const [filteredActivities, setFilteredActivities] = useState([]);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [editingActivity, setEditingActivity] = useState(null);
+  const [editingManualActivity, setEditingManualActivity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All');
@@ -21,6 +24,8 @@ const AllActivities = ({ stravaTokens }) => {
   const [ftp, setFtp] = useState(null);
   const [raceActivities, setRaceActivities] = useState({});
   const [currentTokens, setCurrentTokens] = useState(stravaTokens);
+  const [showManualActivityModal, setShowManualActivityModal] = useState(false);
+  const [manualActivities, setManualActivities] = useState([]);
 
   // Calculate TSS for a single activity
   const calculateTSS = (activity, ftp) => {
@@ -246,17 +251,39 @@ const AllActivities = ({ stravaTokens }) => {
         // Continue without FTP
       }
       
-      // Add TSS to each activity
+      // Add TSS to each Strava activity
       const activitiesWithTSS = data.map(activity => ({
         ...activity,
         tss: calculateTSS(activity, currentFtp)
       }));
       
-      // Sort by date, most recent first
-      const sortedData = activitiesWithTSS.sort((a, b) => new Date(b.date) - new Date(a.date));
-      
-      setActivities(sortedData);
-      setFilteredActivities(sortedData); // Set initial filtered activities immediately
+      // Load manual activities and merge
+      try {
+        const currentUser = localStorage.getItem('current_user');
+        const userId = currentUser ? JSON.parse(currentUser).id || 1 : 1;
+        
+        const manual = await fetchManualActivities({ userId, limit: 200 });
+        setManualActivities(manual);
+        
+        // Merge Strava and manual activities
+        const allActivities = mergeActivities(activitiesWithTSS, manual);
+        
+        // Sort by date, most recent first
+        const sortedData = allActivities.sort((a, b) => {
+          const dateA = new Date(a.start_date_local || a.start_date || a.date);
+          const dateB = new Date(b.start_date_local || b.start_date || b.date);
+          return dateB - dateA;
+        });
+        
+        setActivities(sortedData);
+        setFilteredActivities(sortedData);
+      } catch (manualError) {
+        logger.error('Error loading manual activities:', manualError);
+        // Fall back to just Strava activities
+        const sortedData = activitiesWithTSS.sort((a, b) => new Date(b.date) - new Date(a.date));
+        setActivities(sortedData);
+        setFilteredActivities(sortedData);
+      }
     } catch (error) {
       logger.error('Error processing activities:', error);
       throw error;
@@ -494,6 +521,16 @@ const AllActivities = ({ stravaTokens }) => {
                   </span>
                 )}
               </button>
+              
+              {/* Add Manual Activity Button */}
+              <button
+                onClick={() => setShowManualActivityModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-700 hover:from-purple-700 hover:to-pink-700 transition-all font-medium"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add Manual Activity</span>
+              </button>
+              
               {showRacesOnly && (
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   Showing {filteredActivities.length} race{filteredActivities.length !== 1 ? 's' : ''}
@@ -535,6 +572,11 @@ const AllActivities = ({ stravaTokens }) => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate">{activity.name}</h4>
+                        {isManualActivity(activity) && (
+                          <span className="px-2 py-0.5 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300 text-xs font-medium rounded flex items-center gap-1">
+                            {activity.icon} Manual
+                          </span>
+                        )}
                         {isRace && (
                           <>
                             <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded">
@@ -582,16 +624,55 @@ const AllActivities = ({ stravaTokens }) => {
                         </div>
                       )}
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingActivity(activity);
-                      }}
-                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                      title="Edit activity"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
+                    {isManualActivity(activity) ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingManualActivity(activity);
+                          }}
+                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                          title="Edit manual activity"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (window.confirm('Delete this manual activity?')) {
+                              try {
+                                const currentUser = localStorage.getItem('current_user');
+                                const userId = currentUser ? JSON.parse(currentUser).id || 1 : 1;
+                                const numericId = String(activity.id).startsWith('manual_') ? activity.id.split('_')[1] : activity.id;
+                                const response = await fetch(`/api/manual-activities/${numericId}?userId=${userId}`, {
+                                  method: 'DELETE'
+                                });
+                                if (response.ok) {
+                                  loadAllActivities();
+                                }
+                              } catch (error) {
+                                logger.error('Error deleting manual activity:', error);
+                              }
+                            }
+                          }}
+                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Delete manual activity"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingActivity(activity);
+                        }}
+                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg transition-colors"
+                        title="Tag as race"
+                      >
+                        <Trophy className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -636,6 +717,31 @@ const AllActivities = ({ stravaTokens }) => {
             } catch (error) {
               logger.error('Error reloading race tags:', error);
             }
+          }}
+        />
+      )}
+
+      {/* Manual Activity Modal - Add New */}
+      <ManualActivityModal
+        isOpen={showManualActivityModal}
+        onClose={() => setShowManualActivityModal(false)}
+        onSave={() => {
+          // Reload all activities after saving
+          loadAllActivities();
+          setShowManualActivityModal(false);
+        }}
+      />
+
+      {/* Manual Activity Modal - Edit Existing */}
+      {editingManualActivity && (
+        <ManualActivityModal
+          isOpen={true}
+          editActivity={editingManualActivity}
+          onClose={() => setEditingManualActivity(null)}
+          onSave={() => {
+            // Reload all activities after saving
+            loadAllActivities();
+            setEditingManualActivity(null);
           }}
         />
       )}
