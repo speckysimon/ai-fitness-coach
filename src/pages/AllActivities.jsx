@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Filter, Search, Calendar, TrendingUp, Home, Mountain, Trophy, Edit2, Plus, Trash2 } from 'lucide-react';
+import { Activity, Filter, Search, Calendar, TrendingUp, Home, Mountain, Trophy, Edit2, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import ActivityDetailModal from '../components/ActivityDetailModal';
@@ -126,7 +126,7 @@ const AllActivities = ({ stravaTokens }) => {
     filterAndSortActivities();
   }, [activities, searchTerm, filterType, sortBy, showRacesOnly, raceActivities]);
 
-  const loadAllActivities = async () => {
+  const loadAllActivities = async (forceRefresh = false) => {
     setLoading(true);
     try {
       // Check cache version - if old cache format, clear it
@@ -138,15 +138,18 @@ const AllActivities = ({ stravaTokens }) => {
       }
 
       // Try to load from cache first (much faster and avoids API rate limits)
-      const cachedActivities = localStorage.getItem('cached_activities');
-      const cacheTimestamp = localStorage.getItem('cache_timestamp');
-      const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
-      const cacheValid = cacheAge < 30 * 60 * 1000; // 30 minutes
+      // Skip cache if forceRefresh is true
+      if (!forceRefresh) {
+        const cachedActivities = localStorage.getItem('cached_activities');
+        const cacheTimestamp = localStorage.getItem('cache_timestamp');
+        const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
+        const cacheValid = cacheAge < 30 * 60 * 1000; // 30 minutes
 
-      if (cachedActivities && cacheValid) {
-        const activities = JSON.parse(cachedActivities);
-        await processActivitiesData(activities, currentTokens);
-        return;
+        if (cachedActivities && cacheValid) {
+          const activities = JSON.parse(cachedActivities);
+          await processActivitiesData(activities, currentTokens);
+          return;
+        }
       }
 
       let tokensToUse = currentTokens;
@@ -502,13 +505,13 @@ const AllActivities = ({ stravaTokens }) => {
             </div>
 
             {/* Race Filter Button */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setShowRacesOnly(!showRacesOnly)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
                   showRacesOnly
                     ? 'bg-yellow-500 text-white border-yellow-600 hover:bg-yellow-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-yellow-500 hover:bg-yellow-50'
+                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
                 }`}
               >
                 <Trophy className="w-5 h-5" />
@@ -520,6 +523,17 @@ const AllActivities = ({ stravaTokens }) => {
                     {Object.keys(raceActivities).length}
                   </span>
                 )}
+              </button>
+              
+              {/* Refresh Activities Button */}
+              <button
+                onClick={() => loadAllActivities(true)}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh activities from Strava"
+              >
+                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
               </button>
               
               {/* Add Manual Activity Button */}
