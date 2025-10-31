@@ -14,6 +14,12 @@ import adaptationRoutes from './routes/adaptation.js';
 import userRoutes from './routes/user.js';
 import feedbackRoutes from './routes/feedback.js';
 import manualActivityRoutes from './routes/manualActivities.js';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const adminRoutes = require('./routes/admin.cjs');
+const modelPricingCron = require('./services/modelPricingCron.cjs');
+const apiKeyLoader = require('./services/apiKeyLoader.cjs');
 
 dotenv.config();
 
@@ -41,6 +47,10 @@ app.use('/api/adaptation', adaptationRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/manual-activities', manualActivityRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -60,10 +70,16 @@ if (isProduction) {
   });
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 AI Fitness Coach server running on port ${PORT}`);
   console.log(`📊 Environment: ${isProduction ? 'production' : 'development'}`);
   if (isProduction) {
     console.log(`🌐 Serving static files from dist/`);
   }
+  
+  // Load API keys from database
+  await apiKeyLoader.loadApiKeys();
+  
+  // Initialize model pricing cron job
+  modelPricingCron.initializeModelPricingCron();
 });

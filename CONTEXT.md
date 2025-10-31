@@ -1,7 +1,7 @@
 # RiderLabs - Project Context
 
-**Last Updated:** October 29, 2025  
-**Version:** 2.6.0  
+**Last Updated:** October 30, 2025  
+**Version:** 2.7.0  
 **Status:** Alpha Testing (Production Live)
 
 ---
@@ -74,7 +74,7 @@ We envision a future where every cyclist—from weekend warriors to amateur race
 
 ---
 
-## 📊 Current Status (v2.6.0)
+## 📊 Current Status (v2.7.0)
 
 ### **Production Features:**
 ✅ Strava integration with OAuth  
@@ -96,6 +96,14 @@ We envision a future where every cyclist—from weekend warriors to amateur race
 ✅ Database backend (SQLite)  
 ✅ Dark mode  
 ✅ Mobile workout view  
+✅ **Admin Panel System** (NEW v2.7.0)  
+  - User management (view, search, delete)  
+  - Admin user management (create, manage roles)  
+  - AI configuration (model settings, temperature, tokens)  
+  - Global settings (app-wide toggles)  
+  - Statistics dashboard  
+  - Activity audit trail  
+  - JWT authentication with bcrypt security  
 
 ### **Known Issues:**
 🔴 Training plan generation not working (OpenAI API suspected)  
@@ -316,6 +324,9 @@ The AI should get smarter with every race, every session, every user.
 - `ADAPTIVE_PLAN_FEATURES.md` - Plan adjustment docs
 - `POST_RACE_IMPLEMENTATION_GUIDE.md` - Race analysis docs
 - `WEATHER_WIDGET_IMPLEMENTATION.md` - Weather feature docs
+- `ADMIN_QUICK_START.md` - Admin panel setup (5 steps)
+- `ADMIN_PANEL_SETUP_COMPLETE.md` - Complete admin guide
+- `ADMIN_SETUP_SUCCESS.md` - Admin implementation summary
 
 ---
 

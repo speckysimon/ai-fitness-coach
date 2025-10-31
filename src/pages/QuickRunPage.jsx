@@ -59,7 +59,7 @@ const QuickRunPage = () => {
     {
       step: 1,
       title: 'Navigate to project directory',
-      command: 'cd /Users/simonosx/CascadeProjects/ai-fitness-coach',
+      command: '',
     },
     {
       step: 2,

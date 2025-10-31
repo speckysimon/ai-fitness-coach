@@ -1,19 +1,105 @@
 import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from './analyticsService.js';
 import { addDays, format } from 'date-fns';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const apiKeyLoader = require('./apiKeyLoader.cjs');
+const aiConfigService = require('./aiConfigService.cjs');
 
 class AIPlannerService {
   constructor() {
     this.openai = null;
+    this.gemini = null;
+    this.activeProvider = 'openai'; // Default to OpenAI
   }
 
   getOpenAI() {
     if (!this.openai) {
-      this.openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
+      // Try to get key from database first, fallback to .env
+      const apiKey = apiKeyLoader.getApiKey('openai') || process.env.OPENAI_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error('OpenAI API key not found. Please add it in the admin panel or .env file.');
+      }
+      
+      this.openai = new OpenAI({ apiKey });
     }
     return this.openai;
+  }
+
+  getGemini() {
+    if (!this.gemini) {
+      // Try to get key from database first, fallback to .env
+      const apiKey = apiKeyLoader.getApiKey('gemini') || process.env.GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error('Gemini API key not found. Please add it in the admin panel or .env file.');
+      }
+      
+      this.gemini = new GoogleGenerativeAI(apiKey);
+    }
+    return this.gemini;
+  }
+
+  async getActiveProvider() {
+    try {
+      // Get active AI config from database
+      const config = await aiConfigService.getConfig('training_plan_generation');
+      return config.model_provider || 'openai';
+    } catch (error) {
+      console.log('Could not load AI config, defaulting to OpenAI');
+      return 'openai';
+    }
+  }
+
+  async callAI(prompt, systemPrompt, options = {}) {
+    const provider = await this.getActiveProvider();
+    
+    if (provider === 'gemini') {
+      return await this.callGemini(prompt, systemPrompt, options);
+    } else {
+      return await this.callOpenAI(prompt, systemPrompt, options);
+    }
+  }
+
+  async callOpenAI(prompt, systemPrompt, options = {}) {
+    const completion = await this.getOpenAI().chat.completions.create({
+      model: options.model || 'gpt-4-turbo',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt },
+      ],
+      temperature: options.temperature || 0.7,
+      max_tokens: options.maxTokens,
+      response_format: options.jsonMode ? { type: 'json_object' } : undefined,
+    });
+
+    return completion.choices[0].message.content;
+  }
+
+  async callGemini(prompt, systemPrompt, options = {}) {
+    const genAI = this.getGemini();
+    const model = genAI.getGenerativeModel({ 
+      model: options.model || 'gemini-1.5-pro',
+      generationConfig: {
+        temperature: options.temperature || 0.7,
+        maxOutputTokens: options.maxTokens,
+      },
+    });
+
+    // Combine system prompt and user prompt for Gemini
+    const fullPrompt = `${systemPrompt}\n\n${prompt}`;
+    
+    // Add JSON instruction if needed
+    const finalPrompt = options.jsonMode 
+      ? `${fullPrompt}\n\nIMPORTANT: You MUST respond with valid JSON only. No markdown, no explanations, just pure JSON.`
+      : fullPrompt;
+
+    const result = await model.generateContent(finalPrompt);
+    const response = await result.response;
+    return response.text();
   }
 
   async generateTrainingPlan({ activities, goals, constraints, currentMetrics, userProfile, raceHistory, trainingPriorities }) {
@@ -35,23 +121,10 @@ class AIPlannerService {
     });
 
     try {
-      const completion = await this.getOpenAI().chat.completions.create({
-        model: 'gpt-4-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert cycling and running coach with deep knowledge of training periodization, physiology, and adaptive planning. You create structured training plans based on athlete data, goals, and constraints. Always respond with valid JSON.`,
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        response_format: { type: 'json_object' },
-      });
-
-      const planData = JSON.parse(completion.choices[0].message.content);
+      const systemPrompt = `You are an expert cycling and running coach with deep knowledge of training periodization, physiology, and adaptive planning. You create structured training plans based on athlete data, goals, and constraints. Always respond with valid JSON.`;
+      
+      const responseText = await this.callAI(prompt, systemPrompt, { jsonMode: true });
+      const planData = JSON.parse(responseText);
       return this.formatPlan(planData, goals);
     } catch (error) {
       console.error('OpenAI API error:', error.message);
@@ -395,23 +468,9 @@ Return JSON with:
 }`;
 
     try {
-      const completion = await this.getOpenAI().chat.completions.create({
-        model: 'gpt-4-turbo-preview',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert coach analyzing training plan adherence and suggesting adaptations.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        response_format: { type: 'json_object' },
-      });
-
-      return JSON.parse(completion.choices[0].message.content);
+      const systemPrompt = 'You are an expert coach analyzing training plan adherence and suggesting adaptations.';
+      const responseText = await this.callAI(prompt, systemPrompt, { jsonMode: true });
+      return JSON.parse(responseText);
     } catch (error) {
       console.error('OpenAI API error:', error.message);
       return {
@@ -453,23 +512,9 @@ Return JSON:
 }`;
 
     try {
-      const completion = await this.getOpenAI().chat.completions.create({
-        model: 'gpt-4-turbo-preview',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert coach creating specific training sessions.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        response_format: { type: 'json_object' },
-      });
-
-      return JSON.parse(completion.choices[0].message.content);
+      const systemPrompt = 'You are an expert coach creating specific training sessions.';
+      const responseText = await this.callAI(prompt, systemPrompt, { jsonMode: true });
+      return JSON.parse(responseText);
     } catch (error) {
       console.error('OpenAI API error:', error.message);
       return {
@@ -657,23 +702,10 @@ Then you MUST:
 5. DO NOT just mark as modified without changing the day`;
 
     try {
-      const completion = await this.getOpenAI().chat.completions.create({
-        model: 'gpt-4-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert cycling and endurance sports coach with deep knowledge of training adaptation, periodization, and athlete management. You help athletes adjust their training plans intelligently based on real-world circumstances while maintaining training principles.`,
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        response_format: { type: 'json_object' },
-      });
-
-      const adjustment = JSON.parse(completion.choices[0].message.content);
+      const systemPrompt = `You are an expert cycling and endurance sports coach with deep knowledge of training adaptation, periodization, and athlete management. You help athletes adjust their training plans intelligently based on real-world circumstances while maintaining training principles.`;
+      
+      const responseText = await this.callAI(prompt, systemPrompt, { jsonMode: true });
+      const adjustment = JSON.parse(responseText);
       
       // Validate that adjustedPlan has the required structure
       if (!adjustment.adjustedPlan || !adjustment.adjustedPlan.weeks) {
@@ -755,23 +787,11 @@ Return ONLY a JSON object with this structure:
 }`;
 
     try {
-      const completion = await this.getOpenAI().chat.completions.create({
-        model: 'gpt-4-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert cycling coach providing concise, actionable workout analysis. Always respond with valid JSON only.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 800,
+      const systemPrompt = 'You are an expert cycling coach providing concise, actionable workout analysis. Always respond with valid JSON only.';
+      const responseText = await this.callAI(prompt, systemPrompt, { 
+        jsonMode: true,
+        maxTokens: 800 
       });
-
-      const responseText = completion.choices[0].message.content.trim();
       
       // Parse JSON response
       let analysis;

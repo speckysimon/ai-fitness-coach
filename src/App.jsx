@@ -23,6 +23,18 @@ import ChangelogPage from './pages/ChangelogPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Layout from './components/Layout';
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import UserManagement from './pages/admin/UserManagement';
+import AIConfigPage from './pages/admin/AIConfigPage';
+import AIPromptsPage from './pages/admin/AIPromptsPage';
+import APIKeysPage from './pages/admin/APIKeysPage';
+import ServicesPage from './pages/admin/ServicesPage';
+import ActivityLogPage from './pages/admin/ActivityLogPage';
+import GlobalSettings from './pages/admin/GlobalSettings';
+import AdminChangelog from './pages/admin/AdminChangelog';
 
 // Page view tracker component
 function PageViewTracker() {
@@ -40,12 +52,22 @@ function App() {
   const [userProfile, setUserProfile] = useState(null);
   const [stravaTokens, setStravaTokens] = useState(null);
   const [googleTokens, setGoogleTokens] = useState(null);
+  const [adminUser, setAdminUser] = useState(null);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   useEffect(() => {
     // Check for session token and fetch user data from backend
     const sessionToken = localStorage.getItem('session_token');
     if (sessionToken) {
       fetchUserData(sessionToken);
+    }
+
+    // Check for admin authentication
+    const adminToken = localStorage.getItem('admin_token');
+    const adminData = localStorage.getItem('admin_user');
+    if (adminToken && adminData) {
+      setAdminUser(JSON.parse(adminData));
+      setIsAdminAuthenticated(true);
     }
   }, []);
 
@@ -75,6 +97,7 @@ function App() {
           height: data.user.profile?.height,
           weight: data.user.profile?.weight,
           gender: data.user.profile?.gender,
+          avatar_url: data.user.avatar_url,
           createdAt: data.user.createdAt,
         };
         
@@ -218,6 +241,47 @@ function App() {
       <Router>
         <PageViewTracker />
         <Routes>
+        {/* Admin Routes */}
+        <Route
+          path="/admin/login"
+          element={
+            <AdminLogin
+              onLogin={(admin, token) => {
+                setAdminUser(admin);
+                setIsAdminAuthenticated(true);
+              }}
+            />
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            isAdminAuthenticated ? (
+              <AdminLayout
+                admin={adminUser}
+                onLogout={() => {
+                  setAdminUser(null);
+                  setIsAdminAuthenticated(false);
+                }}
+              />
+            ) : (
+              <Navigate to="/admin/login" />
+            )
+          }
+        >
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="admins" element={<AdminUsers />} />
+          <Route path="ai-config" element={<AIConfigPage />} />
+          <Route path="ai-prompts" element={<AIPromptsPage />} />
+          <Route path="api-keys" element={<APIKeysPage />} />
+          <Route path="services" element={<ServicesPage />} />
+          <Route path="activity" element={<ActivityLogPage />} />
+          <Route path="settings" element={<GlobalSettings />} />
+          <Route path="changelog" element={<AdminChangelog />} />
+        </Route>
+
         {/* Landing Page */}
         <Route
           path="/"

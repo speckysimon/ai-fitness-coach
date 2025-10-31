@@ -12,7 +12,9 @@ import LogIllnessModal from '../components/LogIllnessModal';
 import PlanAdjustmentNotification from '../components/PlanAdjustmentNotification';
 import DashboardClock from '../components/DashboardClock';
 import WeatherWidget from '../components/WeatherWidget';
+import NotificationPrompt from '../components/NotificationPrompt';
 import { useNavigate } from 'react-router-dom';
+import { workoutReminderManager } from '../lib/workoutReminderManager';
 
 const Dashboard = ({ stravaTokens, onLogout }) => {
   const navigate = useNavigate();
@@ -511,6 +513,9 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
 
   return (
     <div className="space-y-8">
+      {/* Notification Prompt */}
+      <NotificationPrompt />
+
       {/* Strava Connection Notification */}
       {showStravaNotification && (!stravaTokens || !stravaTokens.access_token) ? (
         <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-300 rounded-lg p-4 shadow-md mb-6">

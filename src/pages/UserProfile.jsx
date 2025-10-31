@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Save, Calendar, Ruler, Weight, Users, Mail, Edit2, Check, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import AvatarUpload from '../components/AvatarUpload';
 
 const UserProfile = ({ userProfile, onProfileUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -13,6 +14,8 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
     gender: '',
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
 
   useEffect(() => {
     if (userProfile) {
@@ -23,6 +26,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
         weight: userProfile.weight || '',
         gender: userProfile.gender || '',
       });
+      setAvatarUrl(userProfile.avatar_url || null);
     }
   }, [userProfile]);
 
@@ -61,6 +65,32 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
       gender: userProfile.gender || '',
     });
     setIsEditing(false);
+  };
+
+  const handleAvatarUpdate = async (newAvatarUrl) => {
+    setAvatarLoading(true);
+    try {
+      setAvatarUrl(newAvatarUrl);
+      
+      // Update user profile with new avatar
+      const updatedProfile = {
+        ...userProfile,
+        avatar_url: newAvatarUrl,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('current_user', JSON.stringify(updatedProfile));
+      localStorage.setItem(`user_profile_${userProfile.email}`, JSON.stringify(updatedProfile));
+      
+      onProfileUpdate(updatedProfile);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error updating avatar:', error);
+    } finally {
+      setAvatarLoading(false);
+    }
   };
 
   const calculateBMI = () => {
@@ -106,11 +136,18 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
 
       {/* Success Message */}
       {saveSuccess && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-          <Check className="w-5 h-5 text-green-600" />
-          <p className="text-green-700 font-medium">Profile updated successfully!</p>
+        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2">
+          <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+          <p className="text-green-700 dark:text-green-300 font-medium">Profile updated successfully!</p>
         </div>
       )}
+
+      {/* Avatar Upload */}
+      <AvatarUpload
+        currentAvatar={avatarUrl}
+        onAvatarUpdate={handleAvatarUpdate}
+        isLoading={avatarLoading}
+      />
 
       {/* Profile Information */}
       <Card>

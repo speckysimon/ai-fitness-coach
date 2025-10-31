@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/Button';
 import StravaAttribution from '../components/StravaAttribution';
 import CoachAvatarSelector from '../components/CoachAvatarSelector';
+import NotificationSettings from '../components/NotificationSettings';
 import { getUserTimezone, setUserTimezone, getCommonTimezones, getCurrentDateTime } from '../lib/timezone';
 import { preferencesService } from '../services/preferencesService';
 
@@ -364,6 +365,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
 
       {/* Coach Avatar Selector */}
       <CoachAvatarSelector />
+
+      {/* Notification Settings */}
+      <NotificationSettings />
 
       {/* Timezone Preferences */}
       <Card>

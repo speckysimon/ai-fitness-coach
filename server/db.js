@@ -222,6 +222,15 @@ export const userDb = {
     if (user.password !== hashedPassword) return null;
     
     return user;
+  },
+
+  // Update user avatar
+  updateAvatar: (userId, avatarUrl) => {
+    const stmt = db.prepare(`
+      UPDATE users SET avatar_url = ?, updated_at = ? WHERE id = ?
+    `);
+    
+    return stmt.run(avatarUrl, new Date().toISOString(), userId);
   }
 };
 

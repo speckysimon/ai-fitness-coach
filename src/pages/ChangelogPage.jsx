@@ -5,6 +5,66 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 const ChangelogPage = () => {
   const versions = [
     {
+      version: '2.7.1',
+      date: '2025-10-30',
+      type: 'minor',
+      changes: {
+        features: [
+          '📝 AI Prompts Admin Page - View all AI prompts used in the application',
+          '🔑 OAuth Credentials Support - Full support for Strava and Google OAuth in API Keys',
+          '🤖 Gemini 2.0 & 2.5 Models - Added latest Gemini models (2.5 Pro, 2.5 Flash, 2.0 Flash)',
+        ],
+        improvements: [
+          'API Keys modal now supports OAuth (Client ID, Client Secret, Redirect URI)',
+          'Dynamic form fields based on provider type',
+          'All credentials centralized in Admin Panel (no scattered .env)',
+          'Sidebar changelog now shows current version number',
+          'Better visual hierarchy for version display',
+        ],
+        fixes: [
+          '🐛 Fixed All Activities page only loading 13 activities (added pagination)',
+          '🐛 Fixed OAuth migration script ES module compatibility',
+        ],
+      },
+    },
+    {
+      version: '2.7.0',
+      date: '2025-10-30',
+      type: 'major',
+      changes: {
+        features: [
+          '🔐 Admin Panel System - Complete administrative dashboard',
+          '7 admin pages: Login, Dashboard, User Management, Admin Users, AI Config, Global Settings',
+          '👥 User Management - View, search, and manage registered users',
+          '🛡️ Admin User Management - Create and manage admin accounts with super admin roles',
+          '🤖 AI Configuration - Adjust AI model settings (temperature, max tokens, toggle features)',
+          '⚙️ Global Settings - App-wide settings management (notifications, system, limits)',
+          '📊 Admin Dashboard - Statistics overview (total users, plans, recent activity)',
+          '🔒 JWT Authentication - Secure 24-hour admin tokens',
+          '🔑 Password Security - bcrypt hashing with 10 rounds',
+          '🗃️ Database Tables - 5 new tables for admin system',
+          '📝 Activity Audit Trail - Track all admin actions with IP addresses',
+          '🔐 API Key Encryption - AES-256 encryption for stored API keys',
+        ],
+        improvements: [
+          'Separate authentication system for admin vs regular users',
+          'Super admin role for sensitive operations',
+          'Cannot delete own admin account (safety feature)',
+          'Real-time statistics on admin dashboard',
+          'Search and pagination for user management',
+          'Type-aware input fields for settings (boolean, number, text)',
+        ],
+        technical: [
+          'CommonJS (.cjs) files for admin backend compatibility',
+          'Separate sqlite3 database connections for admin operations',
+          'Admin routes registered at /api/admin/*',
+          'Admin frontend routes at /admin/*',
+          'Migration script: 007_add_admin_system.cjs',
+          'First admin user creation script included',
+        ],
+      },
+    },
+    {
       version: '2.6.0',
       date: '2025-10-28',
       type: 'major',

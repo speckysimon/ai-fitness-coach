@@ -131,10 +131,10 @@ const AllActivities = ({ stravaTokens }) => {
     try {
       // Check cache version - if old cache format, clear it
       const cacheVersion = localStorage.getItem('cache_version');
-      if (cacheVersion !== '2.0') {
+      if (cacheVersion !== '3.0') {
         localStorage.removeItem('cached_activities');
         localStorage.removeItem('cache_timestamp');
-        localStorage.setItem('cache_version', '2.0');
+        localStorage.setItem('cache_version', '3.0');
       }
 
       // Try to load from cache first (much faster and avoids API rate limits)
@@ -167,64 +167,92 @@ const AllActivities = ({ stravaTokens }) => {
         }
       }
 
-      // Fetch all activities (no date restriction)
-      const url = `/api/strava/activities?access_token=${tokensToUse.access_token}&per_page=200`;
-      const response = await fetch(url);
-      
-      // Handle 401/403 - token might be expired
-      if (response.status === 401 || response.status === 403) {
-        try {
-          tokensToUse = await refreshAccessToken();
-          // Retry the request with new token
-          const retryResponse = await fetch(
-            `/api/strava/activities?access_token=${tokensToUse.access_token}&per_page=200`
-          );
-          
-          if (!retryResponse.ok) {
-            throw new Error('Failed to fetch activities after token refresh');
+      // Fetch ALL activities with pagination
+      let allActivities = [];
+      let page = 1;
+      const perPage = 200; // Max allowed by Strava
+      let hasMore = true;
+
+      while (hasMore) {
+        const url = `/api/strava/activities?access_token=${tokensToUse.access_token}&per_page=${perPage}&page=${page}`;
+        const response = await fetch(url);
+        
+        // Handle 401/403 - token might be expired
+        if (response.status === 401 || response.status === 403) {
+          try {
+            tokensToUse = await refreshAccessToken();
+            // Retry the request with new token
+            const retryResponse = await fetch(
+              `/api/strava/activities?access_token=${tokensToUse.access_token}&per_page=${perPage}&page=${page}`
+            );
+            
+            if (!retryResponse.ok) {
+              throw new Error('Failed to fetch activities after token refresh');
+            }
+            
+            const pageData = await retryResponse.json();
+            
+            if (!pageData || pageData.length === 0) {
+              hasMore = false;
+              break;
+            }
+            
+            allActivities = allActivities.concat(pageData);
+            
+            // If we got fewer than perPage, we've reached the end
+            if (pageData.length < perPage) {
+              hasMore = false;
+            } else {
+              page++;
+            }
+            
+            continue;
+          } catch (refreshError) {
+            if (refreshError.message === 'REAUTH_REQUIRED') {
+              throw new Error('Your Strava session has expired. Please reconnect in Settings.');
+            }
+            throw new Error('Failed to refresh your Strava connection. Please try reconnecting in Settings.');
           }
-          
-          const data = await retryResponse.json();
-          
-          if (!data || data.length === 0) {
-            setActivities([]);
-            setFilteredActivities([]);
-            setLoading(false);
-            return;
-          }
-          
-          // Process the data
-          await processActivitiesData(data, tokensToUse);
-          return;
-        } catch (refreshError) {
-          if (refreshError.message === 'REAUTH_REQUIRED') {
-            throw new Error('Your Strava session has expired. Please reconnect in Settings.');
-          }
-          throw new Error('Failed to refresh your Strava connection. Please try reconnecting in Settings.');
+        }
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.error('AllActivities API error:', errorText);
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const pageData = await response.json();
+        
+        if (!pageData || pageData.length === 0) {
+          hasMore = false;
+          break;
+        }
+        
+        allActivities = allActivities.concat(pageData);
+        
+        // If we got fewer than perPage, we've reached the end
+        if (pageData.length < perPage) {
+          hasMore = false;
+        } else {
+          page++;
         }
       }
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.error('AllActivities API error:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data || data.length === 0) {
+      if (allActivities.length === 0) {
         setActivities([]);
         setFilteredActivities([]);
         setLoading(false);
         return;
       }
       
+      logger.info(`Loaded ${allActivities.length} activities from Strava (${page} pages)`);
+      
       // Cache the fetched data
-      localStorage.setItem('cached_activities', JSON.stringify(data));
+      localStorage.setItem('cached_activities', JSON.stringify(allActivities));
       localStorage.setItem('cache_timestamp', Date.now().toString());
       
       // Process the data
-      await processActivitiesData(data, tokensToUse);
+      await processActivitiesData(allActivities, tokensToUse);
     } catch (error) {
       logger.error('Error loading activities:', error);
       setActivities([]);

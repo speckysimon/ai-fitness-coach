@@ -4,6 +4,55 @@ All notable changes to AI Fitness Coach will be documented in this file.
 
 ## [Unreleased]
 
+## [2.7.2] - 2025-10-31
+
+### ✨ New Features
+
+#### **User Avatar Upload System** 🎨
+- **Profile Avatar Upload**: Users can now upload custom profile pictures
+  - Drag-and-drop or click to browse file selection
+  - Real-time preview before uploading
+  - File validation (JPEG, PNG, WebP only, max 5MB)
+  - Automatic image processing: resize to 200x200, compress to 85% quality
+  - Progress indicator during upload
+  - Delete existing avatar functionality
+- **Sidebar Avatar Display**: Uploaded avatars now display in the sidebar user info section
+  - Circular avatar display (8x8 container)
+  - Falls back to UserCircle icon if no avatar uploaded
+  - Automatic updates when avatar is changed
+- **Backend Infrastructure**:
+  - Avatar service with sharp image processing
+  - Secure file upload with multer middleware
+  - Database migration adds `avatar_url` column to users table
+  - API endpoints: `POST /api/auth/avatar` (upload), `DELETE /api/auth/avatar` (delete)
+  - Static file serving for uploaded avatars
+  - Session-based authentication for avatar operations
+- **User Experience**:
+  - Accessible via User Profile page (`/profile`)
+  - Dark mode support
+  - Mobile-responsive design
+  - Instant visual feedback
+
+### 🔧 Technical Improvements
+- **Dependencies Added**: 
+  - `multer` (v1.4.5-lts.1) - File upload handling
+  - `sharp` (v0.33.5) - Image processing and optimization
+- **Database Schema**: Added `avatar_url TEXT` column to users table
+- **File Storage**: Created `server/uploads/avatars/` and `server/uploads/temp/` directories
+- **Security**: File type validation, size limits, unique UUID filenames prevent overwrites
+
+### 🐛 Bug Fixes
+- Fixed multer file path configuration to use absolute paths
+- Fixed avatar service to use correct multer file properties (`file.path` and `file.originalname`)
+- Fixed avatar URL display to use full server URL (`http://localhost:5001/uploads/...`)
+- Added avatar_url to `/api/auth/me` endpoint response
+- Updated App.jsx to include avatar_url in userProfile state
+
+### 📝 Documentation
+- Created `AVATAR_UPLOAD_COMPLETE.md` with full implementation details
+- Documented API endpoints, file structure, and testing checklist
+- Added security features and configuration details
+
 ## [2.4.0] - 2025-10-21
 
 ### 🚀 Major Features

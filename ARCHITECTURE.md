@@ -1,82 +1,143 @@
-# 🏗️ Architecture Overview
+# 🏗️ RiderLabs Architecture Overview
+
+**Last Updated:** October 30, 2025  
+**Version:** 2.7.1  
+**Status:** Production Ready
 
 ## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         USER BROWSER                             │
-│                                                                   │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │                    React Frontend                           │ │
-│  │                   (Port 3000)                               │ │
-│  │                                                             │ │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │ │
-│  │  │Dashboard │  │  Plan    │  │ Calendar │  │ Settings │  │ │
-│  │  │   Page   │  │Generator │  │   View   │  │   Page   │  │ │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │ │
-│  │                                                             │ │
-│  │  ┌──────────────────────────────────────────────────────┐ │ │
-│  │  │           React Router + State Management            │ │ │
-│  │  └──────────────────────────────────────────────────────┘ │ │
-│  │                                                             │ │
-│  │  ┌──────────────────────────────────────────────────────┐ │ │
-│  │  │              localStorage (Tokens & Cache)           │ │ │
-│  │  └──────────────────────────────────────────────────────┘ │ │
-│  └────────────────────────────────────────────────────────────┘ │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │ HTTP/REST API
-                            │
-┌───────────────────────────▼─────────────────────────────────────┐
-│                    Express Backend Server                        │
-│                        (Port 5000)                               │
-│                                                                   │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │                      API Routes                             │ │
-│  │                                                             │ │
-│  │  /api/strava/*     /api/google/*     /api/training/*      │ │
-│  │  /api/analytics/*                                          │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                            │                                     │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │                   Service Layer                            │ │
-│  │                                                             │ │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │ │
-│  │  │   Strava     │  │   Google     │  │  Analytics   │    │ │
-│  │  │   Service    │  │   Calendar   │  │   Service    │    │ │
-│  │  │              │  │   Service    │  │              │    │ │
-│  │  └──────────────┘  └──────────────┘  └──────────────┘    │ │
-│  │                                                             │ │
-│  │  ┌──────────────────────────────────────────────────────┐ │ │
-│  │  │           AI Planner Service (OpenAI)                │ │ │
-│  │  └──────────────────────────────────────────────────────┘ │ │
-│  └────────────────────────────────────────────────────────────┘ │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                ┌───────────┴───────────┐
-                │                       │
-┌───────────────▼────────┐  ┌──────────▼──────────┐
-│   External APIs        │  │   External APIs     │
-│                        │  │                     │
-│  ┌──────────────────┐ │  │ ┌─────────────────┐ │
-│  │  Strava API v3   │ │  │ │ Google Calendar │ │
-│  │                  │ │  │ │    API v3       │ │
-│  │ - OAuth          │ │  │ │                 │ │
-│  │ - Activities     │ │  │ │ - OAuth         │ │
-│  │ - Athlete Stats  │ │  │ │ - Events CRUD   │ │
-│  └──────────────────┘ │  │ └─────────────────┘ │
-└────────────────────────┘  └─────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│                      OpenAI API                                  │
-│                                                                   │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    GPT-4 Turbo                            │  │
-│  │                                                           │  │
-│  │  - Training plan generation                              │  │
-│  │  - Plan adaptation recommendations                       │  │
-│  │  - Session recommendations                               │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                            USER BROWSER                                   │
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐ │
+│  │                      React Frontend (Vite)                           │ │
+│  │                        Port 5173 (dev)                               │ │
+│  │                                                                       │ │
+│  │  ┌────────────────────────────────────────────────────────────────┐ │ │
+│  │  │                    ATHLETE APP (/*)                             │ │ │
+│  │  │                                                                  │ │ │
+│  │  │  Dashboard │ Plan Generator │ Calendar │ Today's Workout       │ │ │
+│  │  │  FTP History │ All Activities │ Race Analytics │ Rider Profile │ │ │
+│  │  │  Race Day Predictor │ Post-Race Analysis │ Form & Fitness      │ │ │
+│  │  │  Settings │ Methodology │ Changelog                            │ │ │
+│  │  └────────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                       │ │
+│  │  ┌────────────────────────────────────────────────────────────────┐ │ │
+│  │  │                    ADMIN PANEL (/admin/*)                       │ │ │
+│  │  │                                                                  │ │ │
+│  │  │  Admin Login │ Dashboard │ User Management │ Admin Users       │ │ │
+│  │  │  AI Configuration │ AI Prompts │ API Keys (Super Admin)        │ │ │
+│  │  │  Services │ Global Settings │ Activity Log │ Changelog        │ │ │
+│  │  └────────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                       │ │
+│  │  ┌────────────────────────────────────────────────────────────────┐ │ │
+│  │  │         React Router + Theme Context + State Management        │ │ │
+│  │  └────────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                       │ │
+│  │  ┌────────────────────────────────────────────────────────────────┐ │ │
+│  │  │  localStorage: session_token, admin_token, strava_tokens,      │ │ │
+│  │  │  google_tokens, training_plan, race_analyses, user_timezone    │ │ │
+│  │  └────────────────────────────────────────────────────────────────┘ │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────┬───────────────────────────────────────────┘
+                               │ HTTP/REST API
+                               │
+┌──────────────────────────────▼───────────────────────────────────────────┐
+│                      Express Backend Server                               │
+│                          Port 5001                                        │
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐ │
+│  │                         API Routes                                   │ │
+│  │                                                                       │ │
+│  │  /api/auth/*          - User authentication (JWT)                   │ │
+│  │  /api/strava/*        - Strava OAuth & activities                   │ │
+│  │  /api/google/*        - Google Calendar OAuth & events              │ │
+│  │  /api/training/*      - Training plans & AI generation              │ │
+│  │  /api/analytics/*     - FTP, TSS, trends calculation                │ │
+│  │  /api/race/*          - Race analysis & predictions                 │ │
+│  │  /api/race-tags/*     - Race tagging system                         │ │
+│  │  /api/adaptation/*    - Adaptive training & illness tracking        │ │
+│  │  /api/user/*          - User preferences & profile                  │ │
+│  │  /api/feedback/*      - User feedback widget                        │ │
+│  │  /api/manual-activities/* - Manual activity logging                │ │
+│  │  /api/admin/*         - Admin panel (separate auth) ⚡              │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                               │                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐ │
+│  │                       Service Layer                                  │ │
+│  │                                                                       │ │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐    │ │
+│  │  │ Strava Service  │  │ Google Calendar │  │ Analytics       │    │ │
+│  │  │ - Activities    │  │ - Event sync    │  │ - FTP calc      │    │ │
+│  │  │ - OAuth refresh │  │ - OAuth refresh │  │ - TSS calc      │    │ │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘    │ │
+│  │                                                                       │ │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐    │ │
+│  │  │ AI Planner      │  │ Adaptive        │  │ Smart Metrics   │    │ │
+│  │  │ - Plan gen      │  │ - Auto adjust   │  │ - FTHR tracking │    │ │
+│  │  │ - Adjustments   │  │ - Illness track │  │ - Power curves  │    │ │
+│  │  │ - Analysis      │  │ - Modifications │  │ - Rider profile │    │ │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘    │ │
+│  │                                                                       │ │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐    │ │
+│  │  │ Admin Service   │  │ AI Config       │  │ Token Tracking  │    │ │
+│  │  │ - Auth (JWT)    │  │ - Model config  │  │ - Usage logs    │    │ │
+│  │  │ - User mgmt     │  │ - API keys      │  │ - Cost calc     │    │ │
+│  │  │ - Activity log  │  │ - Encryption    │  │ - Pricing cron  │    │ │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘    │ │
+│  │                                                                       │ │
+│  │  ┌─────────────────┐  ┌─────────────────┐                          │ │
+│  │  │ Manual Activity │  │ Global Settings │                          │ │
+│  │  │ - 14 sports     │  │ - App config    │                          │ │
+│  │  │ - TSS calc      │  │ - Feature flags │                          │ │
+│  │  └─────────────────┘  └─────────────────┘                          │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                               │                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐ │
+│  │                      Dual Database System                            │ │
+│  │                                                                       │ │
+│  │  ┌────────────────────────────┐  ┌──────────────────────────────┐  │ │
+│  │  │   App Database (SQLite)    │  │  Admin Database (SQLite)     │  │ │
+│  │  │   fitness-coach.db         │  │  database.sqlite             │  │ │
+│  │  │                            │  │                              │  │ │
+│  │  │ - users                    │  │ - admin_users                │  │ │
+│  │  │ - training_plans           │  │ - ai_model_configs           │  │ │
+│  │  │ - race_analyses            │  │ - api_keys (encrypted)       │  │ │
+│  │  │ - user_preferences         │  │ - global_settings            │  │ │
+│  │  │ - manual_activities        │  │ - admin_activity_log         │  │ │
+│  │  │ - race_tags                │  │ - token_usage_logs           │  │ │
+│  │  │ - illness_log              │  │ - ai_model_pricing           │  │ │
+│  │  │ - wellness_log             │  │                              │  │ │
+│  │  │ - feedback                 │  │                              │  │ │
+│  │  └────────────────────────────┘  └──────────────────────────────┘  │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────┬───────────────────────────────────────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                │                              │
+┌───────────────▼─────────┐  ┌────────────────▼────────────┐
+│   External APIs         │  │   AI Services               │
+│                         │  │                             │
+│  ┌───────────────────┐ │  │ ┌─────────────────────────┐ │
+│  │  Strava API v3    │ │  │ │ OpenAI GPT-4 Turbo      │ │
+│  │  - OAuth 2.0      │ │  │ │ - Plan generation       │ │
+│  │  - Activities     │ │  │ │ - Plan adjustments      │ │
+│  │  - Athlete stats  │ │  │ │ - Workout analysis      │ │
+│  └───────────────────┘ │  │ │ - Race analysis         │ │
+│                         │  │ └─────────────────────────┘ │
+│  ┌───────────────────┐ │  │                             │
+│  │ Google Calendar   │ │  │ ┌─────────────────────────┐ │
+│  │  - OAuth 2.0      │ │  │ │ Google Gemini           │ │
+│  │  - Events CRUD    │ │  │ │ - 2.5 Pro/Flash         │ │
+│  └───────────────────┘ │  │ │ - 2.0 Flash             │ │
+│                         │  │ │ - 1.5 Pro/Flash         │ │
+│  ┌───────────────────┐ │  │ └─────────────────────────┘ │
+│  │ OpenWeather API   │ │  │                             │
+│  │  - Current        │ │  │ Token tracking & cost       │
+│  │  - Hourly         │ │  │ calculation for all models  │
+│  └───────────────────┘ │  └─────────────────────────────┘
+└─────────────────────────┘
 ```
 
 ## Data Flow

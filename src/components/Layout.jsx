@@ -10,6 +10,13 @@ import FeedbackWidget from './FeedbackWidget';
 const Layout = ({ children, onLogout, userProfile }) => {
   const location = useLocation();
 
+  // Helper to get full avatar URL
+  const getAvatarUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    return `http://localhost:5001${url}`;
+  };
+
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Activity },
     { name: "Today's Workout", href: '/workout/today', icon: Dumbbell },
@@ -43,8 +50,16 @@ const Layout = ({ children, onLogout, userProfile }) => {
             {/* User Info */}
             {userProfile && (
               <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                  <UserCircle className="w-5 h-5 text-primary" />
+                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden">
+                  {userProfile.avatar_url ? (
+                    <img
+                      src={getAvatarUrl(userProfile.avatar_url)}
+                      alt={userProfile.name || 'User'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <UserCircle className="w-5 h-5 text-primary" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
@@ -92,7 +107,10 @@ const Layout = ({ children, onLogout, userProfile }) => {
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
             >
               <Package className="w-4 h-4" />
-              <span>v0.2.0</span>
+              <div className="flex flex-col">
+                <span className="text-xs font-medium">Changelog</span>
+                <span className="text-xs">v2.7.1</span>
+              </div>
             </Link>
           </div>
 

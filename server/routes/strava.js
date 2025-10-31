@@ -4,6 +4,10 @@ import { stravaService } from '../services/stravaService.js';
 import { sessionDb, stravaTokenDb } from '../db.js';
 import crypto from 'crypto';
 import logger from '../utils/logger.js';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const apiKeyLoader = require('../services/apiKeyLoader.cjs');
 
 const router = express.Router();
 
@@ -32,7 +36,10 @@ router.get('/auth', (req, res) => {
   // Clean up old states after 10 minutes
   setTimeout(() => pendingOAuthStates.delete(state), 10 * 60 * 1000);
   
-  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${process.env.STRAVA_CLIENT_ID}&response_type=code&redirect_uri=${process.env.STRAVA_REDIRECT_URI}&approval_prompt=force&scope=activity:read_all&state=${state}`;
+  const clientId = process.env.STRAVA_CLIENT_ID; // Client ID stays in .env (public)
+  const redirectUri = process.env.STRAVA_REDIRECT_URI; // Redirect URI stays in .env
+  
+  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&approval_prompt=force&scope=activity:read_all&state=${state}`;
   res.json({ authUrl });
 });
 
@@ -59,9 +66,16 @@ router.get('/callback', async (req, res) => {
       return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Session expired, please login again')}`);
     }
     
+    // Get Strava client secret from database or .env
+    const clientSecret = apiKeyLoader.getApiKey('strava') || process.env.STRAVA_CLIENT_SECRET;
+    
+    if (!clientSecret) {
+      throw new Error('Strava client secret not configured. Please add it in the admin panel.');
+    }
+    
     const response = await axios.post('https://www.strava.com/oauth/token', {
       client_id: process.env.STRAVA_CLIENT_ID,
-      client_secret: process.env.STRAVA_CLIENT_SECRET,
+      client_secret: clientSecret,
       code,
       grant_type: 'authorization_code',
     });

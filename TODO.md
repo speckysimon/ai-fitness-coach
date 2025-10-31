@@ -128,6 +128,16 @@
 - [x] Race type migration scripts
 - [x] Documentation updates (Terms, Privacy)
 
+### October 31, 2025 - User Avatar Upload System
+- [x] User avatar upload functionality
+- [x] Avatar display in sidebar
+- [x] Image processing with sharp (resize, compress)
+- [x] Database migration for avatar_url column
+- [x] Multer file upload middleware
+- [x] Avatar API endpoints (upload, delete)
+- [x] Dark mode support for avatar UI
+- [x] Mobile-responsive avatar upload
+
 ### October 21-24, 2025 - Major Features
 - [x] Complete rebrand to RiderLabs
 - [x] Post-race analysis with AI
@@ -166,6 +176,16 @@
 
 ---
 
-**Last Updated:** October 29, 2025, 7:17pm  
+## 🔧 Outstanding Issues (Oct 31, 2025)
+
+### Avatar Upload - Minor Enhancements
+- [ ] Consider using environment variable for server URL instead of hardcoded `localhost:5001`
+- [ ] Add avatar to additional locations (dashboard header, settings page)
+- [ ] Consider adding default avatar options/gallery
+- [ ] Add avatar cropping tool before upload (optional enhancement)
+
+---
+
+**Last Updated:** October 31, 2025, 9:16am  
 **Status:** Production Live 🚀  
 **Next Session:** Fix training plan generation + manual activity edit + comprehensive testing
