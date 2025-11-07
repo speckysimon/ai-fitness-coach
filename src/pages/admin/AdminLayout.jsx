@@ -14,6 +14,9 @@ import {
   UserCog,
   FileText,
   Cloud,
+  UserCircle,
+  Calendar,
+  Palette,
 } from 'lucide-react';
 
 const AdminLayout = ({ admin, onLogout }) => {
@@ -33,6 +36,9 @@ const AdminLayout = ({ admin, onLogout }) => {
     { path: '/admin/admins', icon: UserCog, label: 'Admin Users' },
     { path: '/admin/ai-config', icon: Brain, label: 'AI Configuration' },
     { path: '/admin/ai-prompts', icon: FileText, label: 'AI Prompts' },
+    { path: '/admin/plan-templates', icon: Calendar, label: 'Plan Templates' },
+    { path: '/admin/coach-personas', icon: UserCircle, label: 'Coach Personas' },
+    { path: '/admin/theme-config', icon: Palette, label: 'Theme Configuration' },
     { path: '/admin/api-keys', icon: Key, label: 'API Keys', superAdminOnly: true },
     { path: '/admin/services', icon: Cloud, label: 'Services' },
     { path: '/admin/settings', icon: Settings, label: 'Global Settings' },

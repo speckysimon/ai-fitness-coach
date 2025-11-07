@@ -333,17 +333,17 @@ export const getCompletionStatus = (sessionKey, completedSessions, automaticMatc
       return {
         status: 'auto-suggested',
         message: `Activity found with ${match.alignmentScore}% match`,
-        color: 'text-blue-600',
-        bgColor: 'bg-blue-50',
-        borderColor: 'border-blue-300'
+        color: 'text-blue-600 dark:text-blue-400',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        borderColor: 'border-blue-300 dark:border-blue-700'
       };
     }
     return {
       status: 'incomplete',
       message: 'Not completed',
-      color: 'text-gray-600',
-      bgColor: 'bg-white',
-      borderColor: 'border-gray-200'
+      color: 'text-gray-600 dark:text-gray-400',
+      bgColor: 'bg-white dark:bg-gray-800',
+      borderColor: 'border-gray-200 dark:border-gray-700'
     };
   }
 
@@ -351,17 +351,17 @@ export const getCompletionStatus = (sessionKey, completedSessions, automaticMatc
     return {
       status: 'auto-completed',
       message: `Auto-matched (${completion.alignmentScore}% alignment)`,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-300'
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-50 dark:bg-green-900/20',
+      borderColor: 'border-green-300 dark:border-green-700'
     };
   }
 
   return {
     status: 'manual',
     message: 'Manually completed',
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-300'
+    color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+    borderColor: 'border-purple-300 dark:border-purple-700'
   };
 };

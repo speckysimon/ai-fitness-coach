@@ -6,9 +6,9 @@ import React from 'react';
  */
 const StravaAttribution = ({ className = '' }) => {
   return (
-    <div className={`flex items-center gap-2 text-sm text-gray-600 ${className}`}>
+    <div className={`flex items-center ${className}`} title="Powered by Strava">
       <svg 
-        className="h-5 w-5" 
+        className="h-6 w-6" 
         viewBox="0 0 24 24" 
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
@@ -18,7 +18,6 @@ const StravaAttribution = ({ className = '' }) => {
           fill="#FC4C02"
         />
       </svg>
-      <span className="text-gray-700">Powered by Strava</span>
     </div>
   );
 };

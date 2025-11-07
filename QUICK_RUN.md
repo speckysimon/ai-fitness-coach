@@ -2,6 +2,18 @@
 
 Essential terminal commands to get the AI Fitness Coach app up and running.
 
+## 📋 New Session Startup
+
+**At the start of each coding session**, load project context by reading:
+- See `STARTUP_COMMAND.txt` for the copy-paste command
+- See `SESSION_STARTUP.md` for detailed explanation
+
+This ensures you understand:
+- Current TODO items and priorities
+- Project structure and architecture
+- Port configuration (Frontend: 3000, Backend: 5001)
+- Recent changes and updates
+
 ## Full Command (Copy & Paste)
 
 ### First Time Setup

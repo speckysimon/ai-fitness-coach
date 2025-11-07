@@ -79,9 +79,15 @@ router.get('/', async (req, res) => {
   try {
     const userId = req.query.userId;
     
+    // If no userId provided, return empty array (user not logged in or no profile yet)
     if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+      return res.json({
+        success: true,
+        count: 0,
+        activities: []
+      });
     }
+    
     const options = {
       startDate: req.query.startDate,
       endDate: req.query.endDate,

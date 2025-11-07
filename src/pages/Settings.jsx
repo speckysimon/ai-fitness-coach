@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { Activity, Calendar, LogOut, Trash2, CheckCircle2, User, ChevronRight, Clock } from 'lucide-react';
+import { Activity, Calendar, Trash2, CheckCircle2, User, ChevronRight, Clock, ChevronDown, Package } from 'lucide-react';
+import packageJson from '../../package.json';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import StravaAttribution from '../components/StravaAttribution';
 import CoachAvatarSelector from '../components/CoachAvatarSelector';
 import NotificationSettings from '../components/NotificationSettings';
+import StravaWelcomeModal from '../components/StravaWelcomeModal';
 import { getUserTimezone, setUserTimezone, getCommonTimezones, getCurrentDateTime } from '../lib/timezone';
 import { preferencesService } from '../services/preferencesService';
 
@@ -16,6 +18,10 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
   const processedRef = useRef(new Set());
   const [timezone, setTimezone] = useState(getUserTimezone());
   const [currentTime, setCurrentTime] = useState(getCurrentDateTime());
+  const [weekStartDay, setWeekStartDay] = useState(localStorage.getItem('week_start_day') || 'Monday');
+  const [coachSectionExpanded, setCoachSectionExpanded] = useState(false);
+  const [remindersSectionExpanded, setRemindersSectionExpanded] = useState(false);
+  const [showStravaWelcomeModal, setShowStravaWelcomeModal] = useState(false);
 
   // Handle OAuth callbacks
   useEffect(() => {
@@ -47,6 +53,8 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
           if (data.success && data.user.stravaTokens && onStravaAuth) {
             await onStravaAuth(data.user.stravaTokens);
             console.log('✅ Strava tokens loaded from Settings');
+            // Show success modal
+            setShowStravaWelcomeModal(true);
           }
           // Clear URL params to prevent re-processing
           navigate('/settings', { replace: true });
@@ -113,6 +121,18 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
       }
     }
     setCurrentTime(getCurrentDateTime());
+  };
+
+  const handleWeekStartDayChange = async (e) => {
+    const newStartDay = e.target.value;
+    localStorage.setItem('week_start_day', newStartDay);
+    setWeekStartDay(newStartDay);
+    
+    // Save to backend
+    const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+    if (userProfile.id) {
+      await preferencesService.updateField(userProfile.id, 'week_start_day', newStartDay);
+    }
   };
 
   const clearData = () => {
@@ -241,11 +261,11 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
   };
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-6 sm:space-y-8 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your connections and preferences</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Manage your connections and preferences</p>
       </div>
 
       {/* Connected Accounts */}
@@ -256,21 +276,23 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Strava */}
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Activity className="w-6 h-6 text-orange-600" />
+          <div className="flex items-center justify-between p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="#FC4C02">
+                  <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
+                </svg>
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Strava</h3>
-                <p className="text-sm text-gray-600">Activity tracking and history</p>
+                <h3 className="font-medium text-gray-900 dark:text-gray-100">Strava</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Activity tracking and history</p>
                 {stravaTokens && (
                   <StravaAttribution className="mt-1" />
                 )}
               </div>
             </div>
             {stravaTokens ? (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3">
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle2 className="w-5 h-5" />
                   <span className="text-sm font-medium">Connected</span>
@@ -298,18 +320,26 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
           </div>
 
           {/* Google Calendar */}
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-blue-600" />
+          <div className="flex items-center justify-between p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M19.5 3.5h-2V2h-2v1.5h-7V2h-2v1.5h-2C3.67 3.5 3 4.17 3 5v14c0 .83.67 1.5 1.5 1.5h15c.83 0 1.5-.67 1.5-1.5V5c0-.83-.67-1.5-1.5-1.5zm0 15.5h-15V8.5h15V19z"/>
+                  <path fill="#EA4335" d="M7 10h2v2H7z"/>
+                  <path fill="#FBBC04" d="M11 10h2v2h-2z"/>
+                  <path fill="#34A853" d="M15 10h2v2h-2z"/>
+                  <path fill="#4285F4" d="M7 14h2v2H7z"/>
+                  <path fill="#EA4335" d="M11 14h2v2h-2z"/>
+                  <path fill="#FBBC04" d="M15 14h2v2h-2z"/>
+                </svg>
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Google Calendar</h3>
-                <p className="text-sm text-gray-600">Training plan synchronization</p>
+                <h3 className="font-medium text-gray-900 dark:text-gray-100">Google Calendar</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Training plan synchronization</p>
               </div>
             </div>
             {googleTokens ? (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3">
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle2 className="w-5 h-5" />
                   <span className="text-sm font-medium">Connected</span>
@@ -338,6 +368,95 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
         </CardContent>
       </Card>
 
+      {/* Timezone & Data Management - Side by Side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {/* Timezone Preferences */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Timezone
+            </CardTitle>
+            <CardDescription>Configure your timezone for accurate AI adjustments</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Current Time Display */}
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Current Time</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{currentTime.time}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{currentTime.date}</p>
+                </div>
+                <div className="px-3 py-2 bg-blue-100 dark:bg-blue-800 rounded-lg">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Timezone</p>
+                  <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">{timezone.split('/').pop().replace('_', ' ')}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Timezone Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Timezone
+              </label>
+              <select
+                value={localStorage.getItem('user_timezone') || 'auto'}
+                onChange={handleTimezoneChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              >
+                {getCommonTimezones().map((tz) => (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                💡 Used for AI date interpretation ("today", "yesterday", etc.)
+              </p>
+            </div>
+
+            {/* Week Start Day Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Week Starts On
+              </label>
+              <select
+                value={weekStartDay}
+                onChange={handleWeekStartDayChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              >
+                <option value="Monday">Monday</option>
+                <option value="Sunday">Sunday</option>
+              </select>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                📅 Used for training plan week structure
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Management</CardTitle>
+            <CardDescription>Manage your local application data</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <div>
+                <h3 className="font-medium text-gray-900 dark:text-gray-100">Clear Local Data</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Remove all stored tokens and cached data</p>
+              </div>
+              <Button variant="outline" onClick={clearData}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Clear Data
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* User Profile */}
       <Card>
         <CardHeader>
@@ -347,9 +466,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
         <CardContent>
           <Link 
             to="/profile"
-            className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center justify-between p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
                 <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
@@ -363,114 +482,64 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
         </CardContent>
       </Card>
 
-      {/* Coach Avatar Selector */}
-      <CoachAvatarSelector />
-
-      {/* Notification Settings */}
-      <NotificationSettings />
-
-      {/* Timezone Preferences */}
+      {/* Coach Avatar Selector - Collapsible */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Timezone & Date Settings
-          </CardTitle>
-          <CardDescription>Configure your timezone for accurate AI training adjustments</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Current Time Display */}
-          <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Current Time</p>
-                <p className="text-2xl font-bold text-gray-900 tabular-nums">{currentTime.time}</p>
-                <p className="text-sm text-gray-600 mt-1">{currentTime.date}</p>
-              </div>
-              <div className="px-3 py-2 bg-blue-100 rounded-lg">
-                <p className="text-xs text-gray-600">Timezone</p>
-                <p className="text-sm font-semibold text-blue-700">{timezone.split('/').pop().replace('_', ' ')}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Timezone Selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Timezone
-            </label>
-            <select
-              value={localStorage.getItem('user_timezone') || 'auto'}
-              onChange={handleTimezoneChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {getCommonTimezones().map((tz) => (
-                <option key={tz.value} value={tz.value}>
-                  {tz.label}
-                </option>
-              ))}
-            </select>
-            <p className="mt-2 text-xs text-gray-500">
-              💡 This timezone is used when you tell the AI about "today", "yesterday", or specific dates. It ensures accurate plan adjustments.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* API Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle>API Configuration</CardTitle>
-          <CardDescription>Required API keys and credentials</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h4 className="font-medium text-yellow-900 mb-2">Setup Required</h4>
-            <p className="text-sm text-yellow-700 mb-4">
-              To use this application, you need to configure the following API credentials in your <code className="bg-yellow-100 px-1 rounded">.env</code> file:
-            </p>
-            <ul className="text-sm text-yellow-700 space-y-2">
-              <li>• <strong>Strava API:</strong> Get your credentials from <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener noreferrer" className="underline">Strava API Settings</a></li>
-              <li>• <strong>OpenAI API:</strong> Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline">OpenAI Platform</a></li>
-              <li>• <strong>Google Calendar API:</strong> Set up OAuth credentials in <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
-              <li>• <strong>OpenWeather API:</strong> Get your free API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" className="underline">OpenWeather</a> (add as VITE_OPENWEATHER_API_KEY)</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Data Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Data Management</CardTitle>
-          <CardDescription>Manage your local application data</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+        <CardHeader 
+          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          onClick={() => setCoachSectionExpanded(!coachSectionExpanded)}
+        >
+          <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium text-gray-900">Clear Local Data</h3>
-              <p className="text-sm text-gray-600">Remove all stored tokens and cached data</p>
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <span className="text-xl sm:text-2xl">👤</span>
+                Choose Your Coach
+              </CardTitle>
+              <CardDescription>
+                Select a coaching style that resonates with you
+              </CardDescription>
             </div>
-            <Button variant="outline" onClick={clearData}>
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear Data
-            </Button>
+            <ChevronDown 
+              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                coachSectionExpanded ? 'transform rotate-180' : ''
+              }`}
+            />
           </div>
-        </CardContent>
+        </CardHeader>
+        {coachSectionExpanded && (
+          <CardContent>
+            <CoachAvatarSelector />
+          </CardContent>
+        )}
       </Card>
 
-      {/* Account */}
+      {/* Notification Settings - Collapsible */}
       <Card>
-        <CardHeader>
-          <CardTitle>Account</CardTitle>
-          <CardDescription>Manage your session</CardDescription>
+        <CardHeader 
+          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          onClick={() => setRemindersSectionExpanded(!remindersSectionExpanded)}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Workout Reminders
+              </CardTitle>
+              <CardDescription>
+                Configure notifications for your training sessions
+              </CardDescription>
+            </div>
+            <ChevronDown 
+              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                remindersSectionExpanded ? 'transform rotate-180' : ''
+              }`}
+            />
+          </div>
         </CardHeader>
-        <CardContent>
-          <Button variant="destructive" onClick={onLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
-        </CardContent>
+        {remindersSectionExpanded && (
+          <CardContent>
+            <NotificationSettings />
+          </CardContent>
+        )}
       </Card>
 
       {/* About */}
@@ -479,15 +548,40 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
           <CardTitle>About</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 text-sm text-gray-600">
-            <p><strong>RiderLabs</strong> v2.6.0</p>
-            <p>Data-driven cycling performance platform powered by AI. Integrates with Strava and Google Calendar.</p>
-            <p className="pt-4 border-t border-gray-200">
-              Built with React, Express, OpenAI, and modern web technologies.
-            </p>
+          <div className="space-y-4">
+            <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-base"><strong className="text-gray-900 dark:text-gray-100">RiderLabs</strong> <span className="text-gray-500 dark:text-gray-500">v{packageJson.version}</span></p>
+              <p>Data-driven cycling performance platform powered by AI. Integrates with Strava and Google Calendar.</p>
+              <p className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                Built with React, Express, OpenAI, and modern web technologies.
+              </p>
+            </div>
+            
+            {/* Changelog Link */}
+            <Link 
+              to="/changelog"
+              className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-gray-900 dark:text-gray-100">Changelog</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">View version history and updates</p>
+              </div>
+              <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">v{packageJson.version}</span>
+              </div>
+            </Link>
           </div>
         </CardContent>
       </Card>
+
+      {/* Strava Welcome Modal */}
+      <StravaWelcomeModal 
+        isOpen={showStravaWelcomeModal} 
+        onClose={() => setShowStravaWelcomeModal(false)} 
+      />
     </div>
   );
 };

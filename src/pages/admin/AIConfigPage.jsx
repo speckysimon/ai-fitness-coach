@@ -29,6 +29,7 @@ const AIConfigPage = () => {
   const [configs, setConfigs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingConfig, setSavingConfig] = useState({}); // Track saving state per config
   const [success, setSuccess] = useState('');
   const [activeProvider, setActiveProvider] = useState('openai'); // 'openai' or 'gemini'
   const [tokenUsage, setTokenUsage] = useState({
@@ -109,7 +110,7 @@ const AIConfigPage = () => {
   };
 
   const handleUpdateConfig = async (featureName, updates) => {
-    setSaving(true);
+    setSavingConfig(prev => ({ ...prev, [featureName]: true }));
     try {
       const token = localStorage.getItem('admin_token');
       const response = await fetch(`/api/admin/ai-configs/${featureName}`, {
@@ -123,14 +124,19 @@ const AIConfigPage = () => {
 
       const data = await response.json();
       if (data.success) {
-        setSuccess('Configuration updated successfully');
+        setSuccess(`${featureName.replace(/_/g, ' ')} updated successfully`);
         loadConfigs();
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setSuccess(`Failed to update ${featureName.replace(/_/g, ' ')}`);
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (error) {
       console.error('Error updating config:', error);
+      setSuccess(`Error updating ${featureName.replace(/_/g, ' ')}`);
+      setTimeout(() => setSuccess(''), 3000);
     } finally {
-      setSaving(false);
+      setSavingConfig(prev => ({ ...prev, [featureName]: false }));
     }
   };
 
@@ -296,11 +302,11 @@ const AIConfigPage = () => {
                       })
                     }
                     size="sm"
-                    disabled={saving || !isActive}
+                    disabled={savingConfig[config.feature_name] || !isActive}
                     className="w-full"
                   >
-                    <Save className="w-3 h-3 mr-2" />
-                    Save
+                    <Save className={`w-3 h-3 mr-2 ${savingConfig[config.feature_name] ? 'animate-spin' : ''}`} />
+                    {savingConfig[config.feature_name] ? 'Saving...' : 'Save'}
                   </Button>
                 </div>
               </div>

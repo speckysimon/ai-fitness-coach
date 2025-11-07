@@ -79,8 +79,8 @@ const Form = ({ stravaTokens }) => {
     setLoading(true);
     try {
       // Try to load from cache first (much faster and avoids API rate limits)
-      const cachedActivities = localStorage.getItem('cached_activities');
-      const cacheTimestamp = localStorage.getItem('cache_timestamp');
+      const cachedActivities = localStorage.getItem('cached_activities_recent');
+      const cacheTimestamp = localStorage.getItem('cache_timestamp_recent');
       const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
       const cacheValid = cacheAge < 30 * 60 * 1000; // 30 minutes
 
@@ -221,11 +221,11 @@ const Form = ({ stravaTokens }) => {
   };
 
   const getFormStatus = (tsb) => {
-    if (tsb > 25) return { status: 'High Risk', color: 'text-red-600', bg: 'bg-red-50', description: 'Overreached - high injury/illness risk' };
-    if (tsb > 5) return { status: 'Optimal', color: 'text-green-600', bg: 'bg-green-50', description: 'Fresh and ready to race' };
-    if (tsb > -10) return { status: 'Grey Zone', color: 'text-gray-600', bg: 'bg-gray-50', description: 'Neutral - maintaining fitness' };
-    if (tsb > -30) return { status: 'Fresh', color: 'text-blue-600', bg: 'bg-blue-50', description: 'Building fitness, slight fatigue' };
-    return { status: 'High Risk', color: 'text-red-600', bg: 'bg-red-50', description: 'Overtrained - need recovery' };
+    if (tsb > 25) return { status: 'High Risk', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20', description: 'Overreached - high injury/illness risk' };
+    if (tsb > 5) return { status: 'Optimal', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20', description: 'Fresh and ready to race' };
+    if (tsb > -10) return { status: 'Grey Zone', color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-50 dark:bg-gray-800', description: 'Neutral - maintaining fitness' };
+    if (tsb > -30) return { status: 'Fresh', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20', description: 'Building fitness, slight fatigue' };
+    return { status: 'High Risk', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20', description: 'Overtrained - need recovery' };
   };
 
   // Get form line color based on TSB value
@@ -303,8 +303,8 @@ const Form = ({ stravaTokens }) => {
     <div className="space-y-6 max-w-7xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Fitness & Form</h1>
-        <p className="text-gray-600 mt-1">Track your training load, fitness, and freshness using Joe Friel's TSB methodology</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Fitness & Form</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Track your training load, fitness, and freshness using Joe Friel's TSB methodology</p>
       </div>
 
       {/* Current Metrics */}
@@ -316,7 +316,7 @@ const Form = ({ stravaTokens }) => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-blue-600">{currentMetrics.fitness}</div>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">42-day average training load</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">42-day average training load</p>
             </CardContent>
           </Card>
 
@@ -326,7 +326,7 @@ const Form = ({ stravaTokens }) => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-purple-600">{currentMetrics.fatigue}</div>
-              <p className="text-xs text-gray-500 mt-1">7-day average training load</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">7-day average training load</p>
             </CardContent>
           </Card>
 
@@ -336,7 +336,7 @@ const Form = ({ stravaTokens }) => {
             </CardHeader>
             <CardContent>
               <div className={`text-3xl font-bold ${formStatus.color}`}>{currentMetrics.form}</div>
-              <p className="text-xs text-gray-500 mt-1">Fitness - Fatigue</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Fitness - Fatigue</p>
             </CardContent>
           </Card>
 
@@ -363,7 +363,7 @@ const Form = ({ stravaTokens }) => {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 timeRange === days
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {days} days
@@ -493,12 +493,12 @@ const Form = ({ stravaTokens }) => {
           <div>
             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Form Zones:</h4>
             <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-3 p-2 bg-red-50 rounded">
-                <span className="font-bold text-red-600">TSB &gt; 25:</span>
+              <div className="flex items-center gap-3 p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                <span className="font-bold text-red-600 dark:text-red-400">TSB &gt; 25:</span>
                 <span className="text-gray-700 dark:text-gray-300">High Risk - Detraining or overreached</span>
               </div>
               <div className="flex items-center gap-3 p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                <span className="font-bold text-green-600">TSB 5-25:</span>
+                <span className="font-bold text-green-600 dark:text-green-400">TSB 5-25:</span>
                 <span className="text-gray-700 dark:text-gray-300">Optimal - Fresh and ready to race</span>
               </div>
               <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded">
@@ -506,11 +506,11 @@ const Form = ({ stravaTokens }) => {
                 <span className="text-gray-700 dark:text-gray-300">Grey Zone - Neutral state</span>
               </div>
               <div className="flex items-center gap-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-                <span className="font-bold text-blue-600">TSB -30 to -10:</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400">TSB -30 to -10:</span>
                 <span className="text-gray-700 dark:text-gray-300">Fresh - Building fitness</span>
               </div>
-              <div className="flex items-center gap-3 p-2 bg-red-50 rounded">
-                <span className="font-bold text-red-600">TSB &lt; -30:</span>
+              <div className="flex items-center gap-3 p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                <span className="font-bold text-red-600 dark:text-red-400">TSB &lt; -30:</span>
                 <span className="text-gray-700 dark:text-gray-300">High Risk - Overtrained, need recovery</span>
               </div>
             </div>

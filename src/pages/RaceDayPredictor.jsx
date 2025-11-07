@@ -29,19 +29,21 @@ const RaceDayPredictor = ({ stravaTokens }) => {
     try {
       // Load activities from cache or API
       let allActivities = [];
-      const cachedActivities = localStorage.getItem('cached_activities');
+      const cachedActivities = localStorage.getItem('cached_activities_recent');
       
       if (cachedActivities) {
         allActivities = JSON.parse(cachedActivities);
       } else {
-        const yearStart = new Date(new Date().getFullYear(), 0, 1);
-        const after = Math.floor(yearStart.getTime() / 1000);
+        // Fetch last 3 months of activities (more manageable than full year)
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        const after = Math.floor(threeMonthsAgo.getTime() / 1000);
         
         const response = await fetch(
           `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${after}&per_page=200`
         );
         allActivities = await response.json();
-        localStorage.setItem('cached_activities', JSON.stringify(allActivities));
+        // Don't cache here - let Dashboard handle caching
       }
 
       setActivities(allActivities);
@@ -234,13 +236,13 @@ const RaceDayPredictor = ({ stravaTokens }) => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-          <Target className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
+          <Target className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
           Race Day Form Predictor
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Predict your race readiness based on training load and recovery</p>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Predict your race readiness based on training load and recovery</p>
       </div>
 
       <Card>
@@ -278,59 +280,59 @@ const RaceDayPredictor = ({ stravaTokens }) => {
 
       {/* Readiness Score Card */}
       <Card className="border-2 border-blue-200 overflow-hidden">
-        <div className={`bg-gradient-to-r ${formData.statusColor} p-8 text-white`}>
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold mb-2">{formData.statusMessage}</h2>
-              <p className="text-white/90 text-lg">
+        <div className={`bg-gradient-to-r ${formData.statusColor} p-4 sm:p-6 md:p-8 text-white`}>
+          <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-4">
+            <div className="flex-1 text-center sm:text-left">
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">{formData.statusMessage}</h2>
+              <p className="text-white/90 text-base sm:text-lg">
                 Your predicted race day readiness
               </p>
             </div>
             <div className="text-center">
-              <div className="text-7xl font-bold mb-2">{formData.readinessScore}</div>
-              <div className="text-white/80 text-lg">Readiness Score</div>
+              <div className="text-5xl sm:text-6xl md:text-7xl font-bold mb-2">{formData.readinessScore}</div>
+              <div className="text-white/80 text-base sm:text-lg">Readiness Score</div>
             </div>
           </div>
         </div>
 
         {/* Key Metrics */}
-        <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Key Metrics</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <CardContent className="pt-4 sm:pt-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Key Metrics</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
             {/* Fitness (CTL) */}
-            <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+            <div className="p-3 sm:p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Fitness (CTL)</span>
                 <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{formData.metrics.fitness}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{formData.metrics.fitness}</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">42-day average load</div>
             </div>
 
             {/* Fatigue (ATL) */}
-            <div className="p-4 bg-orange-50 rounded-lg border-2 border-orange-200">
+            <div className="p-3 sm:p-4 bg-orange-50 rounded-lg border-2 border-orange-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Fatigue (ATL)</span>
                 <AlertTriangle className="w-5 h-5 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-600">{formData.metrics.fatigue}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-orange-600">{formData.metrics.fatigue}</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">7-day average load</div>
             </div>
 
             {/* Form (TSB) */}
-            <div className={`p-4 rounded-lg border-2 ${formData.metrics.form >= 5 ? 'bg-green-50 border-green-200' : formData.metrics.form >= 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
+            <div className={`p-3 sm:p-4 rounded-lg border-2 ${formData.metrics.form >= 5 ? 'bg-green-50 border-green-200' : formData.metrics.form >= 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'}`}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Form (TSB)</span>
                 <TrendingUp className={`w-5 h-5 ${formData.metrics.form >= 5 ? 'text-green-600' : formData.metrics.form >= 0 ? 'text-yellow-600' : 'text-red-600'}`} />
               </div>
-              <div className={`text-3xl font-bold ${formData.metrics.form >= 5 ? 'text-green-600' : formData.metrics.form >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
+              <div className={`text-2xl sm:text-3xl font-bold ${formData.metrics.form >= 5 ? 'text-green-600' : formData.metrics.form >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
                 {formData.metrics.form > 0 ? '+' : ''}{formData.metrics.form}
               </div>
               <div className="text-xs text-gray-500 mt-1">Fitness - Fatigue</div>
             </div>
 
             {/* Performance Trend */}
-            <div className="p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
+            <div className="p-3 sm:p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Performance</span>
                 {formData.metrics.performanceTrend >= 0 ? 
@@ -338,29 +340,29 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                   <TrendingDown className="w-5 h-5 text-purple-600" />
                 }
               </div>
-              <div className="text-3xl font-bold text-purple-600">
+              <div className="text-2xl sm:text-3xl font-bold text-purple-600">
                 {formData.metrics.performanceTrend > 0 ? '+' : ''}{formData.metrics.performanceTrend}%
               </div>
               <div className="text-xs text-gray-500 mt-1">2-week trend</div>
             </div>
 
             {/* Recovery Score */}
-            <div className="p-4 bg-indigo-50 rounded-lg border-2 border-indigo-200">
+            <div className="p-3 sm:p-4 bg-indigo-50 rounded-lg border-2 border-indigo-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Recovery</span>
                 <Moon className="w-5 h-5 text-indigo-600" />
               </div>
-              <div className="text-3xl font-bold text-indigo-600">{formData.metrics.recoveryScore}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-indigo-600">{formData.metrics.recoveryScore}</div>
               <div className="text-xs text-gray-500 mt-1">Recovery status</div>
             </div>
 
             {/* Consistency Score */}
-            <div className="p-4 bg-teal-50 rounded-lg border-2 border-teal-200">
+            <div className="p-3 sm:p-4 bg-teal-50 rounded-lg border-2 border-teal-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Consistency</span>
                 <Calendar className="w-5 h-5 text-teal-600" />
               </div>
-              <div className="text-3xl font-bold text-teal-600">{formData.metrics.consistencyScore}%</div>
+              <div className="text-2xl sm:text-3xl font-bold text-teal-600">{formData.metrics.consistencyScore}%</div>
               <div className="text-xs text-gray-500 mt-1">4-week consistency</div>
             </div>
           </div>
@@ -377,7 +379,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
           <CardDescription>CTL (Fitness) and ATL (Fatigue) over the last 90 days</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
+          <ResponsiveContainer width="100%" height={250} className="sm:h-[300px] md:h-[350px]">
             <AreaChart data={formData.chartData.fitnessHistory}>
               <defs>
                 <linearGradient id="colorFitness" x1="0" y1="0" x2="0" y2="1">

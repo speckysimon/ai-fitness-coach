@@ -92,7 +92,7 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Age */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
                     Age
                   </label>
@@ -104,14 +104,14 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
                     placeholder="30"
                     min="13"
                     max="100"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Used for age-graded performance analysis</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for age-graded performance analysis</p>
                 </div>
 
                 {/* Gender */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     Gender
                   </label>
@@ -119,19 +119,19 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
                     name="gender"
                     value={formData.gender}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Select gender</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                     <option value="other">Other</option>
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">Helps provide gender-specific recommendations</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Helps provide gender-specific recommendations</p>
                 </div>
 
                 {/* Height */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
                     <Ruler className="w-4 h-4" />
                     Height (cm)
                   </label>
@@ -144,14 +144,14 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
                     min="100"
                     max="250"
                     step="0.1"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Used for BMI and body composition metrics</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for BMI and body composition metrics</p>
                 </div>
 
                 {/* Weight */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
                     <Weight className="w-4 h-4" />
                     Weight (kg)
                   </label>
@@ -164,9 +164,9 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
                     min="30"
                     max="200"
                     step="0.1"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Used for power-to-weight ratio calculations</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for power-to-weight ratio calculations</p>
                 </div>
               </div>
 

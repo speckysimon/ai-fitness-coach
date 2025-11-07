@@ -25,11 +25,11 @@ class WorkoutReminderManager {
    */
   start() {
     if (this.isRunning) {
-      logger.log('Workout reminder manager already running');
+      logger.info('Workout reminder manager already running');
       return;
     }
 
-    logger.log('Starting workout reminder manager');
+    logger.info('Starting workout reminder manager');
     this.isRunning = true;
 
     // Initialize notifications
@@ -53,7 +53,7 @@ class WorkoutReminderManager {
       this.checkInterval = null;
     }
     this.isRunning = false;
-    logger.log('Workout reminder manager stopped');
+    logger.info('Workout reminder manager stopped');
   }
 
   /**
@@ -119,7 +119,7 @@ class WorkoutReminderManager {
         const nutritionWithinWindow = nutritionTimeDiff <= 0 && nutritionTimeDiff > -(30 * 60 * 1000);
 
         if (nutritionWithinWindow && !this.nutritionNotifiedSessions.has(sessionId)) {
-          logger.log(`Sending nutrition reminder for: ${session.title} (2h until workout)`);
+          logger.info(`Sending nutrition reminder for: ${session.title} (2h until workout)`);
 
           // Send nutrition-focused notification
           await showWorkoutReminder(session, 2, true);
@@ -144,7 +144,7 @@ class WorkoutReminderManager {
           if (withinWindow) {
             const hoursUntil = Math.round(sessionDiff / (1000 * 60 * 60));
 
-            logger.log(`Sending main reminder for: ${session.title} (${hoursUntil}h until workout)`);
+            logger.info(`Sending main reminder for: ${session.title} (${hoursUntil}h until workout)`);
 
             // Send main notification
             await showWorkoutReminder(session, hoursUntil, false);
@@ -171,7 +171,7 @@ class WorkoutReminderManager {
   clearNotificationHistory() {
     this.notifiedSessions.clear();
     this.nutritionNotifiedSessions.clear();
-    logger.log('Notification history cleared');
+    logger.info('Notification history cleared');
   }
 
   /**

@@ -14,10 +14,15 @@ import adaptationRoutes from './routes/adaptation.js';
 import userRoutes from './routes/user.js';
 import feedbackRoutes from './routes/feedback.js';
 import manualActivityRoutes from './routes/manualActivities.js';
+import seasonRacesRoutes from './routes/seasonRaces.js';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 const adminRoutes = require('./routes/admin.cjs');
+const personaRoutes = require('./routes/personas.cjs');
+const imageGenerationRoutes = require('./routes/imageGeneration.cjs');
+const planTemplateRoutes = require('./routes/planTemplates.cjs');
+const themeConfigRoutes = require('./routes/themeConfigs.cjs');
 const modelPricingCron = require('./services/modelPricingCron.cjs');
 const apiKeyLoader = require('./services/apiKeyLoader.cjs');
 
@@ -47,6 +52,11 @@ app.use('/api/adaptation', adaptationRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/manual-activities', manualActivityRoutes);
+app.use('/api/season-races', seasonRacesRoutes);
+app.use('/api/personas', personaRoutes);
+app.use('/api/image-generation', imageGenerationRoutes);
+app.use('/api/plan-templates', planTemplateRoutes);
+app.use('/api/admin/theme-configs', themeConfigRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Serve uploaded files

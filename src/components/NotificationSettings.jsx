@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, BellOff, Check, X, TestTube2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/Card';
 import { Button } from './ui/Button';
 import {
   isNotificationSupported,
@@ -75,32 +74,20 @@ const NotificationSettings = () => {
 
   if (!isSupported) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BellOff className="w-5 h-5" />
-            Notifications Not Supported
-          </CardTitle>
-          <CardDescription>
-            Your browser doesn't support notifications. Please use a modern browser like Chrome, Firefox, or Safari.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <div className="flex items-center gap-2 mb-2">
+          <BellOff className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+          <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">Notifications Not Supported</h3>
+        </div>
+        <p className="text-sm text-yellow-700 dark:text-yellow-300">
+          Your browser doesn't support notifications. Please use a modern browser like Chrome, Firefox, or Safari.
+        </p>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bell className="w-5 h-5" />
-          Workout Reminders
-        </CardTitle>
-        <CardDescription>
-          Get notified before your workouts with personalized messages from {coach.name} {coach.avatar}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="space-y-6">
         {/* Permission Status */}
         <div className="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-2">
@@ -400,8 +387,7 @@ const NotificationSettings = () => {
             )}
           </>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 };
 

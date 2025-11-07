@@ -29,6 +29,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import ActivityMatchModal from '../components/ActivityMatchModal';
 import AdaptivePlanModal from '../components/AdaptivePlanModal';
 import SuccessModal from '../components/SuccessModal';
+import TemplateSelector from '../components/TemplateSelector';
 import { 
   calculateTrainingFocus, 
   calculateRiderTypeProgress, 
@@ -41,6 +42,7 @@ import {
   mergeCompletions,
   getCompletionStatus
 } from '../lib/activityMatching';
+import { fetchManualActivities, mergeActivities } from '../lib/manualActivityUtils';
 import confetti from 'canvas-confetti';
 import { planService } from '../services/planService';
 import { migrationService } from '../services/migrationService';
@@ -73,6 +75,8 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const [currentPlanId, setCurrentPlanId] = useState(null);
   const [backendSyncStatus, setBackendSyncStatus] = useState('idle'); // idle, syncing, synced, error
   const [migrationNeeded, setMigrationNeeded] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [planCreationMode, setPlanCreationMode] = useState(null); // 'ai' or 'template'
   const [formData, setFormData] = useState({
     eventName: '',
     eventDate: '',
@@ -86,9 +90,9 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   });
 
   useEffect(() => {
-    if (stravaTokens) {
-      loadActivities();
-    }
+    // Load activities (Strava + manual)
+    loadActivities();
+    
     // Load completed sessions from localStorage
     const saved = localStorage.getItem('completed_sessions');
     if (saved) {
@@ -504,31 +508,32 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   };
 
   const loadActivities = async () => {
-    if (!stravaTokens) {
-      return;
-    }
-
     try {
-      let tokensToUse = { ...stravaTokens };
+      let stravaActivities = [];
       
-      // Check if token is expired and refresh if needed
-      const nowSeconds = Math.floor(Date.now() / 1000);
-      if (tokensToUse.expires_at && tokensToUse.expires_at < nowSeconds) {
-        try {
-          tokensToUse = await refreshAccessToken();
-        } catch (refreshError) {
-          if (refreshError.message === 'REAUTH_REQUIRED') {
-            alert('Your Strava session has expired. Please reconnect Strava in Settings.');
-            return;
+      // Load Strava activities if connected
+      if (stravaTokens) {
+        let tokensToUse = { ...stravaTokens };
+        
+        // Check if token is expired and refresh if needed
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        if (tokensToUse.expires_at && tokensToUse.expires_at < nowSeconds) {
+          try {
+            tokensToUse = await refreshAccessToken();
+          } catch (refreshError) {
+            if (refreshError.message === 'REAUTH_REQUIRED') {
+              alert('Your Strava session has expired. Please reconnect Strava in Settings.');
+              // Continue to load manual activities even if Strava fails
+            } else {
+              throw refreshError;
+            }
           }
-          throw refreshError;
         }
-      }
 
-      const sixWeeksAgo = Math.floor(Date.now() / 1000) - (6 * 7 * 24 * 60 * 60);
-      const response = await fetch(
-        `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100`
-      );
+        const sixWeeksAgo = Math.floor(Date.now() / 1000) - (6 * 7 * 24 * 60 * 60);
+        const response = await fetch(
+          `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100`
+        );
 
       // Handle 401/403 errors by refreshing token and retrying
       if (response.status === 401 || response.status === 403) {
@@ -545,7 +550,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
           
           if (retryResponse.ok) {
             const data = await retryResponse.json();
-            setActivities(data);
+            stravaActivities = data;
 
             // Calculate FTP for power targets
             const ftpResponse = await fetch('/api/analytics/ftp', {
@@ -578,7 +583,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       // Try to parse response even if status isn't perfect
       if (response.ok) {
         const data = await response.json();
-        setActivities(data);
+        stravaActivities = data;
 
         // Calculate FTP for power targets
         const ftpResponse = await fetch('/api/analytics/ftp', {
@@ -600,11 +605,24 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         setHrZones(fthrData.zones);
       } else {
         logger.error('Failed to fetch activities:', response.status);
-        setActivities([]);
         setFtp(null);
         setFthr(null);
         setHrZones(null);
       }
+      } // Close Strava loading block
+      
+      // Load manual activities (always, regardless of Strava connection)
+      const manualActivities = await fetchManualActivities({
+        userId: userProfile?.id,
+        limit: 100
+      });
+      
+      // Merge Strava and manual activities
+      const allActivities = mergeActivities(stravaActivities, manualActivities);
+      setActivities(allActivities);
+      
+      logger.info(`Loaded ${stravaActivities.length} Strava + ${manualActivities.length} manual = ${allActivities.length} total activities`);
+      
     } catch (error) {
       logger.error('Error loading activities:', error);
       setActivities([]);
@@ -687,6 +705,13 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       const raceHistory = loadRaceHistory();
       const latestRace = raceHistory[0];
 
+      // Debug: Log AI context being sent
+      console.log('🤖 Generating plan with AI Context:', formData.aiContext);
+      console.log('🤖 AI Context length:', formData.aiContext?.length || 0);
+      
+      // Get week start preference
+      const weekStartDay = localStorage.getItem('week_start_day') || 'Monday';
+      
       const response = await fetch('/api/training/plan/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -704,6 +729,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             daysPerWeek: parseInt(formData.daysPerWeek),
             maxHoursPerWeek: parseInt(formData.maxHoursPerWeek),
             preference: formData.preference,
+            weekStartDay, // Pass week start preference
           },
           userProfile, // Pass user profile for personalized training
           illnessHistory, // Pass illness/injury history for safer plan generation
@@ -741,6 +767,10 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       });
 
       const planData = await response.json();
+      
+      console.log('🤖 AI Response - Expected weeks:', duration);
+      console.log('🤖 AI Response - Received weeks:', planData.weeks?.length);
+      console.log('🤖 AI Response - Week numbers:', planData.weeks?.map(w => w.weekNumber));
       
       // Validate that AI returned all weeks
       if (!planData.weeks || planData.weeks.length !== duration) {
@@ -905,6 +935,56 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
     setShowSuccessModal(true);
   };
 
+  const handleTemplateSelect = async (template) => {
+    setLoading(true);
+    setShowTemplateSelector(false);
+    
+    try {
+      // Use template's plan_data directly
+      const templatePlan = template.plan_data;
+      
+      // Add dates to sessions based on start date
+      const planWithDates = addDatesToSessions(templatePlan, formData.startDate);
+      
+      // Add metadata
+      planWithDates.eventType = template.event_type;
+      planWithDates.templateId = template.id;
+      planWithDates.templateName = template.name;
+      planWithDates.goals = {
+        eventName: formData.eventName || template.name,
+        eventDate: formData.eventDate,
+        startDate: formData.startDate,
+        eventType: template.event_type,
+        priority: formData.priority,
+        daysPerWeek: template.days_per_week,
+        maxHoursPerWeek: template.hours_per_week_max,
+        preference: formData.preference,
+        duration: template.duration_weeks,
+        isTemplate: true
+      };
+      
+      setPlan(planWithDates);
+      await savePlanWithBackend(planWithDates);
+      setPlanLoadedFromStorage(false);
+      
+      // Clear completed sessions for new plan
+      setCompletedSessions({});
+      localStorage.removeItem('completed_sessions');
+      
+      // Show success message
+      setSuccessMessage({
+        title: 'Template Applied Successfully!',
+        message: `${template.name} has been added to your training plan. You can now track your progress and match activities.`
+      });
+      setShowSuccessModal(true);
+    } catch (error) {
+      logger.error('Error applying template:', error);
+      alert('Failed to apply template. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const syncToCalendar = async () => {
     if (!googleTokens) {
       alert('Google Calendar not connected. Please connect in Settings first.');
@@ -975,11 +1055,11 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   };
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="space-y-6 sm:space-y-8 max-w-6xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">AI Coach</h1>
-        <p className="text-gray-600 mt-1">Your personal AI cycling coach - create and adapt training plans based on your goals</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Training Plan</h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Your AI-powered training plan - create and adapt plans based on your goals</p>
       </div>
 
       {/* Race Integration Indicator */}
@@ -989,41 +1069,41 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         const latestRace = raceHistory[0];
         
         return (
-          <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <Brain className="w-6 h-6 text-purple-600 mt-0.5 flex-shrink-0" />
+          <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-[var(--color-primary)]/10 dark:from-purple-950/30 dark:to-[var(--color-primary-dark)]/20">
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
                     AI Will Use Your Race Data
-                    <Award className="w-5 h-5 text-purple-600" />
+                    <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </h3>
-                  <p className="text-gray-700 mb-3">
+                  <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mb-3">
                     Your training plan will be customized based on your recent race performance:
                   </p>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2 text-xs sm:text-sm text-gray-900 dark:text-gray-100">
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
                       <span>Addressing pacing issues (Score: {latestRace.pacingScore}/100)</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
                       <span>Building on your strengths: {latestRace.whatWentWell[0]}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
                       <span>Focus: {latestRace.trainingFocus[0]}</span>
                     </div>
                   </div>
-                  <div className="mt-4 pt-4 border-t border-purple-200">
+                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-purple-200 dark:border-purple-800">
                     <Button
                       onClick={() => window.location.href = '/race-analysis'}
                       variant="outline"
                       size="sm"
-                      className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                      className="text-purple-600 dark:text-purple-400 border-purple-300 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/30 w-full sm:w-auto text-xs sm:text-sm"
                     >
                       View Full Race Analysis
-                      <ArrowRight className="w-4 h-4 ml-2" />
+                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
                     </Button>
                   </div>
                 </div>
@@ -1036,7 +1116,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       {/* Form */}
       <Card>
         <CardHeader 
-          className="cursor-pointer hover:bg-gray-50 transition-colors"
+          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           onClick={() => setIsFormExpanded(!isFormExpanded)}
         >
           <div className="flex items-center justify-between">
@@ -1048,15 +1128,15 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
               <CardDescription>Tell us about your target event and preferences</CardDescription>
             </div>
             {isFormExpanded ? (
-              <ChevronUp className="w-5 h-5 text-gray-500" />
+              <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-500" />
+              <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             )}
           </div>
         </CardHeader>
         {isFormExpanded && (
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
                 Event Name
@@ -1184,8 +1264,8 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 
           {/* Athlete Metrics Indicator */}
           {(ftp || fthr || userProfile?.weight) && (
-            <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-950/30 border-2 border-purple-200 dark:border-purple-800 rounded-lg">
-              <div className="flex items-start gap-3">
+            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-purple-50 dark:bg-purple-950/30 border-2 border-purple-200 dark:border-purple-800 rounded-lg">
+              <div className="flex items-start gap-2 sm:gap-3">
                 <User className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-1">
@@ -1194,34 +1274,34 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                   <p className="text-xs text-purple-700 dark:text-purple-300 mb-3">
                     Your AI coach has analyzed your performance data to create a plan matched to your current fitness level.
                   </p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
                     {ftp && (
-                      <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded">
+                      <div className="bg-purple-100 dark:bg-purple-900/30 p-2 sm:p-3 rounded">
                         <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">FTP</div>
-                        <div className="text-lg font-bold text-purple-900 dark:text-purple-100">{ftp}W</div>
+                        <div className="text-base sm:text-lg font-bold text-purple-900 dark:text-purple-100">{ftp}W</div>
                         <div className="text-xs text-purple-700 dark:text-purple-300">Power Threshold</div>
                       </div>
                     )}
                     {fthr && (
-                      <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded">
+                      <div className="bg-purple-100 dark:bg-purple-900/30 p-2 sm:p-3 rounded">
                         <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">FTHR</div>
-                        <div className="text-lg font-bold text-purple-900 dark:text-purple-100">{fthr} bpm</div>
+                        <div className="text-base sm:text-lg font-bold text-purple-900 dark:text-purple-100">{fthr} bpm</div>
                         <div className="text-xs text-purple-700 dark:text-purple-300">HR Threshold</div>
                       </div>
                     )}
                     {ftp && userProfile?.weight && (
-                      <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded">
+                      <div className="bg-purple-100 dark:bg-purple-900/30 p-2 sm:p-3 rounded">
                         <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">Power/Weight</div>
-                        <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                        <div className="text-base sm:text-lg font-bold text-purple-900 dark:text-purple-100">
                           {(ftp / userProfile.weight).toFixed(2)}
                         </div>
                         <div className="text-xs text-purple-700 dark:text-purple-300">W/kg</div>
                       </div>
                     )}
                     {userProfile?.weight && userProfile?.height && (
-                      <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded">
+                      <div className="bg-purple-100 dark:bg-purple-900/30 p-2 sm:p-3 rounded">
                         <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">BMI</div>
-                        <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                        <div className="text-base sm:text-lg font-bold text-purple-900 dark:text-purple-100">
                           {((userProfile.weight / ((userProfile.height / 100) ** 2))).toFixed(1)}
                         </div>
                         <div className="text-xs text-purple-700 dark:text-purple-300">Body Mass Index</div>
@@ -1233,7 +1313,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                       <p className="text-xs font-medium text-purple-800 dark:text-purple-200 mb-2">
                         💓 HR Training Zones (based on 6-week FTHR)
                       </p>
-                      <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 text-xs">
                         {Object.entries(hrZones).map(([key, zone]) => (
                           <div key={key} className="p-2 rounded" style={{ backgroundColor: `${zone.color}20`, borderLeft: `3px solid ${zone.color}` }}>
                             <div className="font-semibold" style={{ color: zone.color }}>
@@ -1308,14 +1388,14 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
           )}
 
           {/* AI Coaching Context Section */}
-          <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-start gap-3 mb-3">
-              <Brain className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 border-2 border-[var(--color-primary)]/30 dark:border-[var(--color-primary-dark)]/50 rounded-lg">
+            <div className="flex items-start gap-2 sm:gap-3 mb-3">
+              <Brain className="w-5 h-5 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <label htmlFor="aiContext" className="block text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                <label htmlFor="aiContext" className="block text-sm font-semibold text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] mb-1">
                   Tell Your AI Coach More (Optional)
                 </label>
-                <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
+                <p className="text-xs text-[var(--color-primary)]/80 dark:text-[var(--color-primary-dark)]/80 mb-3">
                   Share additional context about your training history, goals, constraints, 
                   or preferences to help create a more personalized plan. This information will be used when you press <span className="font-semibold">"Generate Training Plan"</span> below.
                 </p>
@@ -1341,7 +1421,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
               <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
                 💡 Helpful things to mention:
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-blue-700 dark:text-blue-300">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-blue-700 dark:text-blue-300">
                 <div className="flex items-start gap-1">
                   <span>•</span>
                   <span>Training history & experience level</span>
@@ -1370,25 +1450,45 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             </div>
           </div>
 
-          <div className="mt-6">
-            <Button
-              onClick={generatePlan}
-              disabled={loading || !formData.eventName}
-              className="w-full md:w-auto"
-              size="lg"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Generating Plan...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate Training Plan
-                </>
-              )}
-            </Button>
+          <div className="mt-4 sm:mt-6">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <Button
+                onClick={generatePlan}
+                disabled={loading || !formData.eventName}
+                className="flex-1"
+                size="lg"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Generating Plan...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    AI Generate Plan
+                  </>
+                )}
+              </Button>
+              
+              <div className="flex items-center justify-center text-gray-400 dark:text-gray-600">
+                <span className="text-sm font-medium">OR</span>
+              </div>
+              
+              <Button
+                onClick={() => setShowTemplateSelector(true)}
+                disabled={loading}
+                variant="outline"
+                className="flex-1 border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 dark:border-[var(--color-primary-dark)] dark:text-[var(--color-primary-dark)] dark:hover:bg-[var(--color-primary-dark)]/20"
+                size="lg"
+              >
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                Use a Template
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+              Choose AI for personalized plans or browse pre-built templates from expert coaches
+            </p>
           </div>
         </CardContent>
         )}
@@ -1402,33 +1502,33 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)]" />
                   Your Training Progress
                 </h3>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   {calculateProgress().completed} of {calculateProgress().total} sessions completed
                 </p>
                 <div className="flex items-center gap-3 mt-2 text-xs">
-                  <span className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded">
+                  <span className="flex items-center gap-1 px-2 py-1 bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] rounded">
                     <ZapIcon className="w-3 h-3" />
                     {calculateProgress().autoMatched} auto-matched
                   </span>
-                  <span className="flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded">
+                  <span className="flex items-center gap-1 px-2 py-1 bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 rounded">
                     {calculateProgress().manual} manual
                   </span>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-blue-600">
+                <div className="text-3xl font-bold text-[var(--color-primary)] dark:text-[var(--color-primary-dark)]">
                   {calculateProgress().percentage}%
                 </div>
-                <p className="text-xs text-gray-500">Complete</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Complete</p>
               </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
               <div 
-                className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+                className="bg-[var(--color-primary)] dark:bg-[var(--color-primary-dark)] h-3 rounded-full transition-all duration-500"
                 style={{ width: `${calculateProgress().percentage}%` }}
               />
             </div>
@@ -1544,13 +1644,13 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 
                   {/* Completion Stats */}
                   <div className="mt-6 grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-blue-50 rounded-lg text-center">
-                      <div className="text-2xl font-bold text-blue-600">{riderProgress.completionRate}%</div>
-                      <div className="text-xs text-gray-600 mt-1">Plan Completion</div>
+                    <div className="p-3 bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-[var(--color-primary)] dark:text-[var(--color-primary-dark)]">{riderProgress.completionRate}%</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Plan Completion</div>
                     </div>
-                    <div className="p-3 bg-green-50 rounded-lg text-center">
-                      <div className="text-2xl font-bold text-green-600">{riderProgress.alignmentScore}%</div>
-                      <div className="text-xs text-gray-600 mt-1">Training Alignment</div>
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">{riderProgress.alignmentScore}%</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Training Alignment</div>
                     </div>
                   </div>
                 </CardContent>
@@ -1566,7 +1666,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                 <div className="flex items-center gap-3">
                   <CardTitle>Your Plan</CardTitle>
                   {planLoadedFromStorage && (
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full flex items-center gap-1">
+                    <span className="px-3 py-1 bg-[var(--color-primary)]/20 dark:bg-[var(--color-primary-dark)]/20 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] text-xs font-semibold rounded-full flex items-center gap-1">
                       <CheckCircle className="w-3 h-3" />
                       Saved Plan
                     </span>
@@ -1578,7 +1678,8 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                 <Button 
                   onClick={() => setShowAdaptiveModal(true)}
                   variant="default"
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  className="bg-gradient-to-r from-purple-600 to-[var(--color-primary)] hover:from-purple-700 hover:to-[var(--color-primary)]/90"
+                  title="Modify existing sessions (reschedule, change intensity, move days). Cannot add new weeks."
                 >
                   <Brain className="w-4 h-4 mr-2" />
                   Adjust Plan
@@ -1588,6 +1689,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                   disabled={syncing} 
                   variant="default"
                   className="bg-green-600 hover:bg-green-700"
+                  title="Add all training sessions to your Google Calendar"
                 >
                   {syncing ? (
                     <>
@@ -1603,15 +1705,27 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                 </Button>
                 <Button onClick={() => {
                   generatePlan(false); // Will show confirmation since plan exists
-                }} variant="outline">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Regenerate Plan
+                }} variant="outline" disabled={loading} title="Create a new plan from scratch. Use this to change event date or add more weeks.">
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Regenerate Plan
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Debug: Log plan structure */}
+              {console.log('📋 Plan weeks count:', plan.weeks?.length)}
+              {console.log('📋 Plan weeks:', plan.weeks?.map(w => w.weekNumber))}
               {plan.weeks.map((week) => {
                 const isExpanded = expandedWeeks[week.weekNumber];
                 const isCurrentWeek = getCurrentWeek(plan) === week.weekNumber;
@@ -1628,46 +1742,46 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                 
                 return (
                 <div key={week.weekNumber} className={`border-2 rounded-lg overflow-hidden ${
-                  isCurrentWeek ? 'border-blue-500 shadow-md' : 'border-gray-200'
+                  isCurrentWeek ? 'border-[var(--color-primary)] dark:border-[var(--color-primary-dark)] shadow-md' : 'border-gray-200 dark:border-gray-700'
                 }`}>
                   <div 
                     className={`p-4 cursor-pointer transition-colors ${
                       isCurrentWeek 
-                        ? 'bg-blue-50 hover:bg-blue-100' 
-                        : 'bg-gray-50 hover:bg-gray-100'
+                        ? 'bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 hover:bg-[var(--color-primary)]/20 dark:hover:bg-[var(--color-primary-dark)]/30' 
+                        : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                     onClick={() => toggleWeekExpanded(week.weekNumber)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {isExpanded ? (
-                          <ChevronUp className="w-5 h-5 text-gray-600" />
+                          <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-600" />
+                          <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         )}
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                             Week {week.weekNumber}: {week.focus}
                             {isCurrentWeek && (
-                              <span className="px-2 py-1 bg-blue-500 text-white text-xs font-semibold rounded">
+                              <span className="px-2 py-1 bg-[var(--color-primary)] dark:bg-[var(--color-primary-dark)] text-white text-xs font-semibold rounded">
                                 Current Week
                               </span>
                             )}
                           </h3>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             Total: {week.totalHours}h • {weekCompleted}/{weekSessions} sessions completed ({weekCompletionPct}%)
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {weekCompletionPct === 100 && (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
                         )}
                       </div>
                     </div>
                   </div>
                   {isExpanded && (
-                  <div className="p-4 bg-white space-y-2">
+                  <div className="p-4 bg-white dark:bg-gray-800 space-y-2">
                     {week.sessions.map((session, idx) => {
                       const sessionKey = `${week.weekNumber}-${idx}`;
                       const merged = mergeCompletions(completedSessions, automaticMatches);
@@ -1690,14 +1804,14 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                           key={idx}
                           className={`p-4 border-2 rounded-lg transition-all cursor-pointer ${
                             session.status === 'cancelled'
-                              ? 'border-red-300 bg-red-50 opacity-60'
+                              ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 opacity-60'
                               : session.modified
-                              ? 'border-orange-300 bg-orange-50'
+                              ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20'
                               : isCompleted 
                               ? `${completionStatus.borderColor} ${completionStatus.bgColor}` 
                               : isMissed
-                              ? 'border-red-200 bg-red-50'
-                              : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
+                              ? 'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
+                              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-[var(--color-primary)]/30 dark:hover:border-[var(--color-primary-dark)]/50 hover:shadow-md'
                           }`}
                           onClick={() => setHoveredSession(session)}
                         >
@@ -1705,7 +1819,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                             <div className="flex items-center gap-4 flex-1">
                               <div className={`w-2 h-12 rounded ${
                                 session.type === 'Recovery' ? 'bg-green-500' :
-                                session.type === 'Endurance' ? 'bg-blue-500' :
+                                session.type === 'Endurance' ? 'bg-[var(--color-endurance)]' :
                                 session.type === 'Tempo' ? 'bg-yellow-500' :
                                 session.type === 'Threshold' ? 'bg-orange-500' :
                                 session.type === 'VO2Max' ? 'bg-red-500' :
@@ -1715,20 +1829,20 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <h4 className={`font-semibold ${
                                     isCompleted ? `${completionStatus.color} line-through` : 
-                                    isMissed ? 'text-red-700 line-through' :
-                                    session.status === 'cancelled' ? 'text-red-700 line-through' :
-                                    session.modified ? 'text-orange-700' :
-                                    'text-gray-900'
+                                    isMissed ? 'text-red-700 dark:text-red-400 line-through' :
+                                    session.status === 'cancelled' ? 'text-red-700 dark:text-red-400 line-through' :
+                                    session.modified ? 'text-orange-700 dark:text-orange-400' :
+                                    'text-gray-900 dark:text-gray-100'
                                   }`}>
                                     {session.title}
                                   </h4>
                                   <span className={`px-2 py-0.5 text-xs rounded font-medium ${
-                                    session.type === 'Recovery' ? 'bg-green-100 text-green-700' :
-                                    session.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
-                                    session.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
-                                    session.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
-                                    session.type === 'VO2Max' ? 'bg-red-100 text-red-700' :
-                                    'bg-purple-100 text-purple-700'
+                                    session.type === 'Recovery' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
+                                    session.type === 'Endurance' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' :
+                                    session.type === 'Tempo' ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400' :
+                                    session.type === 'Threshold' ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400' :
+                                    session.type === 'VO2Max' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' :
+                                    'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400'
                                   }`}>
                                     {session.type}
                                   </span>
@@ -1752,31 +1866,31 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                   )}
                                 </div>
                                 <p className={`text-sm mt-1 ${
-                                  isCompleted ? 'text-green-700' : 
-                                  isMissed ? 'text-red-700' :
-                                  session.status === 'cancelled' ? 'text-red-600 line-through' :
-                                  session.modified ? 'text-orange-600' :
-                                  'text-gray-600'
+                                  isCompleted ? 'text-green-700 dark:text-green-400' : 
+                                  isMissed ? 'text-red-700 dark:text-red-400' :
+                                  session.status === 'cancelled' ? 'text-red-600 dark:text-red-400 line-through' :
+                                  session.modified ? 'text-orange-600 dark:text-orange-400' :
+                                  'text-gray-600 dark:text-gray-400'
                                 }`}>
                                   {session.description}
                                 </p>
                                 {session.cancellationReason && (
-                                  <p className="text-xs text-red-600 mt-1 italic">
+                                  <p className="text-xs text-red-600 dark:text-red-400 mt-1 italic">
                                     Reason: {session.cancellationReason}
                                   </p>
                                 )}
                                 {session.modificationReason && (
-                                  <p className="text-xs text-orange-600 mt-1 italic">
+                                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 italic">
                                     Adjustment: {session.modificationReason}
                                   </p>
                                 )}
                                 <div className="flex items-center gap-4 mt-2 text-xs flex-wrap">
-                                  <span className="flex items-center gap-1 text-gray-500">
+                                  <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
                                     <Clock className="w-3 h-3" />
                                     {session.duration} min
                                   </span>
                                   {session.date && (
-                                    <span className="font-medium text-gray-500">
+                                    <span className="font-medium text-gray-500 dark:text-gray-400">
                                       {new Date(session.date).toLocaleDateString('en-US', { 
                                         weekday: 'short',
                                         month: 'short', 
@@ -1785,29 +1899,29 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                     </span>
                                   )}
                                   {isCompleted && completion.automatic && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-semibold">
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 rounded font-semibold">
                                       <ZapIcon className="w-3 h-3" />
                                       Auto-matched ({completion.alignmentScore}%)
                                     </span>
                                   )}
                                   {isCompleted && completion.manualOverride && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-semibold">
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 rounded font-semibold">
                                       Manual Override ({completion.alignmentScore}%)
                                     </span>
                                   )}
                                   {isCompleted && !completion.automatic && !completion.manualOverride && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded font-semibold">
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 rounded font-semibold">
                                       Manual
                                     </span>
                                   )}
                                   {!isCompleted && automaticMatches[sessionKey] && automaticMatches[sessionKey].matched && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded font-semibold">
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 rounded font-semibold">
                                       <ZapIcon className="w-3 h-3" />
                                       Activity found ({Math.round(automaticMatches[sessionKey].alignmentScore)}%)
                                     </span>
                                   )}
                                   {!isCompleted && automaticMatches[sessionKey] && !automaticMatches[sessionKey].matched && automaticMatches[sessionKey].activity && automaticMatches[sessionKey].activity.id && automaticMatches[sessionKey].alignmentScore > 0 && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-semibold">
+                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 rounded font-semibold">
                                       <AlertCircle className="w-3 h-3" />
                                       Low match ({Math.round(automaticMatches[sessionKey].alignmentScore)}%)
                                     </span>
@@ -1818,7 +1932,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                         e.stopPropagation();
                                         openMatchModal(session, sessionKey);
                                       }}
-                                      className="text-blue-600 font-medium hover:text-blue-800 transition-colors"
+                                      className="text-blue-600 dark:text-blue-400 font-medium hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
                                     >
                                       View Match
                                     </button>
@@ -1877,7 +1991,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                       </Button>
                                       
                                       {showMissedDropdown === sessionKey && (
-                                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border-2 border-gray-200 z-10">
+                                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 z-10">
                                           <div className="p-2">
                                             <div className="text-xs font-semibold text-gray-500 px-3 py-2">
                                               Reason for missing:
@@ -1934,28 +2048,28 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             {plan.coachNotes && plan.coachNotes.length > 0 && (() => {
               const coach = getCoachPersona(getUserCoach());
               return (
-                <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
+                <div className="mt-6 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden">
                   <button
                     onClick={() => setIsCoachNotesExpanded(!isCoachNotesExpanded)}
-                    className="w-full p-4 bg-blue-50 hover:bg-blue-100 transition-colors flex items-center justify-between"
+                    className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors flex items-center justify-between"
                   >
-                    <h4 className="font-medium text-blue-900 flex items-center gap-2">
+                    <h4 className="font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
                       <span className="text-xl">{coach.avatar}</span>
                       Coach Notes ({plan.coachNotes.length})
                     </h4>
                     {isCoachNotesExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-blue-600" />
+                      <ChevronUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-blue-600" />
+                      <ChevronDown className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     )}
                   </button>
                   {isCoachNotesExpanded && (
-                    <div className="p-4 bg-white space-y-3">
+                    <div className="p-4 bg-white dark:bg-gray-800 space-y-3">
                       {[...plan.coachNotes].reverse().map((note, idx) => (
                         <div key={idx} className="border-l-4 border-blue-400 pl-3 py-2">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-lg">{coach.avatar}</span>
-                            <span className="text-xs font-semibold text-blue-600">
+                            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
                               {note.timestamp ? new Date(note.timestamp).toLocaleString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
@@ -1965,12 +2079,12 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                               }) : 'Initial Plan'}
                             </span>
                             {note.type && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
+                              <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-xs rounded">
                                 {note.type}
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-blue-700">{note.message || note}</p>
+                          <p className="text-sm text-blue-700 dark:text-blue-400">{note.message || note}</p>
                         </div>
                       ))}
                     </div>
@@ -1980,24 +2094,24 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             })()}
             {/* Legacy support for old plans with single notes field */}
             {plan.notes && !plan.coachNotes && (
-              <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
+              <div className="mt-6 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden">
                 <button
                   onClick={() => setIsCoachNotesExpanded(!isCoachNotesExpanded)}
-                  className="w-full p-4 bg-blue-50 hover:bg-blue-100 transition-colors flex items-center justify-between"
+                  className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors flex items-center justify-between"
                 >
-                  <h4 className="font-medium text-blue-900 flex items-center gap-2">
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
                     <Info className="w-4 h-4" />
                     Coach Notes
                   </h4>
                   {isCoachNotesExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-blue-600" />
+                    <ChevronUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-blue-600" />
+                    <ChevronDown className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   )}
                 </button>
                 {isCoachNotesExpanded && (
-                  <div className="p-4 bg-white">
-                    <p className="text-sm text-blue-700">{plan.notes}</p>
+                  <div className="p-4 bg-white dark:bg-gray-800">
+                    <p className="text-sm text-blue-700 dark:text-blue-400">{plan.notes}</p>
                   </div>
                 )}
               </div>
@@ -2066,6 +2180,20 @@ Are you sure you want to continue?`}
         title={successMessage.title}
         message={successMessage.message}
       />
+
+      {/* Template Selector Modal */}
+      {showTemplateSelector && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-6 overflow-y-auto max-h-[90vh]">
+              <TemplateSelector
+                onSelectTemplate={handleTemplateSelect}
+                onClose={() => setShowTemplateSelector(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

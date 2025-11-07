@@ -1,21 +1,78 @@
 # RiderLabs TODO List
 
-## 🔴 HIGH PRIORITY - Fix Before Launch
+## 🔴 HIGH PRIORITY - Current Sprint
 
-### 1. Training Plan Generation Not Working
-- [ ] Check OpenAI API key in production `.env`
-- [ ] Test `/api/training/plan/generate` endpoint manually
-- [ ] Check PM2 logs for OpenAI errors: `pm2 logs riderlabs | grep -i openai`
+### 1. Theme System Integration ✅ COMPLETED (Nov 5, 2025)
+- [x] **Connect main site themes to admin backend**
+  - [x] Create theme service (`src/lib/themeService.js`)
+  - [x] Fetch active theme from API on app initialization
+  - [x] Cache theme in localStorage (1-hour TTL)
+  - [x] Create CSS custom properties for all theme colors
+  - [x] Integrate theme initialization in App.jsx
+  - [x] Add theme reload on admin activation
+  - [x] Document integration process (THEME_SYSTEM_INTEGRATION.md)
+  - [ ] Add theme toggle/preview functionality (future enhancement)
+  - [ ] Replace hardcoded Tailwind classes with CSS variables (optional migration)
+  - [ ] Test theme switching across all pages (requires active theme in DB)
+
+### 2. Mobile Responsiveness ✅ IN PROGRESS (Nov 7, 2025)
+- [ ] **Make all pages mobile responsive**
+  - [ ] Dashboard - cards, charts, activity feed
+  - [ ] Training Plan - session cards, calendar view
+  - [ ] All Activities - list view, filters
+  - [x] Race Analytics - analysis cards, charts ✅ DONE
+  - [x] Post-Race Analysis - feedback form, analysis display ✅ DONE
+  - [ ] Methodology - collapsible sections, info boxes
+  - [ ] Form & Fitness - metrics cards, charts
+  - [ ] Settings - form layouts, sections
+  - [ ] Profile Setup - multi-step form
+  - [ ] Calendar - month/week views
+  - [x] Today's Workout - already mobile-friendly ✅
+  - [ ] Admin pages - tables, forms
+- [ ] Test all pages on mobile viewport (320px - 768px)
+- [ ] Fix layout issues on small screens
+- [ ] Ensure touch-friendly buttons and interactions
+- [ ] Test navigation menu on mobile
+- [ ] Verify forms work on mobile (plan generation, race analysis, etc.)
+- [ ] Test charts and graphs on mobile
+- [ ] Ensure modals display properly on small screens
+
+### 3. Menu Cleanup & Navigation ✅ COMPLETED (Nov 1, 2025)
+- [x] Review current navigation structure
+- [x] Identify redundant or confusing menu items
+- [x] Reorganize menu for better UX
+- [x] Consider grouping related features (Race Intelligence section)
+- [x] Add icons where missing (Sparkles for Race Intelligence)
+- [x] Improve menu hierarchy (collapsible sections)
+- [x] Test navigation flow
+
+### 4. Dark Mode Polish (Proper Implementation) ✅ COMPLETED (Nov 2, 2025)
+- [x] **Note:** Previous dark mode was quick fix, needs proper implementation
+- [x] Audit ALL pages for dark mode consistency
+- [x] Fix hardcoded colors (replace with dark: variants)
+- [x] Methodology page - all light boxes fixed
+- [x] Form & Fitness page - Status card and form zones fixed
+- [x] Training Plan page - session cards with completion status
+- [x] Created comprehensive color audit document (DARK_MODE_COLOR_AUDIT.md)
+- [ ] Ensure WCAG AA contrast compliance (needs testing)
+- [ ] Test all components in dark mode (modals, dropdowns, tooltips, charts)
+
+### 5. Training Plan Generation - Production Testing
+- [ ] **Status:** Works in development, needs production verification
+- [ ] Test on production (riderlabs.io)
+- [ ] Verify OpenAI API key is set correctly in production `.env`
+- [ ] Test with different plan parameters (all event types)
+- [ ] Check PM2 logs for any errors: `pm2 logs riderlabs | grep -i openai`
 - [ ] Verify OpenAI API quota and billing status
-- [ ] Test with different plan parameters
-- [ ] Add better error messages to frontend
-- [ ] **Expected Issue:** API key not set or rate limiting
+- [ ] Test plan adjustments on production
+- [ ] Add better error messages to frontend if issues found
 
-### 2. Comprehensive Site Testing
+### 6. Comprehensive Site Testing
 - [ ] Test Dashboard - metrics, charts, activity feed
 - [ ] Test Training Plan Generation - all event types
 - [ ] Test Race Day Predictor - predictions and analysis
-- [ ] Test Post-Race Analysis - feedback form and AI analysis
+- [x] Test Post-Race Analysis - feedback form and AI analysis ✅ FIXED (Nov 7)
+- [x] Test Race Analytics - charts and race data ✅ FIXED (Nov 7)
 - [ ] Test FTP History - chart rendering and calculations
 - [ ] Test Form & Fitness - CTL/ATL/TSB graphs
 - [ ] Test Calendar - session display and navigation
@@ -24,11 +81,26 @@
 - [ ] Test Plan Adjustments - adaptive AI modifications
 - [ ] Test Session Completion - marking complete/missed
 - [ ] Test Dark Mode - all pages and components
-- [ ] Test Mobile Responsiveness - Today's Workout page
+- [x] Test Mobile Responsiveness - Race pages ✅ VERIFIED (Nov 7)
+- [x] Test Mobile Responsiveness - Today's Workout page ✅
 
 ---
 
 ## 🟡 MEDIUM PRIORITY - Post-Launch
+
+### Authentication & Security
+- [ ] **Forgot Password Feature**
+  - [ ] "Forgot Password" link on login page
+  - [ ] Password reset flow with secure tokens
+  - [ ] Email integration (SendGrid/Mailgun/Resend)
+  - [ ] Database table for reset tokens
+  - [ ] Reset email template
+  - [ ] Token expiration (1 hour)
+  - [ ] Rate limiting on reset requests
+- [ ] **Email Setup for riderlabs.io**
+  - [ ] Option 1: Cloudflare Email Routing (free forwarding)
+  - [ ] Option 2: Google Workspace (professional email)
+  - [ ] Configure transactional email service (SendGrid/Mailgun)
 
 ### Performance & Optimization
 - [ ] Monitor PM2 memory usage over 24 hours
@@ -108,6 +180,31 @@
 
 ## ✅ COMPLETED
 
+### November 2, 2025 - Dark Mode Completion & Theme System (v2.9.0)
+- [x] Complete dark mode implementation for Methodology page
+- [x] Complete dark mode implementation for Form & Fitness page
+- [x] Complete dark mode implementation for Training Plan page
+- [x] Created comprehensive color audit document (DARK_MODE_COLOR_AUDIT.md)
+- [x] Created Theme Configuration admin page (ThemeConfigPage.jsx)
+- [x] Created backend API for theme CRUD operations
+- [x] Created database migration for theme_configs table
+- [x] Added theme configuration route to admin navigation
+- [x] Documented all color usage across application
+- [x] Prepared roadmap for theme system integration
+
+### November 1, 2025 - Navigation & Settings UX Improvements (v2.8.0)
+- [x] Race Intelligence collapsible menu section
+- [x] Sidebar compaction (logo-only attributions)
+- [x] Settings page reorganization
+- [x] Remove legacy API Configuration section
+- [x] Remove Account/Logout section from Settings
+- [x] Make Coach and Reminders sections collapsible
+- [x] Timezone & Data Management side-by-side layout
+- [x] Move Changelog link to Settings About section
+- [x] Dynamic version number from package.json
+- [x] Component refactoring (CoachAvatarSelector, NotificationSettings)
+- [x] Dark mode support for all new sections
+
 ### October 24, 2025 - Deployment Session
 - [x] Fix login form dark mode labels
 - [x] Fix Zwift logo 404 error
@@ -155,11 +252,12 @@
 ## 🐛 Known Bugs
 
 ### Critical
-- Training plan generation not working (OpenAI API issue suspected)
-- Manual activity edit not saving (Oct 29, 2025)
+- Manual activity edit not saving (Oct 29, 2025) - needs investigation
 
 ### Minor
-- None currently identified
+- Dark mode has some inconsistencies (quick fix applied, needs proper audit)
+- Mobile responsiveness issues on various pages
+- Navigation menu could be cleaner/more organized
 
 ---
 
@@ -186,6 +284,6 @@
 
 ---
 
-**Last Updated:** October 31, 2025, 9:16am  
-**Status:** Production Live 🚀  
-**Next Session:** Fix training plan generation + manual activity edit + comprehensive testing
+**Last Updated:** November 2, 2025, 7:55pm  
+**Status:** Production Live 🚀 | v2.9.0 Released  
+**Next Session:** Theme system integration + mobile responsiveness + production testing

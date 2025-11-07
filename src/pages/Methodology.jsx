@@ -26,18 +26,18 @@ const Methodology = () => {
   const CollapsibleCard = ({ id, title, icon: Icon, description, children }) => (
     <Card>
       <CardHeader 
-        className="cursor-pointer hover:bg-gray-50 transition-colors"
+        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         onClick={() => toggleSection(id)}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Icon className="w-5 h-5 text-blue-600" />
+            <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <CardTitle>{title}</CardTitle>
           </div>
           {expandedSections[id] ? (
-            <ChevronUp className="w-5 h-5 text-gray-400" />
+            <ChevronUp className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           ) : (
-            <ChevronDown className="w-5 h-5 text-gray-400" />
+            <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           )}
         </div>
         {description && <CardDescription>{description}</CardDescription>}
@@ -53,14 +53,14 @@ const Methodology = () => {
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <BookOpen className="w-8 h-8 text-blue-600" />
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+          <BookOpen className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           Methodology & Science
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-gray-600 dark:text-gray-400 mt-2">
           Understanding the calculations and research behind your training metrics
         </p>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           Click any section to expand or collapse
         </p>
       </div>
@@ -70,7 +70,7 @@ const Methodology = () => {
         title="Evidence-Based Training"
         icon={BookOpen}
       >
-        <p className="text-gray-700">
+        <p className="text-gray-700 dark:text-gray-300">
           AI Fitness Coach uses scientifically validated methods developed by leading sports scientists 
           and adopted by professional coaches worldwide. All calculations are based on peer-reviewed 
           research and industry-standard protocols.
@@ -85,7 +85,7 @@ const Methodology = () => {
       >
         <div>
           <h3 className="font-semibold text-lg mb-2">What is the Learning Loop?</h3>
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             Our Post-Race Analysis system creates a complete learning loop that transforms race experiences 
             into actionable insights. By analyzing your race performance, pre-race training load, and subjective 
             feedback, the AI identifies what worked, what didn't, and automatically integrates these learnings 
@@ -93,9 +93,9 @@ const Methodology = () => {
           </p>
         </div>
 
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border-2 border-yellow-200">
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 p-4 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
           <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-yellow-600" />
+            <Trophy className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
             The Complete Race Lifecycle
           </h4>
           <div className="space-y-2 text-sm text-gray-700">
@@ -126,13 +126,13 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-3">Pre-Race Training Load Analysis</h4>
-          <p className="text-sm text-gray-700 mb-3">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
             Our system examines the 14 days before your race to determine if you arrived fresh or carrying fatigue. 
             This is critical for understanding race performance in context.
           </p>
-          <div className="space-y-3 text-sm text-gray-700">
+          <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
             <div>
               <strong>Data Collected:</strong>
               <ul className="ml-4 mt-1 space-y-1 list-disc">
@@ -144,7 +144,7 @@ const Methodology = () => {
                 <li>Individual activities with TSS values</li>
               </ul>
             </div>
-            <div className="bg-white p-3 rounded border border-blue-200">
+            <div className="bg-white dark:bg-gray-800 p-3 rounded border border-blue-200 dark:border-blue-700">
               <strong>Example Analysis:</strong>
               <div className="font-mono text-xs mt-2 space-y-1">
                 <div>Total TSS (14 days): 850</div>
@@ -152,7 +152,7 @@ const Methodology = () => {
                 <div>Week 1 TSS: 330</div>
                 <div>Taper Ratio: 63% ⚠️ (slightly high)</div>
               </div>
-              <p className="text-xs mt-2 text-gray-600">
+              <p className="text-xs mt-2 text-gray-600 dark:text-gray-400">
                 AI Insight: "Your taper ratio was 63% (ideal is 40-60%), meaning you didn't reduce 
                 volume enough in the final week. This likely contributed to the heavy legs you felt."
               </p>
@@ -160,9 +160,9 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-purple-50 p-4 rounded-lg">
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-3">AI Analysis Components</h4>
-          <div className="space-y-3 text-sm text-gray-700">
+          <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
             <div>
               <strong>1. Performance Scores (0-100):</strong>
               <ul className="ml-4 mt-1 space-y-1">
@@ -203,9 +203,9 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-green-50 p-4 rounded-lg">
+        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-3">Automatic Training Plan Integration</h4>
-          <p className="text-sm text-gray-700 mb-3">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
             When you generate your next training plan, the AI automatically loads your last 3 race analyses 
             and uses them to customize your training:
           </p>
@@ -219,9 +219,9 @@ const Methodology = () => {
                 <li>Specific recommendations from analysis</li>
               </ul>
             </div>
-            <div className="bg-white p-3 rounded border border-green-200 mt-2">
+            <div className="bg-white dark:bg-gray-800 p-3 rounded border border-green-200 dark:border-green-700 mt-2">
               <strong>Example Integration:</strong>
-              <p className="text-xs mt-1">
+              <p className="text-xs mt-1 dark:text-gray-300">
                 "This plan has been customized based on your recent race analysis. Key focus: 
                 <strong> Pacing Strategy</strong>. We're addressing your pacing score (60/100) and 
                 building on your strength in <strong>sustained power output</strong>. Sessions include 
@@ -231,38 +231,38 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">🎯 Taper Guidelines</h4>
-          <p className="text-sm text-gray-700 mb-3">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
             Research-backed taper ratios for optimal race-day freshness:
           </p>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm dark:text-gray-300">
             <div className="flex items-center justify-between">
               <span><strong>40-50%:</strong> Aggressive taper (hard training blocks)</span>
-              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs">OPTIMAL</span>
+              <span className="px-2 py-1 bg-green-200 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded text-xs">OPTIMAL</span>
             </div>
             <div className="flex items-center justify-between">
               <span><strong>50-60%:</strong> Standard taper (most athletes)</span>
-              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs">OPTIMAL</span>
+              <span className="px-2 py-1 bg-green-200 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded text-xs">OPTIMAL</span>
             </div>
             <div className="flex items-center justify-between">
               <span><strong>60-70%:</strong> Light taper (moderate training)</span>
-              <span className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded text-xs">ACCEPTABLE</span>
+              <span className="px-2 py-1 bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded text-xs">ACCEPTABLE</span>
             </div>
             <div className="flex items-center justify-between">
               <span><strong>70%+:</strong> Insufficient taper</span>
-              <span className="px-2 py-1 bg-red-200 text-red-800 rounded text-xs">CARRYING FATIGUE</span>
+              <span className="px-2 py-1 bg-red-200 dark:bg-red-900/40 text-red-800 dark:text-red-300 rounded text-xs">CARRYING FATIGUE</span>
             </div>
             <div className="flex items-center justify-between">
               <span><strong>&lt;40%:</strong> Excessive taper</span>
-              <span className="px-2 py-1 bg-orange-200 text-orange-800 rounded text-xs">DETRAINING RISK</span>
+              <span className="px-2 py-1 bg-orange-200 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300 rounded text-xs">DETRAINING RISK</span>
             </div>
           </div>
         </div>
 
         <div className="border-l-4 border-yellow-500 pl-4">
           <h4 className="font-semibold mb-2">📚 Academic Sources</h4>
-          <ul className="text-sm text-gray-700 space-y-2">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
             <li>
               <strong>Bosquet, L., et al.</strong> (2007). "Effects of tapering on performance: a meta-analysis." 
               <em>Medicine & Science in Sports & Exercise, 39</em>(8), 1358-1365.
@@ -301,9 +301,9 @@ const Methodology = () => {
           </ul>
         </div>
 
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg">
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">💡 Why This Matters</h4>
-          <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside ml-2">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-disc list-inside ml-2">
             <li>
               <strong>Complete Picture:</strong> Understanding performance requires context - race data alone 
               isn't enough. Pre-race training load is critical for interpretation.
@@ -340,64 +340,64 @@ const Methodology = () => {
       >
         <div>
           <h3 className="font-semibold text-lg mb-2">What is Rider Type Classification?</h3>
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             Our AI-powered system analyzes your power curve, activity patterns, and terrain preferences 
             to automatically classify you into one of six rider types. This helps you understand your 
             natural strengths and optimize your training focus.
           </p>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-3">The Six Rider Types</h4>
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <span className="text-2xl">⚡</span>
               <div>
-                <div className="font-semibold text-gray-900">Sprinter</div>
-                <div className="text-sm text-gray-700">Explosive power in short efforts (5-30s), excels in final sprints</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100">Sprinter</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">Explosive power in short efforts (5-30s), excels in final sprints</div>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-2xl">⛰️</span>
               <div>
-                <div className="font-semibold text-gray-900">Climber</div>
-                <div className="text-sm text-gray-700">High power-to-weight ratio, thrives on steep gradients and long climbs</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100">Climber</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">High power-to-weight ratio, thrives on steep gradients and long climbs</div>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-2xl">🚴</span>
               <div>
-                <div className="font-semibold text-gray-900">Rouleur</div>
-                <div className="text-sm text-gray-700">Consistent power output, strong on flat and rolling terrain</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100">Rouleur</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">Consistent power output, strong on flat and rolling terrain</div>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-2xl">⏱️</span>
               <div>
-                <div className="font-semibold text-gray-900">Time Trialist</div>
-                <div className="text-sm text-gray-700">Sustained high power (20-60min), excellent aerodynamic efficiency</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100">Time Trialist</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">Sustained high power (20-60min), excellent aerodynamic efficiency</div>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-2xl">💥</span>
               <div>
-                <div className="font-semibold text-gray-900">Puncheur</div>
-                <div className="text-sm text-gray-700">Strong on short, steep climbs (1-5min) and punchy efforts</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100">Puncheur</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">Strong on short, steep climbs (1-5min) and punchy efforts</div>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-2xl">🏆</span>
               <div>
-                <div className="font-semibold text-gray-900">All-Rounder</div>
-                <div className="text-sm text-gray-700">Balanced abilities across all terrains and durations</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100">All-Rounder</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">Balanced abilities across all terrains and durations</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">How Classification Works</h4>
-          <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+          <ol className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-decimal list-inside">
             <li><strong>Power Curve Analysis:</strong> Examines your best power across 8 durations (5s to 60min)</li>
             <li><strong>Terrain Preference:</strong> Analyzes elevation gain patterns in your activities</li>
             <li><strong>Power-to-Weight:</strong> Evaluates climbing ability relative to body weight</li>
@@ -406,9 +406,9 @@ const Methodology = () => {
           </ol>
         </div>
 
-        <div className="bg-yellow-50 p-4 rounded-lg">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">💡 Why This Matters</h4>
-          <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside ml-2">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
             <li><strong>Self-Awareness:</strong> Understand your natural athletic strengths</li>
             <li><strong>Training Focus:</strong> Optimize workouts for your rider type</li>
             <li><strong>Race Strategy:</strong> Choose events that suit your profile</li>
@@ -418,7 +418,7 @@ const Methodology = () => {
 
         <div className="border-l-4 border-purple-500 pl-4">
           <h4 className="font-semibold mb-2">📚 Academic Sources</h4>
-          <ul className="text-sm text-gray-700 space-y-1">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
             <li>
               <strong>Pinot, J., & Grappe, F.</strong> (2011). "The record power profile to assess performance 
               in elite cyclists." <em>International Journal of Sports Medicine, 32</em>(11), 839-844.
@@ -443,16 +443,16 @@ const Methodology = () => {
       >
         <div>
           <h3 className="font-semibold text-lg mb-2">How Automatic Matching Works</h3>
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             Our system automatically matches your completed activities to planned training sessions using 
             a sophisticated multi-factor algorithm. This eliminates manual tracking errors and provides 
             objective verification that your training aligns with your plan.
           </p>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-3">Matching Algorithm (4 Factors)</h4>
-          <div className="space-y-3 text-sm text-gray-700">
+          <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
             <div className="flex items-start gap-2">
               <span className="font-bold text-blue-600 min-w-[60px]">30 points</span>
               <div>
@@ -482,38 +482,38 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-green-50 p-4 rounded-lg">
+        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">✅ Matching Thresholds</h4>
           <div className="space-y-2 text-sm text-gray-700">
             <div className="flex items-center justify-between">
               <span><strong>90-100%:</strong> Excellent match</span>
-              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-bold">AUTO-COMPLETE</span>
+              <span className="px-2 py-1 bg-green-200 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded text-xs font-bold">AUTO-COMPLETE</span>
             </div>
             <div className="flex items-center justify-between">
               <span><strong>80-89%:</strong> Very good match</span>
-              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-bold">AUTO-COMPLETE</span>
+              <span className="px-2 py-1 bg-green-200 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded text-xs font-bold">AUTO-COMPLETE</span>
             </div>
             <div className="flex items-center justify-between">
               <span><strong>70-79%:</strong> Good match</span>
-              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-bold">AUTO-COMPLETE</span>
+              <span className="px-2 py-1 bg-green-200 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded text-xs font-bold">AUTO-COMPLETE</span>
             </div>
             <div className="flex items-center justify-between">
               <span><strong>60-69%:</strong> Acceptable match</span>
-              <span className="px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-bold">AUTO-COMPLETE</span>
+              <span className="px-2 py-1 bg-green-200 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded text-xs font-bold">AUTO-COMPLETE</span>
             </div>
             <div className="flex items-center justify-between">
               <span><strong>&lt;60%:</strong> Poor match</span>
-              <span className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded text-xs font-bold">MANUAL REVIEW</span>
+              <span className="px-2 py-1 bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded text-xs font-bold">MANUAL REVIEW</span>
             </div>
           </div>
-          <p className="text-xs text-gray-600 mt-3">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-3">
             Sessions with ≥60% match score are automatically marked complete. Lower scores require manual verification.
           </p>
         </div>
 
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">🎯 Intensity Zone Verification</h4>
-          <p className="text-sm text-gray-700 mb-3">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
             The system verifies your activity intensity matches the planned session type using power-based zones:
           </p>
           <div className="space-y-1 text-xs">
@@ -544,12 +544,12 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-purple-50 p-4 rounded-lg">
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">💡 Hybrid Approach: Auto + Manual</h4>
-          <p className="text-sm text-gray-700 mb-2">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
             Our system combines the best of both worlds:
           </p>
-          <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside ml-2">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
             <li><strong>Automatic:</strong> High-confidence matches (≥60%) are auto-completed</li>
             <li><strong>Manual Override:</strong> You can always manually mark sessions complete</li>
             <li><strong>Transparency:</strong> Every completion shows its match score and source</li>
@@ -559,7 +559,7 @@ const Methodology = () => {
 
         <div className="border-l-4 border-blue-500 pl-4">
           <h4 className="font-semibold mb-2">📚 Academic Sources</h4>
-          <ul className="text-sm text-gray-700 space-y-2">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
             <li>
               <strong>Jobson, S. A., et al.</strong> (2009). "The analysis and utilization of cycling training data." 
               <em>Sports Medicine, 39</em>(10), 833-844.
@@ -592,7 +592,7 @@ const Methodology = () => {
 
         <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">🔬 Why This Matters</h4>
-          <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside ml-2">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-disc list-inside ml-2">
             <li>
               <strong>Objective Verification:</strong> Removes subjective bias from training adherence tracking
             </li>
@@ -622,7 +622,7 @@ const Methodology = () => {
       >
         <div>
           <h3 className="font-semibold text-lg mb-2">What is Training Alignment?</h3>
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             Training Alignment measures how well you're following your prescribed training plan. It compares 
             the distribution of completed sessions against the planned distribution to calculate an alignment 
             score (0-100%). Combined with our automatic activity matching system, this provides an objective, 
@@ -632,7 +632,7 @@ const Methodology = () => {
 
         <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg">
           <h4 className="font-semibold mb-3">How Alignment is Calculated</h4>
-          <div className="space-y-3 text-sm text-gray-700">
+          <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
             <div className="flex items-start gap-2">
               <span className="font-bold text-purple-600">1.</span>
               <div>
@@ -651,7 +651,7 @@ const Methodology = () => {
               <span className="font-bold text-purple-600">3.</span>
               <div>
                 <strong>Alignment Score:</strong> For each session type, we calculate: 
-                <div className="font-mono text-xs bg-white p-2 rounded border border-purple-200 mt-1">
+                <div className="font-mono text-xs bg-white dark:bg-gray-800 p-2 rounded border border-purple-200 dark:border-purple-700 mt-1">
                   completionRatio = (completed % / planned %) × 100
                 </div>
               </div>
@@ -666,9 +666,9 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-green-50 p-4 rounded-lg">
+        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">✅ Perfect Alignment Example</h4>
-          <div className="text-sm text-gray-700 space-y-2">
+          <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div><strong>Planned:</strong></div>
               <div><strong>Completed:</strong></div>
@@ -684,16 +684,16 @@ const Methodology = () => {
             <div className="pt-2 border-t border-green-200">
               <strong>Result:</strong> 100% Alignment Score 🎯
             </div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               Following the plan exactly as prescribed results in optimal alignment and maximizes 
               the effectiveness of your training.
             </p>
           </div>
         </div>
 
-        <div className="bg-yellow-50 p-4 rounded-lg">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">⚠️ Partial Alignment Example</h4>
-          <div className="text-sm text-gray-700 space-y-2">
+          <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div><strong>Planned:</strong></div>
               <div><strong>Completed:</strong></div>
@@ -709,24 +709,24 @@ const Methodology = () => {
             <div className="pt-2 border-t border-yellow-200">
               <strong>Result:</strong> 50% Alignment Score
             </div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               Completing sessions proportionally maintains alignment, even if you haven't finished 
               the entire plan. This shows you're following the prescribed distribution.
             </p>
           </div>
         </div>
 
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2 flex items-center gap-2">
             <Award className="w-4 h-4 text-blue-600" />
             "Working Towards" Rider Type System
           </h4>
-          <p className="text-sm text-gray-700 mb-3">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
             Each training plan event type maps to a target rider type with specific characteristics. 
             As you complete your plan, you're developing the physiological adaptations needed to become 
             that rider type. The AI uses this mapping to create race-specific workouts tailored to your event goals.
           </p>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm dark:text-gray-300">
             <div className="flex items-center gap-2">
               <span className="text-xl">🚴</span>
               <div><strong>Endurance Plan</strong> → Rouleur (sustained power, aerobic capacity)</div>
@@ -754,14 +754,14 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">🎯 Race-Specific Training Intelligence</h4>
-          <p className="text-sm text-gray-700 mb-3">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
             Our AI training plan generator uses advanced prompt engineering to create workouts specifically 
             designed for your target event. Every workout is contextualized to develop the exact physiological 
             characteristics needed for race success.
           </p>
-          <div className="space-y-3 text-sm text-gray-700">
+          <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
             <div>
               <strong>Event Type Analysis:</strong> The AI identifies your target rider type based on event 
               selection and designs all workouts to develop those specific characteristics.
@@ -791,19 +791,19 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-purple-50 p-4 rounded-lg">
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">📊 Overall Progress Calculation</h4>
-          <div className="font-mono text-sm bg-white p-3 rounded border border-purple-200 mb-2">
+          <div className="font-mono text-sm bg-white dark:bg-gray-800 p-3 rounded border border-purple-200 dark:border-purple-700 mb-2">
             Overall Progress = (Completion Rate × 0.7) + (Alignment Score × 0.3)
           </div>
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
             Your overall progress combines two factors:
           </p>
-          <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside ml-2 mt-2">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2 mt-2">
             <li><strong>Completion Rate (70%):</strong> How many sessions you've completed</li>
             <li><strong>Alignment Score (30%):</strong> How well you're following the plan distribution</li>
           </ul>
-          <p className="text-sm text-gray-700 mt-2">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
             This weighted approach ensures that both quantity and quality of training are considered. 
             You can achieve 90-100% progress by completing all sessions as prescribed.
           </p>
@@ -811,7 +811,7 @@ const Methodology = () => {
 
         <div className="border-l-4 border-purple-500 pl-4">
           <h4 className="font-semibold mb-2">📚 Academic Sources</h4>
-          <ul className="text-sm text-gray-700 space-y-2">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
             <li>
               <strong>Seiler, S., & Kjerland, G. Ø.</strong> (2006). "Quantifying training intensity distribution 
               in elite endurance athletes: is there evidence for an 'optimal' distribution?" 
@@ -860,9 +860,9 @@ const Methodology = () => {
           </ul>
         </div>
 
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg">
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">💡 Why This Matters</h4>
-          <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside ml-2">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-disc list-inside ml-2">
             <li>
               <strong>Training Intensity Distribution (TID):</strong> Research shows that elite athletes follow 
               specific intensity distributions (typically 80/20 or pyramidal). Our alignment system ensures 
@@ -896,21 +896,21 @@ const Methodology = () => {
       >
         <div>
           <h3 className="font-semibold text-lg mb-2">What is TSS?</h3>
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             Training Stress Score (TSS) is a composite number that takes into account the duration 
             and intensity of a workout to arrive at a single estimate of the overall training load 
             and physiological stress created by that training session.
           </p>
         </div>
 
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">Power-Based Calculation (Most Accurate)</h4>
-          <div className="font-mono text-sm bg-white p-3 rounded border border-blue-200">
+          <div className="font-mono text-sm bg-white dark:bg-gray-800 p-3 rounded border border-blue-200 dark:border-blue-700">
             TSS = (Duration in hours) × (Intensity Factor)² × 100
             <br />
-            <span className="text-gray-600">where Intensity Factor = Normalized Power / FTP</span>
+            <span className="text-gray-600 dark:text-gray-400">where Intensity Factor = Normalized Power / FTP</span>
           </div>
-          <p className="text-sm text-gray-700 mt-2">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
             <strong>Example:</strong> A 1.5-hour ride at 200W normalized power with FTP of 250W:
             <br />
             IF = 200/250 = 0.8
@@ -919,19 +919,19 @@ const Methodology = () => {
           </p>
         </div>
 
-        <div className="bg-purple-50 p-4 rounded-lg">
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">Heart Rate-Based Estimation (Fallback)</h4>
-          <div className="font-mono text-sm bg-white p-3 rounded border border-purple-200">
+          <div className="font-mono text-sm bg-white dark:bg-gray-800 p-3 rounded border border-purple-200 dark:border-purple-700">
             TSS ≈ (Duration in hours) × (Avg HR / Threshold HR)² × 100
           </div>
-          <p className="text-sm text-gray-700 mt-2">
+          <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
             Used when power data is unavailable. Assumes threshold heart rate of ~170 bpm.
           </p>
         </div>
 
         <div className="border-l-4 border-blue-500 pl-4">
           <h4 className="font-semibold mb-2">📚 Academic Sources</h4>
-          <ul className="text-sm text-gray-700 space-y-1">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
             <li>
               <strong>Coggan, A. R.</strong> (2003). "Training and Racing Using a Power Meter."
             </li>
@@ -950,15 +950,15 @@ const Methodology = () => {
       >
         <div>
           <h3 className="font-semibold text-lg mb-2">What is FTP?</h3>
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             FTP is the highest average power you can sustain for approximately one hour. 
             It represents your lactate threshold and is the cornerstone metric for power-based training.
           </p>
         </div>
 
-        <div className="bg-yellow-50 p-4 rounded-lg">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">Auto-Detection Method</h4>
-          <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+          <ol className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-decimal list-inside">
             <li>Analyzes activities from the last 6 weeks with power data</li>
             <li>Identifies your best 20-60 minute sustained efforts</li>
             <li>Applies standard FTP test protocols:
@@ -973,47 +973,183 @@ const Methodology = () => {
       </CollapsibleCard>
 
       <CollapsibleCard
+        id="fthr"
+        title="Functional Threshold Heart Rate (FTHR)"
+        icon={Heart}
+        description="Your sustainable heart rate benchmark"
+      >
+        <div>
+          <h3 className="font-semibold text-lg mb-2">What is FTHR?</h3>
+          <p className="text-gray-700 dark:text-gray-300">
+            FTHR is the highest average heart rate you can sustain for approximately one hour. 
+            It represents your lactate threshold heart rate and is used to set heart rate training zones 
+            for athletes who train without a power meter.
+          </p>
+        </div>
+
+        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">Auto-Detection Method</h4>
+          <ol className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-decimal list-inside">
+            <li>Analyzes activities from the last 6 weeks with heart rate data</li>
+            <li>Identifies your best 20-60 minute sustained efforts</li>
+            <li>Applies standard FTHR test protocols:
+              <ul className="ml-6 mt-1 list-disc list-inside">
+                <li><strong>20-30 minute test:</strong> FTHR = 95% of average HR</li>
+                <li><strong>30-60 minute effort:</strong> FTHR = 100% of average HR</li>
+              </ul>
+            </li>
+            <li>Filters for steady-state efforts (excludes interval workouts)</li>
+            <li>Updates automatically as you complete new workouts</li>
+          </ol>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mt-3">
+          <h4 className="font-semibold mb-2">Heart Rate Training Zones</h4>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            Once FTHR is established, training zones are calculated as percentages:
+          </p>
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+            <li><strong>Zone 1 (Recovery):</strong> &lt;68% FTHR</li>
+            <li><strong>Zone 2 (Endurance):</strong> 69-83% FTHR</li>
+            <li><strong>Zone 3 (Tempo):</strong> 84-94% FTHR</li>
+            <li><strong>Zone 4 (Threshold):</strong> 95-105% FTHR</li>
+            <li><strong>Zone 5 (VO2 Max):</strong> &gt;106% FTHR</li>
+          </ul>
+        </div>
+
+        <div className="mt-3 text-xs text-gray-600">
+          <p><strong>Reference:</strong></p>
+          <p>Friel, J. (2009). <em>The Cyclist's Training Bible</em> (4th ed.). VeloPress.</p>
+          <p className="mt-1">
+            <a 
+              href="https://www.trainingpeaks.com/blog/joe-friel-s-quick-guide-to-setting-zones/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              TrainingPeaks: Joe Friel's Guide to Setting Zones
+            </a>
+          </p>
+        </div>
+      </CollapsibleCard>
+
+      <CollapsibleCard
+        id="aerobic-efficiency"
+        title="Aerobic Efficiency (Pw:HR Ratio)"
+        icon={TrendingUp}
+        description="Measuring cardiovascular fitness improvements"
+      >
+        <div>
+          <h3 className="font-semibold text-lg mb-2">What is Aerobic Efficiency?</h3>
+          <p className="text-gray-700 dark:text-gray-300">
+            Aerobic Efficiency, also known as Cardiac Efficiency or the Power-to-Heart Rate (Pw:HR) ratio, 
+            measures how much power you produce per heartbeat. It's calculated as <strong>Average Power ÷ Average Heart Rate</strong> 
+            and expressed in watts per beat per minute (W/bpm).
+          </p>
+        </div>
+
+        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+          <h4 className="font-semibold mb-2">Why It Matters</h4>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            Aerobic efficiency is a key indicator of cardiovascular fitness and training adaptation:
+          </p>
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+            <li><strong>Increasing efficiency:</strong> Your heart is becoming more efficient at delivering oxygen to working muscles</li>
+            <li><strong>Better aerobic capacity:</strong> You can produce more power with less cardiovascular strain</li>
+            <li><strong>Training effectiveness:</strong> Indicates positive adaptations from endurance training</li>
+            <li><strong>Fatigue indicator:</strong> Declining efficiency may signal overtraining or need for recovery</li>
+          </ul>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mt-3">
+          <h4 className="font-semibold mb-2">Calculation Method</h4>
+          <ol className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-decimal list-inside">
+            <li>Analyzes activities with both power and heart rate data</li>
+            <li>Calculates efficiency ratio for each activity: <strong>Avg Power ÷ Avg HR</strong></li>
+            <li>Tracks trend over the last 4 weeks</li>
+            <li>Compares recent efficiency to earlier baseline</li>
+            <li>Reports percentage change as improvement or decline</li>
+          </ol>
+        </div>
+
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg mt-3">
+          <h4 className="font-semibold mb-2">Interpreting Your Results</h4>
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-disc list-inside ml-2">
+            <li><strong>Improving trend (+):</strong> Excellent! Your aerobic fitness is developing. Continue current training approach.</li>
+            <li><strong>Stable trend (0):</strong> Maintaining fitness. Consider adding progressive overload if seeking improvement.</li>
+            <li><strong>Declining trend (-):</strong> May indicate fatigue or overtraining. Consider adding recovery days or reducing intensity.</li>
+          </ul>
+        </div>
+
+        <div className="mt-3 text-xs text-gray-600">
+          <p><strong>References:</strong></p>
+          <p>Seiler, S. (2010). "What is best practice for training intensity and duration distribution in endurance athletes?" 
+          <em> International Journal of Sports Physiology and Performance</em>, 5(3), 276-291.</p>
+          <p className="mt-1">
+            <a 
+              href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3912323/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              NIH: Cardiac Output and Aerobic Capacity
+            </a>
+          </p>
+          <p className="mt-1">
+            <a 
+              href="https://www.trainingpeaks.com/blog/aerobic-decoupling-in-cycling/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              TrainingPeaks: Understanding Aerobic Decoupling
+            </a>
+          </p>
+        </div>
+      </CollapsibleCard>
+
+      <CollapsibleCard
         id="zones"
         title="Training Load Zones"
         icon={TrendingUp}
         description="Understanding workout intensity and recovery"
       >
         <div className="space-y-3">
-          <div className="flex items-start gap-3 p-3 bg-green-50 border-l-4 border-green-500 rounded">
-            <div className="w-20 font-bold text-green-700">1-49 TSS</div>
+          <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 dark:border-green-600 rounded">
+            <div className="w-20 font-bold text-green-700 dark:text-green-400">1-49 TSS</div>
             <div className="flex-1">
-              <div className="font-semibold text-green-900">Easy / Recovery</div>
-              <div className="text-sm text-gray-700">
+              <div className="font-semibold text-green-900 dark:text-green-200">Easy / Recovery</div>
+              <div className="text-sm text-gray-700 dark:text-gray-300">
                 Low stress. Recoverable within hours. Promotes active recovery.
               </div>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
-            <div className="w-20 font-bold text-yellow-700">50-99 TSS</div>
+          <div className="flex items-start gap-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 dark:border-yellow-600 rounded">
+            <div className="w-20 font-bold text-yellow-700 dark:text-yellow-400">50-99 TSS</div>
             <div className="flex-1">
-              <div className="font-semibold text-yellow-900">Moderate</div>
-              <div className="text-sm text-gray-700">
+              <div className="font-semibold text-yellow-900 dark:text-yellow-200">Moderate</div>
+              <div className="text-sm text-gray-700 dark:text-gray-300">
                 Moderate stress. Recoverable in ~24 hours. Builds aerobic endurance.
               </div>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3 bg-orange-50 border-l-4 border-orange-500 rounded">
-            <div className="w-20 font-bold text-orange-700">100-149 TSS</div>
+          <div className="flex items-start gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 dark:border-orange-600 rounded">
+            <div className="w-20 font-bold text-orange-700 dark:text-orange-400">100-149 TSS</div>
             <div className="flex-1">
-              <div className="font-semibold text-orange-900">Hard</div>
-              <div className="text-sm text-gray-700">
+              <div className="font-semibold text-orange-900 dark:text-orange-200">Hard</div>
+              <div className="text-sm text-gray-700 dark:text-gray-300">
                 High stress. Requires 2 days recovery. Significant training stimulus.
               </div>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3 bg-red-50 border-l-4 border-red-500 rounded">
-            <div className="w-20 font-bold text-red-700">150+ TSS</div>
+          <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 dark:border-red-600 rounded">
+            <div className="w-20 font-bold text-red-700 dark:text-red-400">150+ TSS</div>
             <div className="flex-1">
-              <div className="font-semibold text-red-900">Very Hard</div>
-              <div className="text-sm text-gray-700">
+              <div className="font-semibold text-red-900 dark:text-red-200">Very Hard</div>
+              <div className="text-sm text-gray-700 dark:text-gray-300">
                 Very high stress. Requires 3+ days recovery. Race efforts.
               </div>
             </div>
@@ -1029,15 +1165,15 @@ const Methodology = () => {
       >
         <div>
           <h3 className="font-semibold text-lg mb-2">Why Not Just Average Power?</h3>
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             Average power doesn't account for the physiological cost of power variability. 
             A ride with many surges is more fatiguing than a steady ride at the same average power.
           </p>
         </div>
 
-        <div className="bg-purple-50 p-4 rounded-lg">
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">What is Normalized Power?</h4>
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
             Normalized Power is a weighted average that accounts for the variable nature of cycling power. 
             It represents the "equivalent" steady power that would produce the same physiological stress.
           </p>
@@ -1052,15 +1188,15 @@ const Methodology = () => {
       >
         <div>
           <h3 className="font-semibold text-lg mb-2">How It Works</h3>
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             Our AI planner uses OpenAI's GPT-4 model, combined with your personal training data 
             to generate periodized training plans following established coaching principles.
           </p>
         </div>
 
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <h4 className="font-semibold mb-2">Periodization Principles</h4>
-          <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside ml-2">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
             <li><strong>Base Phase:</strong> Build aerobic capacity (Zone 2)</li>
             <li><strong>Build Phase:</strong> Increase intensity (Tempo, Threshold)</li>
             <li><strong>Peak Phase:</strong> Race-specific efforts</li>
@@ -1069,15 +1205,15 @@ const Methodology = () => {
         </div>
       </CollapsibleCard>
 
-      <Card className="border-2 border-blue-200">
+      <Card className="border-2 border-blue-200 dark:border-blue-800">
         <CardHeader>
           <CardTitle>🔒 Data Privacy & Transparency</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
             <strong>Your data stays yours.</strong> All calculations are performed locally or on our secure servers.
           </p>
-          <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside ml-2">
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
             <li>Activity data is cached locally in your browser</li>
             <li>No data is sold or shared with third parties</li>
             <li>You can revoke access at any time via Settings</li>
@@ -1085,11 +1221,11 @@ const Methodology = () => {
         </CardContent>
       </Card>
 
-      <div className="text-center text-sm text-gray-500 py-6 border-t">
+      <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-6 border-t dark:border-gray-700">
         <p>
           This methodology is continuously updated based on the latest sports science research.
           <br />
-          Last updated: October 2025 - Added Automatic Activity Matching & Training Alignment
+          Last updated: November 2025 - Added FTHR & Aerobic Efficiency Tracking
         </p>
       </div>
     </div>

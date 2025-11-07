@@ -50,7 +50,7 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
     setLoading(true);
     try {
       // Try to use cached activities first
-      const cachedActivities = localStorage.getItem('cached_activities');
+      const cachedActivities = localStorage.getItem('cached_activities_recent');
       
       if (cachedActivities) {
         const allActivities = JSON.parse(cachedActivities);

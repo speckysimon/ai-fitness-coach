@@ -217,6 +217,14 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
                               </span>
                             )}
                           </div>
+                          <div className="text-xs text-gray-500 mb-2">
+                            {new Date(activity.date).toLocaleDateString('en-US', { 
+                              weekday: 'long', 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </div>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 mt-2">
                             <div>
                               <div className="text-xs text-gray-500">Duration</div>

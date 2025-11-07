@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Zap, TrendingUp, Mountain, AlertTriangle, Calendar, Trophy, Target, X, Info, Heart, Activity as ActivityIcon } from 'lucide-react';
+import { User, Zap, TrendingUp, Mountain, AlertTriangle, Calendar, Trophy, Target, X, Info, Heart, Activity as ActivityIcon, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -11,6 +11,7 @@ import {
   generateSmartInsights,
   calculateEfficiencyMetrics
 } from '../lib/riderAnalytics';
+import { getCoachPersona, getUserCoach } from '../lib/coachPersonas';
 
 const RiderProfile = ({ stravaTokens }) => {
   const [activities, setActivities] = useState([]);
@@ -31,6 +32,8 @@ const RiderProfile = ({ stravaTokens }) => {
   const [zoneModel, setZoneModel] = useState('5-zone'); // HR zone model
   const [maxHR, setMaxHR] = useState(''); // Optional max HR for 7-zone
   const [showZoneInfoModal, setShowZoneInfoModal] = useState(false);
+  const [hrZonesExpanded, setHrZonesExpanded] = useState(false);
+  const [riderTypeExpanded, setRiderTypeExpanded] = useState(false);
 
   // Load user profile data (weight, height)
   useEffect(() => {
@@ -106,19 +109,29 @@ const RiderProfile = ({ stravaTokens }) => {
   const loadProfileData = async () => {
     setLoading(true);
     try {
+      // Check if we need to clear cache due to backend date filtering fix
+      const insightsCacheVersion = localStorage.getItem('insights_cache_version');
+      if (insightsCacheVersion !== '1.1') {
+        console.log('🗑️ [Rider Profile] Clearing cache due to backend date filtering fix');
+        localStorage.removeItem('cached_activities_recent');
+        localStorage.removeItem('cache_timestamp_recent');
+        localStorage.setItem('insights_cache_version', '1.1');
+      }
+      
       let allActivities = [];
-      const cachedActivities = localStorage.getItem('cached_activities');
+      const cachedActivities = localStorage.getItem('cached_activities_recent');
       
       if (cachedActivities) {
         allActivities = JSON.parse(cachedActivities);
+        console.log('📦 [Rider Profile] Using cached activities:', allActivities.length, 'total');
+        // Log recent activity dates for debugging
+        const recentDates = allActivities.slice(0, 10).map(a => new Date(a.date).toLocaleDateString());
+        console.log('📅 [Rider Profile] Most recent 10 activity dates:', recentDates);
       } else {
-        const yearStart = new Date(new Date().getFullYear(), 0, 1);
-        const after = Math.floor(yearStart.getTime() / 1000);
-        
-        const response = await fetch(
-          `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${after}&per_page=200`
-        );
-        allActivities = await response.json();
+        // No cache available - user needs to visit Dashboard first to populate cache
+        console.warn('⚠️ [Rider Profile] No cached activities found. Please visit Dashboard first to load your activities.');
+        setLoading(false);
+        return;
       }
 
       setActivities(allActivities);
@@ -158,8 +171,45 @@ const RiderProfile = ({ stravaTokens }) => {
       const zones = calculateZoneDistribution(allActivities, currentFtp);
       setZoneDistribution(zones);
 
-      const smartInsights = generateSmartInsights(allActivities, currentFtp, profile);
-      setInsights(smartInsights);
+      // Generate AI-powered smart insights from backend
+      try {
+        const coachId = getUserCoach();
+        const coach = getCoachPersona(coachId);
+        
+        console.log('🧠 [Rider Profile] Sending', allActivities.length, 'activities to Smart Insights API');
+        console.log('📅 [Rider Profile] Date range:', 
+          allActivities.length > 0 ? new Date(allActivities[allActivities.length - 1].date).toLocaleDateString() : 'none',
+          'to',
+          allActivities.length > 0 ? new Date(allActivities[0].date).toLocaleDateString() : 'none'
+        );
+        
+        const insightsResponse = await fetch('/api/analytics/smart-insights', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            activities: allActivities,
+            ftp: currentFtp,
+            riderType: profile,
+            coachPersona: coach
+          })
+        });
+        
+        if (insightsResponse.ok) {
+          const aiInsights = await insightsResponse.json();
+          setInsights(aiInsights);
+          logger.info('✅ Loaded AI smart insights');
+        } else {
+          // Fallback to client-side insights
+          const smartInsights = generateSmartInsights(allActivities, currentFtp, profile);
+          setInsights(smartInsights);
+          logger.warn('⚠️ Using fallback insights');
+        }
+      } catch (error) {
+        logger.error('Error loading AI insights:', error);
+        // Fallback to client-side insights
+        const smartInsights = generateSmartInsights(allActivities, currentFtp, profile);
+        setInsights(smartInsights);
+      }
 
       // Calculate efficiency metrics
       const efficiency = calculateEfficiencyMetrics(allActivities, currentFtp);
@@ -460,24 +510,40 @@ const RiderProfile = ({ stravaTokens }) => {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between mb-4">
-                <div>
+                <div className="flex-1">
                   <CardTitle className="flex items-center gap-2">
                     <Heart className="w-5 h-5 text-red-600 dark:text-red-400" />
                     HR Training Zones
                   </CardTitle>
                   <CardDescription>Based on your 6-week FTHR</CardDescription>
                 </div>
-                <button
-                  onClick={() => setShowZoneInfoModal(true)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
-                  title="Learn about zone models"
-                >
-                  <Info className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowZoneInfoModal(true);
+                    }}
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors"
+                    title="Learn about zone models"
+                  >
+                    <Info className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setHrZonesExpanded(!hrZonesExpanded)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    title="Toggle zone details"
+                  >
+                    <ChevronDown 
+                      className={`w-5 h-5 transition-transform duration-200 ${
+                        hrZonesExpanded ? 'transform rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
 
-              {/* Zone Model Selector */}
-              <div className="mb-4">
+              {/* Zone Model Selector - Always Visible */}
+              <div className="mb-0">
                 <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   HR Zone Model
                 </label>
@@ -485,12 +551,16 @@ const RiderProfile = ({ stravaTokens }) => {
                   value={zoneModel}
                   onChange={(e) => handleZoneModelChange(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <option value="3-zone">3-Zone (Polarized Training)</option>
                   <option value="5-zone">5-Zone (Coggan/Friel) ⭐ Recommended</option>
                   <option value="7-zone">7-Zone (British Cycling)</option>
                 </select>
               </div>
+            </CardHeader>
+            {hrZonesExpanded && (
+              <CardContent className="pt-4">
 
               {/* Optional: Max HR input for 7-zone model */}
               {zoneModel === '7-zone' && (
@@ -515,8 +585,6 @@ const RiderProfile = ({ stravaTokens }) => {
                   </div>
                 </div>
               )}
-            </CardHeader>
-            <CardContent>
               <div className="space-y-3">
                 {Object.entries(hrZones).map(([zoneKey, zone], index, allEntries) => {
                   // Extract zone number from key (e.g., "zone1" -> 1)
@@ -604,7 +672,8 @@ const RiderProfile = ({ stravaTokens }) => {
                   );
                 })}
               </div>
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
         )}
 
@@ -612,24 +681,41 @@ const RiderProfile = ({ stravaTokens }) => {
         {riderProfile && riderProfile.scores && (
           <Card className="border-2 border-blue-200 dark:border-blue-800 overflow-hidden">
             <div 
-              className={`bg-gradient-to-r ${getRiderTypeColor(riderProfile.type)} p-6 text-white cursor-pointer hover:opacity-95 transition-opacity`}
-              onClick={() => setShowProfileModal(true)}
+              className={`bg-gradient-to-r ${getRiderTypeColor(riderProfile.type)} p-6 text-white`}
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="text-5xl">{getRiderTypeIcon(riderProfile.type)}</div>
                 <div className="flex-1">
                   <h3 className="text-2xl font-bold mb-1 flex items-center gap-2">
                     {riderProfile.type}
-                    <Info className="w-5 h-5 text-white/80" />
+                    <button
+                      onClick={() => setShowProfileModal(true)}
+                      className="hover:opacity-80 transition-opacity"
+                      title="View detailed analysis"
+                    >
+                      <Info className="w-5 h-5 text-white/80" />
+                    </button>
                   </h3>
                   <p className="text-white/90 text-sm">{riderProfile.description}</p>
                 </div>
+                <button
+                  onClick={() => setRiderTypeExpanded(!riderTypeExpanded)}
+                  className="hover:opacity-80 transition-opacity"
+                  title="Toggle strengths profile"
+                >
+                  <ChevronDown 
+                    className={`w-6 h-6 text-white transition-transform duration-200 ${
+                      riderTypeExpanded ? 'transform rotate-180' : ''
+                    }`}
+                  />
+                </button>
               </div>
               <div className="flex items-center justify-between bg-white/20 rounded-lg p-3">
                 <span className="text-sm font-medium">Confidence</span>
                 <span className="text-3xl font-bold">{riderProfile.confidence}%</span>
               </div>
             </div>
+            {riderTypeExpanded && (
             <CardContent className="pt-4">
               <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Strengths Profile</h4>
               <div className="grid grid-cols-2 gap-3">
@@ -651,60 +737,15 @@ const RiderProfile = ({ stravaTokens }) => {
                 ))}
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-                Click card for detailed analysis
+                Click Info icon for detailed analysis
               </p>
             </CardContent>
+            )}
           </Card>
         )}
       </div>
 
-      {/* Smart Insights & Manual Overrides - Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Smart Insights - Left Half */}
-        {insights.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                Smart Insights & Recommendations
-              </CardTitle>
-              <CardDescription>Personalized training guidance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {insights.slice(0, 3).map((insight, idx) => {
-                  const Icon = getInsightIcon(insight.icon);
-                  const priorityColors = {
-                    high: 'border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700',
-                    medium: 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700',
-                    low: 'border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700'
-                  };
-                  return (
-                    <div 
-                      key={idx} 
-                      className={`p-4 rounded-lg border-2 ${priorityColors[insight.priority] || priorityColors.low}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Icon className="w-5 h-5 text-gray-700 dark:text-gray-300 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-gray-900 dark:text-gray-100">{insight.title}</h4>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 uppercase font-medium">
-                              {insight.priority}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-700 dark:text-gray-300">{insight.message}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Manual Overrides - Right Half */}
+      {/* Manual Overrides */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -798,51 +839,8 @@ const RiderProfile = ({ stravaTokens }) => {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Additional Insights - Show remaining insights if more than 2 */}
-      {insights.length > 2 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-              Additional Insights
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {insights.slice(2).map((insight, idx) => {
-                const Icon = getInsightIcon(insight.icon);
-                const priorityColors = {
-                  high: 'border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700',
-                  medium: 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700',
-                  low: 'border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700'
-                };
-                return (
-                  <div 
-                    key={idx} 
-                    className={`p-4 rounded-lg border-2 ${priorityColors[insight.priority] || priorityColors.low}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Icon className="w-5 h-5 text-gray-700 dark:text-gray-300 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-gray-900 dark:text-gray-100">{insight.title}</h4>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 uppercase font-medium">
-                            {insight.priority}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">{insight.message}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
+      {/* Power Curve Analysis */}
       {powerCurve && (
         <Card>
           <CardHeader>
@@ -872,173 +870,6 @@ const RiderProfile = ({ stravaTokens }) => {
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* Efficiency Metrics Dashboard */}
-      {efficiencyMetrics && (
-        <Card className="border-2 border-green-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-500" />
-              Aerobic Efficiency
-            </CardTitle>
-            <CardDescription>Your training effectiveness over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              {/* Current Efficiency */}
-              <div className="text-center p-4 bg-green-50 rounded-lg border-2 border-green-200">
-                <div className="text-4xl font-bold text-green-600">{efficiencyMetrics.currentEfficiency}</div>
-                <div className="text-sm text-gray-600 mt-1">Current Efficiency</div>
-                <div className="text-xs text-gray-500 mt-1">Watts per BPM</div>
-              </div>
-
-              {/* Trend */}
-              <div className="text-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-                <div className={`text-4xl font-bold ${parseFloat(efficiencyMetrics.trend) > 0 ? 'text-green-600' : parseFloat(efficiencyMetrics.trend) < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                  {parseFloat(efficiencyMetrics.trend) > 0 ? '+' : ''}{efficiencyMetrics.trend}%
-                </div>
-                <div className="text-sm text-gray-600 mt-1">Trend</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {parseFloat(efficiencyMetrics.trend) > 0 ? 'Improving ↗' : parseFloat(efficiencyMetrics.trend) < 0 ? 'Declining ↘' : 'Stable →'}
-                </div>
-              </div>
-
-              {/* Data Points */}
-              <div className="text-center p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
-                <div className="text-4xl font-bold text-purple-600">{efficiencyMetrics.data.length}</div>
-                <div className="text-sm text-gray-600 mt-1">Activities</div>
-                <div className="text-xs text-gray-500 mt-1">With power & HR data</div>
-              </div>
-            </div>
-
-            {/* Efficiency Chart */}
-            <div className="mb-4">
-              <h4 className="font-semibold text-gray-900 mb-3">Efficiency Progression</h4>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={efficiencyMetrics.data}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="date" 
-                    tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  />
-                  <YAxis label={{ value: 'Efficiency (W/bpm)', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip 
-                    labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    formatter={(value) => [value.toFixed(2), 'Efficiency']}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="efficiency" 
-                    stroke="#10b981" 
-                    strokeWidth={3}
-                    dot={{ fill: '#10b981', r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Explanation */}
-            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                <Info className="w-4 h-4 text-green-600" />
-                What is Aerobic Efficiency?
-              </h4>
-              <p className="text-sm text-gray-700 mb-3">
-                Aerobic efficiency measures how much power you produce per heartbeat (Watts/BPM). 
-                Higher efficiency means you're producing more power with less cardiovascular effort - 
-                a key indicator of improved fitness.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <div className="flex items-start gap-2">
-                  <span className="text-green-600 font-bold">✓</span>
-                  <span><strong>Improving trend:</strong> Your training is working! You're getting more efficient.</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-green-600 font-bold">✓</span>
-                  <span><strong>Stable trend:</strong> You're maintaining your fitness level consistently.</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-yellow-600 font-bold">!</span>
-                  <span><strong>Declining trend:</strong> May indicate fatigue or need for recovery.</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-blue-600 font-bold">→</span>
-                  <span><strong>Use this to:</strong> Track training effectiveness and prevent overtraining.</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {zoneDistribution && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-purple-500" />
-                Training Zone Distribution
-              </CardTitle>
-              <CardDescription>How your training time is distributed</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={zoneDistribution}
-                    dataKey="percentage"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label={(entry) => `${entry.name}: ${entry.percentage.toFixed(0)}%`}
-                  >
-                    {zoneDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `${value.toFixed(1)}%`} />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Zone Breakdown</CardTitle>
-              <CardDescription>Time spent in each training zone</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {zoneDistribution.map((zone, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div 
-                      className="w-4 h-4 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: zone.color }}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">{zone.name}</span>
-                        <span className="text-sm text-gray-600">{zone.time.toFixed(1)}h ({zone.percentage.toFixed(0)}%)</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="h-2 rounded-full transition-all"
-                          style={{ 
-                            width: `${zone.percentage}%`,
-                            backgroundColor: zone.color
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       )}
 
       {/* Profile Analysis Modal */}

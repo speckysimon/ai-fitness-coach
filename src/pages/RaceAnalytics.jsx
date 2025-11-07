@@ -51,18 +51,46 @@ const RaceAnalytics = ({ stravaTokens }) => {
         return;
       }
 
-      // Fetch activities from Strava (no date filter to ensure we get all tagged races)
-      console.log('Fetching all activities to find tagged races...');
+      // Try to use cached activities first
+      const cachedActivities = localStorage.getItem('cached_activities_recent');
+      let allActivities = [];
       
-      const response = await fetch(
-        `/api/strava/activities?access_token=${stravaTokens.access_token}&per_page=200`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch activities');
+      if (cachedActivities) {
+        console.log('Using cached activities for race analytics');
+        allActivities = JSON.parse(cachedActivities);
+      } else {
+        // Fetch activities from Strava (no date filter to ensure we get all tagged races)
+        console.log('Fetching all activities to find tagged races...');
+        
+        const response = await fetch(
+          `/api/strava/activities?access_token=${stravaTokens.access_token}&per_page=200`
+        );
+        
+        if (!response.ok) {
+          // Handle 401 Unauthorized - token expired
+          if (response.status === 401) {
+            throw new Error('Your Strava session has expired. Please refresh the page or log in again.');
+          }
+          throw new Error('Failed to fetch activities');
+        }
+        
+        const data = await response.json();
+        
+        // Check if response is an error object BEFORE using it
+        if (data.error || !Array.isArray(data)) {
+          throw new Error(data.error || 'Invalid response from Strava');
+        }
+        
+        allActivities = data;
       }
       
-      const allActivities = await response.json();
+      // Ensure allActivities is an array before using it
+      if (!Array.isArray(allActivities)) {
+        console.error('allActivities is not an array:', allActivities);
+        setRaces([]);
+        setLoading(false);
+        return;
+      }
       
       console.log('Total activities fetched:', allActivities.length);
       console.log('Sample activity IDs:', allActivities.slice(0, 3).map(a => ({ id: a.id, type: typeof a.id })));
@@ -96,6 +124,8 @@ const RaceAnalytics = ({ stravaTokens }) => {
       }
     } catch (error) {
       console.error('Error loading race data:', error);
+      // Ensure races is always an array even on error
+      setRaces([]);
     } finally {
       setLoading(false);
     }
@@ -230,14 +260,14 @@ const RaceAnalytics = ({ stravaTokens }) => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <Trophy className="w-8 h-8 text-yellow-600" />
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+          <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
           Race Analytics
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-sm sm:text-base text-gray-600 mt-1">
           Track your race performance over time
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
@@ -247,14 +277,14 @@ const RaceAnalytics = ({ stravaTokens }) => {
 
       {/* Summary Stats */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Races</CardTitle>
               <Trophy className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalRaces}</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.totalRaces}</div>
               <p className="text-xs text-muted-foreground">Competitive events</p>
             </CardContent>
           </Card>
@@ -265,7 +295,7 @@ const RaceAnalytics = ({ stravaTokens }) => {
               <ActivityIcon className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalDistance.toFixed(0)} km</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.totalDistance.toFixed(0)} km</div>
               <p className="text-xs text-muted-foreground">Race distance</p>
             </CardContent>
           </Card>
@@ -276,7 +306,7 @@ const RaceAnalytics = ({ stravaTokens }) => {
               <TrendingUp className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.avgSpeed.toFixed(1)} km/h</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.avgSpeed.toFixed(1)} km/h</div>
               <p className="text-xs text-muted-foreground">Average race speed</p>
             </CardContent>
           </Card>
@@ -287,7 +317,7 @@ const RaceAnalytics = ({ stravaTokens }) => {
               <Zap className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-xl sm:text-2xl font-bold">
                 {stats.avgPower > 0 ? `${stats.avgPower.toFixed(0)}W` : 'N/A'}
               </div>
               <p className="text-xs text-muted-foreground">Average race power</p>
@@ -297,7 +327,7 @@ const RaceAnalytics = ({ stravaTokens }) => {
       )}
 
       {/* Performance Trends Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Speed Trend */}
         <Card>
           <CardHeader>
@@ -305,7 +335,7 @@ const RaceAnalytics = ({ stravaTokens }) => {
             <CardDescription>Average speed across races</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250} className="sm:h-[280px] md:h-[300px]">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
@@ -452,16 +482,16 @@ const RaceAnalytics = ({ stravaTokens }) => {
               <div
                 key={race.id}
                 onClick={() => setSelectedActivity(race)}
-                className="flex items-center justify-between p-4 border-2 border-yellow-300 bg-yellow-50 rounded-lg hover:shadow-md transition-all cursor-pointer"
+                className="flex items-center justify-between p-4 border-2 border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg hover:shadow-md transition-all cursor-pointer"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <Trophy className="w-6 h-6 text-yellow-600" />
+                  <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/40 rounded-lg flex items-center justify-center">
+                    <Trophy className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900 dark:text-gray-100">{race.name}</h4>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-sm text-gray-500 dark:text-gray-500 flex items-center gap-1">
+                      <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         {new Date(race.date).toLocaleDateString('en-US', {
                           month: 'short',
@@ -470,11 +500,11 @@ const RaceAnalytics = ({ stravaTokens }) => {
                         })}
                       </span>
                       {race.raceType && (
-                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
+                        <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-xs rounded font-medium">
                           {getRaceTypeLabel(race.raceType)}
                         </span>
                       )}
-                      <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded font-medium">
+                      <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 text-xs rounded font-medium">
                         {race.type}
                       </span>
                     </div>
@@ -482,23 +512,23 @@ const RaceAnalytics = ({ stravaTokens }) => {
                 </div>
                 <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
                   <div className="text-right">
-                    <div className="font-medium">{formatDuration(race.duration)}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-500">Duration</div>
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{formatDuration(race.duration)}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Duration</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-medium">{formatDistance(race.distance)}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-500">Distance</div>
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{formatDistance(race.distance)}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Distance</div>
                   </div>
                   {race.avgSpeed && (
                     <div className="text-right">
-                      <div className="font-medium">{(race.avgSpeed * 3.6).toFixed(1)} km/h</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-500">Avg Speed</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{(race.avgSpeed * 3.6).toFixed(1)} km/h</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Avg Speed</div>
                     </div>
                   )}
                   {race.avgPower && (
                     <div className="text-right">
-                      <div className="font-medium text-yellow-600">{Math.round(race.avgPower)}W</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-500">Avg Power</div>
+                      <div className="font-medium text-yellow-600 dark:text-yellow-400">{Math.round(race.avgPower)}W</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Avg Power</div>
                     </div>
                   )}
                 </div>

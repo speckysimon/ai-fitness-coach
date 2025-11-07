@@ -1,9 +1,11 @@
 /**
  * Coach Personas System
  * Different coaching styles and avatars for personalized experience
+ * Now fetches from backend API with localStorage caching
  */
 
-export const COACH_PERSONAS = [
+// Fallback personas (used if API fails)
+const FALLBACK_PERSONAS = [
   {
     id: 'motivator',
     name: 'Coach Alex',
@@ -60,6 +62,69 @@ export const COACH_PERSONAS = [
     personality: 'Wise, experienced, and pragmatic. Shares insights from years of coaching, focuses on what works in real-world racing.'
   }
 ];
+
+// Cache duration: 1 hour
+const CACHE_DURATION = 60 * 60 * 1000;
+
+/**
+ * Fetch personas from API with caching
+ */
+export const fetchCoachPersonas = async () => {
+  try {
+    // Check cache first
+    const cached = localStorage.getItem('coach_personas_cache');
+    const cacheTime = localStorage.getItem('coach_personas_cache_time');
+    
+    if (cached && cacheTime) {
+      const age = Date.now() - parseInt(cacheTime);
+      if (age < CACHE_DURATION) {
+        return JSON.parse(cached);
+      }
+    }
+
+    // Fetch from API
+    const response = await fetch('/api/personas');
+    const data = await response.json();
+    
+    if (data.success && data.personas) {
+      // Cache the result
+      localStorage.setItem('coach_personas_cache', JSON.stringify(data.personas));
+      localStorage.setItem('coach_personas_cache_time', Date.now().toString());
+      return data.personas;
+    }
+    
+    // Fallback to default personas
+    return FALLBACK_PERSONAS;
+  } catch (error) {
+    console.error('Error fetching coach personas:', error);
+    // Return cached data if available, otherwise fallback
+    const cached = localStorage.getItem('coach_personas_cache');
+    return cached ? JSON.parse(cached) : FALLBACK_PERSONAS;
+  }
+};
+
+/**
+ * Get all coach personas (synchronous - uses cache or fallback)
+ */
+export const COACH_PERSONAS = (() => {
+  const cached = localStorage.getItem('coach_personas_cache');
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {
+      return FALLBACK_PERSONAS;
+    }
+  }
+  return FALLBACK_PERSONAS;
+})();
+
+/**
+ * Clear persona cache (call this when personas are updated in admin)
+ */
+export const clearPersonaCache = () => {
+  localStorage.removeItem('coach_personas_cache');
+  localStorage.removeItem('coach_personas_cache_time');
+};
 
 // Get coach persona by ID
 export const getCoachPersona = (coachId) => {

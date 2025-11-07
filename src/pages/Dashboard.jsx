@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/Button';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatDuration, formatDistance } from '../lib/utils';
+import { fetchManualActivities, mergeActivities, isManualActivity } from '../lib/manualActivityUtils';
 import ActivityDetailModal from '../components/ActivityDetailModal';
 import SessionHoverModal from '../components/SessionHoverModal';
 import EditActivityModal from '../components/EditActivityModal';
@@ -13,6 +14,7 @@ import PlanAdjustmentNotification from '../components/PlanAdjustmentNotification
 import DashboardClock from '../components/DashboardClock';
 import WeatherWidget from '../components/WeatherWidget';
 import NotificationPrompt from '../components/NotificationPrompt';
+import OnboardingModal from '../components/OnboardingModal';
 import { useNavigate } from 'react-router-dom';
 import { workoutReminderManager } from '../lib/workoutReminderManager';
 
@@ -42,6 +44,13 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     return !stravaTokens && !dismissed;
   });
   const [smartFTPContext, setSmartFTPContext] = useState(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
+    // Show welcome modal for users WITHOUT Strava (only once)
+    const hasSeenWelcome = localStorage.getItem('has_seen_welcome_modal');
+    const hasStrava = stravaTokens && stravaTokens.access_token;
+    console.log('🎯 Onboarding check:', { hasSeenWelcome, hasStrava, stravaTokens });
+    return !hasSeenWelcome && !hasStrava;
+  });
 
   // Calculate TSS for a single activity
   const calculateTSS = (activity, ftp) => {
@@ -96,7 +105,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     // Outdoor activities by type
     switch (activity.type) {
       case 'Ride':
-        return <Mountain className="w-5 h-5 text-blue-600" />;
+        return <Mountain className="w-5 h-5 text-[var(--color-primary)]" />;
       case 'Run':
         return <Activity className="w-5 h-5 text-green-600" />;
       case 'Swim':
@@ -117,17 +126,30 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     return 'border-l-gray-300 bg-white'; // No TSS data
   };
 
-  // Check notification on mount and when stravaTokens changes
+  // Check notification and onboarding modal on mount and when stravaTokens changes
   useEffect(() => {
     if (stravaTokens && stravaTokens.access_token) {
       setCurrentTokens(stravaTokens);
       loadDashboardData(false);
       setShowStravaNotification(false);
+      // Hide welcome modal if Strava is connected
+      setShowWelcomeModal(false);
     } else {
       // Show notification if no Strava tokens and hasn't been dismissed
       const dismissed = sessionStorage.getItem('strava_notification_dismissed');
       if (!dismissed) {
         setShowStravaNotification(true);
+      }
+      // Show onboarding modal if user hasn't seen it
+      const hasSeenWelcome = localStorage.getItem('has_seen_welcome_modal');
+      console.log('🔍 Modal check:', { hasSeenWelcome, willShow: !hasSeenWelcome });
+      if (!hasSeenWelcome) {
+        console.log('👋 Showing onboarding modal - setting state to true');
+        setShowWelcomeModal(true);
+        // Verify state after setting
+        setTimeout(() => {
+          console.log('✅ Modal state should be true now');
+        }, 100);
       }
     }
   }, [stravaTokens]);
@@ -266,6 +288,13 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
   const loadDashboardData = async (forceRefresh = false) => {
     if (forceRefresh) {
       setRefreshing(true);
+      // Clear cache when force refreshing to ensure fresh data
+      console.log('🗑️ [Dashboard] Force refresh - clearing cache');
+      localStorage.removeItem('cached_activities_recent');
+      localStorage.removeItem('cached_metrics');
+      localStorage.removeItem('cached_trends');
+      localStorage.removeItem('cache_timestamp_recent');
+      localStorage.removeItem('smart_ftp_context');
     } else {
       setLoading(true);
     }
@@ -273,16 +302,48 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     
     // Try to load from cache first (unless force refresh)
     if (!forceRefresh) {
-      const cachedActivities = localStorage.getItem('cached_activities');
+      const cachedActivities = localStorage.getItem('cached_activities_recent');
       const cachedMetrics = localStorage.getItem('cached_metrics');
       const cachedTrends = localStorage.getItem('cached_trends');
       const cachedSmartFTP = localStorage.getItem('smart_ftp_context');
-      const cacheTimestamp = localStorage.getItem('cache_timestamp');
+      const cacheTimestamp = localStorage.getItem('cache_timestamp_recent');
       
       // Use cache if it's less than 5 minutes old
       const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
       if (cacheAge < 5 * 60 * 1000 && cachedActivities && cachedMetrics && cachedTrends) {
-        setActivities(JSON.parse(cachedActivities));
+        console.log('📦 [Dashboard] Using cached activities (age:', Math.round(cacheAge / 1000), 's)');
+        
+        // Parse cached Strava activities
+        const stravaActivities = JSON.parse(cachedActivities);
+        
+        // Load and merge manual activities even when using cache
+        try {
+          const currentUser = localStorage.getItem('current_user');
+          const userId = currentUser ? JSON.parse(currentUser).id || 1 : 1;
+          
+          console.log('📥 [Dashboard] Fetching manual activities for cached data (user:', userId, ')');
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Manual activities fetch timeout')), 5000)
+          );
+          
+          const manual = await Promise.race([
+            fetchManualActivities({ userId, limit: 200 }),
+            timeoutPromise
+          ]);
+          
+          console.log('✅ [Dashboard] Loaded', manual.length, 'manual activities');
+          
+          // Merge and set activities
+          const allActivities = mergeActivities(stravaActivities, manual);
+          console.log('📊 [Dashboard] Total activities after merge:', allActivities.length);
+          setActivities(allActivities);
+        } catch (manualError) {
+          console.warn('⚠️ [Dashboard] Could not load manual activities:', manualError.message);
+          // Fall back to just cached Strava activities
+          setActivities(stravaActivities);
+        }
+        
         setMetrics(JSON.parse(cachedMetrics));
         setTrends(JSON.parse(cachedTrends));
         if (cachedSmartFTP) {
@@ -311,11 +372,12 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         }
       }
 
-      // Fetch activities from last 6 weeks
-      const sixWeeksAgo = Math.floor(Date.now() / 1000) - (6 * 7 * 24 * 60 * 60);
+      // Fetch 200 recent activities (covers ~3-6 months for most users)
+      // This is the SINGLE SOURCE OF TRUTH for all pages
+      console.log('📡 [Dashboard] Fetching 200 recent activities from Strava');
       const userId = localStorage.getItem('current_user') ? JSON.parse(localStorage.getItem('current_user')).email : 'anonymous';
       const activitiesResponse = await fetch(
-        `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100&user_id=${encodeURIComponent(userId)}`
+        `/api/strava/activities?access_token=${tokensToUse.access_token}&per_page=200&user_id=${encodeURIComponent(userId)}`
       );
       
       // Check if token is invalid or expired
@@ -325,7 +387,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
           tokensToUse = await refreshAccessToken();
           // Retry the request with new token
           const retryResponse = await fetch(
-            `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100&user_id=${encodeURIComponent(userId)}`
+            `/api/strava/activities?access_token=${tokensToUse.access_token}&per_page=200&user_id=${encodeURIComponent(userId)}`
           );
           
           if (!retryResponse.ok) {
@@ -359,6 +421,15 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         throw new Error(activitiesData.error);
       }
       
+      console.log('✅ [Dashboard] Fetched', activitiesData.length, 'activities from Strava');
+      if (activitiesData.length > 0) {
+        console.log('📅 [Dashboard] Date range:', 
+          new Date(activitiesData[activitiesData.length - 1].date).toLocaleDateString(),
+          'to',
+          new Date(activitiesData[0].date).toLocaleDateString()
+        );
+      }
+      
       await processActivitiesData(activitiesData, tokensToUse);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -371,16 +442,44 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
   };
 
   const processActivitiesData = async (activitiesData, tokensToUse) => {
+    // Load manual activities and merge with Strava activities
+    let allActivitiesData = activitiesData;
+    try {
+      const currentUser = localStorage.getItem('current_user');
+      const userId = currentUser ? JSON.parse(currentUser).id || 1 : 1;
+      
+      console.log('📥 [Dashboard] Fetching manual activities for user:', userId);
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Manual activities fetch timeout')), 5000)
+      );
+      
+      const manual = await Promise.race([
+        fetchManualActivities({ userId, limit: 200 }),
+        timeoutPromise
+      ]);
+      
+      console.log('✅ [Dashboard] Loaded', manual.length, 'manual activities');
+      
+      // Merge Strava and manual activities
+      allActivitiesData = mergeActivities(activitiesData, manual);
+      console.log('📊 [Dashboard] Total activities after merge:', allActivitiesData.length);
+    } catch (manualError) {
+      console.warn('⚠️ [Dashboard] Could not load manual activities:', manualError.message);
+      // Continue with just Strava activities
+    }
+    
     // Calculate FTP first (needed for TSS calculation)
     // Log activities for debugging FTP calculation
-    const powerActivities = activitiesData.filter(a => a.avgPower && a.avgPower > 0 && a.duration >= 1200);
+    const powerActivities = allActivitiesData.filter(a => a.avgPower && a.avgPower > 0 && a.duration >= 1200);
     const recentPowerActivities = powerActivities.filter(a => {
       const activityDate = new Date(a.date);
       const sixWeeksAgo = new Date();
       sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
       return activityDate >= sixWeeksAgo;
     });
-    console.log('Dashboard - Total activities:', activitiesData.length);
+    console.log('Dashboard - Total activities:', allActivitiesData.length);
     console.log('Dashboard - Power activities (>=20min):', powerActivities.length);
     console.log('Dashboard - Recent power activities (last 6 weeks):', recentPowerActivities.length);
     
@@ -393,7 +492,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        activities: activitiesData,
+        activities: allActivitiesData,
         lastKnownFTP 
       }),
     });
@@ -411,7 +510,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     const ftpData = { ftp: smartFTPData.ftp };
     
     // Calculate TSS for each activity
-    const activitiesWithTSS = activitiesData.map(activity => ({
+    const activitiesWithTSS = allActivitiesData.map(activity => ({
       ...activity,
       tss: calculateTSS(activity, ftpData.ftp)
     }));
@@ -427,7 +526,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     const loadResponse = await fetch('/api/analytics/load', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ activities: activitiesData, ftp: ftpData.ftp }),
+      body: JSON.stringify({ activities: allActivitiesData, ftp: ftpData.ftp }),
     });
     const loadData = await loadResponse.json();
 
@@ -437,18 +536,19 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     const trendsResponse = await fetch('/api/analytics/trends', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ activities: activitiesData, weeks: 6, ftp: ftpData.ftp }),
+      body: JSON.stringify({ activities: allActivitiesData, weeks: 6, ftp: ftpData.ftp }),
     });
     const trendsData = await trendsResponse.json();
     console.log('Trends data received:', trendsData);
     setTrends(trendsData);
     
-    // Cache the data
-    localStorage.setItem('cached_activities', JSON.stringify(sortedActivities));
+    // Cache the data (use separate key for recent activities)
+    console.log('💾 [Dashboard] Caching', sortedActivities.length, 'recent activities');
+    localStorage.setItem('cached_activities_recent', JSON.stringify(sortedActivities));
     localStorage.setItem('cached_metrics', JSON.stringify({ ftp: ftpData.ftp, ...loadData }));
     localStorage.setItem('cached_trends', JSON.stringify(trendsData));
     localStorage.setItem('smart_ftp_context', JSON.stringify(smartFTPData));
-    localStorage.setItem('cache_timestamp', Date.now().toString());
+    localStorage.setItem('cache_timestamp_recent', Date.now().toString());
     setHasData(true);
   };
 
@@ -478,36 +578,49 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
 
   if (loading && !hasData) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          {!error && (
-            <>
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading your training data...</p>
-            </>
-          )}
-          {error && (
-            <div className="mt-4 max-w-md mx-auto">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-4">
-                <p className="text-red-800 font-medium mb-2">⚠️ Unable to Load Data</p>
-                <p className="text-red-600 text-sm">{error}</p>
-              </div>
-              <div className="flex gap-3 justify-center">
-                <Button onClick={handleForceRefresh} variant="outline">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Retry
-                </Button>
-                {error.includes('expired') && onLogout && (
-                  <Button onClick={onLogout} variant="default">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Re-authenticate
+      <>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            {!error && (
+              <>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary)] mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading your training data...</p>
+              </>
+            )}
+            {error && (
+              <div className="mt-4 max-w-md mx-auto">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-4">
+                  <p className="text-red-800 font-medium mb-2">⚠️ Unable to Load Data</p>
+                  <p className="text-red-600 text-sm">{error}</p>
+                </div>
+                <div className="flex gap-3 justify-center">
+                  <Button onClick={handleForceRefresh} variant="outline">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Retry
                   </Button>
-                )}
+                  {error.includes('expired') && onLogout && (
+                    <Button onClick={onLogout} variant="default">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Re-authenticate
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+        
+        {/* Onboarding Modal - Show even during loading */}
+        {console.log('📺 Rendering OnboardingModal with isOpen:', showWelcomeModal)}
+        <OnboardingModal
+          isOpen={showWelcomeModal}
+          onClose={() => {
+            console.log('❌ Closing onboarding modal');
+            setShowWelcomeModal(false);
+            localStorage.setItem('has_seen_welcome_modal', 'true');
+          }}
+        />
+      </>
     );
   }
 
@@ -578,22 +691,23 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       )}
       
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Your training overview and progress</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Your training overview and progress</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
           <WeatherWidget />
           <DashboardClock />
           <Button
             onClick={handleForceRefresh}
             disabled={refreshing}
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-sm sm:text-base"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
+            <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+            <span className="sm:hidden">{refreshing ? '...' : '↻'}</span>
           </Button>
         </div>
       </div>
@@ -601,15 +715,15 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       {/* Upcoming Workout Card - Centered */}
       {upcomingWorkout && (
         <Card 
-          className="max-w-2xl mx-auto border-2 border-blue-200 shadow-lg cursor-pointer hover:shadow-xl hover:border-blue-300 transition-all"
+          className="max-w-2xl mx-auto border-2 border-[var(--color-primary)]/30 shadow-lg cursor-pointer hover:shadow-xl hover:border-[var(--color-primary)]/40 transition-all"
           onClick={() => setSelectedSession(upcomingWorkout)}
         >
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
+          <CardContent className="pt-4 sm:pt-6">
+            <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
               {/* Notification Icon */}
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 hidden sm:block">
                 <div className="relative">
-                  <Bell className="w-8 h-8 text-red-500" />
+                  <Bell className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
                   <span className="absolute -top-1 -right-1 flex h-3 w-3">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
@@ -619,11 +733,11 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
               
               {/* Workout Details */}
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">{upcomingWorkout.title}</h3>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">{upcomingWorkout.title}</h3>
                   <span className={`px-2 py-1 text-xs rounded font-medium ${
                     upcomingWorkout.type === 'Recovery' ? 'bg-green-100 text-green-700' :
-                    upcomingWorkout.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
+                    upcomingWorkout.type === 'Endurance' ? 'bg-[var(--color-endurance)]/20 text-[var(--color-endurance)]' :
                     upcomingWorkout.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
                     upcomingWorkout.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
                     upcomingWorkout.type === 'VO2Max' ? 'bg-red-100 text-red-700' :
@@ -632,13 +746,13 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                     {upcomingWorkout.type}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mb-3">{upcomingWorkout.description}</p>
-                <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
+                <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">{upcomingWorkout.description}</p>
+                <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 flex-wrap">
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
                     {upcomingWorkout.duration} min
                   </span>
-                  <span className="flex items-center gap-1 font-medium text-blue-600">
+                  <span className="flex items-center gap-1 font-medium text-[var(--color-primary)]">
                     <CalendarIcon className="w-4 h-4" />
                     {new Date(upcomingWorkout.date).toLocaleDateString('en-US', { 
                       month: 'short', 
@@ -652,7 +766,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                       {upcomingWorkout.estimatedTSS} TSS
                     </span>
                   )}
-                  <span className="text-blue-600 font-medium">Click for details</span>
+                  <span className="hidden sm:inline text-[var(--color-primary)] font-medium">Click for details</span>
                 </div>
               </div>
               
@@ -663,7 +777,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                   navigate('/plan');
                 }}
                 variant="default"
-                className="flex-shrink-0"
+                className="flex-shrink-0 w-full sm:w-auto text-sm sm:text-base mt-3 sm:mt-0"
               >
                 View Plan
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -674,7 +788,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       )}
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card className={smartFTPContext?.confidence === 'high' ? 'border-green-200 dark:border-green-800' : smartFTPContext?.confidence === 'medium' ? 'border-yellow-200 dark:border-yellow-800' : smartFTPContext?.confidence === 'low' ? 'border-orange-200 dark:border-orange-800' : ''}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -722,7 +836,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Weekly Load</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-500" />
+            <TrendingUp className="h-4 w-4 text-[var(--color-primary)]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -766,7 +880,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       </div>
 
       {/* AI Training Coach & Charts - 3 Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* AI Training Coach Widget */}
         <AITrainingCoach
           key={aiCoachKey}
@@ -801,7 +915,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                     onClick={() => setVolumePeriod(weeks)}
                     variant={volumePeriod === weeks ? 'default' : 'outline'}
                     size="sm"
-                    className="text-xs px-2 py-1 h-7"
+                    className="text-xs px-2 sm:px-3 py-1 h-8 min-w-[44px]"
                   >
                     {weeks}w
                   </Button>
@@ -810,7 +924,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <LineChart data={getFilteredTrendsVolume()}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
@@ -850,7 +964,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                     onClick={() => setTssPeriod(weeks)}
                     variant={tssPeriod === weeks ? 'default' : 'outline'}
                     size="sm"
-                    className="text-xs px-2 py-1 h-7"
+                    className="text-xs px-2 sm:px-3 py-1 h-8 min-w-[44px]"
                   >
                     {weeks}w
                   </Button>
@@ -859,10 +973,10 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-3 flex items-center gap-4 text-xs flex-wrap">
+            <div className="mb-3 flex items-center gap-2 sm:gap-4 text-xs flex-wrap">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-gray-600">Low (&lt;200)</span>
+                <span className="text-gray-600 text-xs">Low (&lt;200)</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
@@ -882,7 +996,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                 <p>No TSS data available. Complete more activities to see training load trends.</p>
               </div>
             ) : (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <LineChart data={getFilteredTrendsTSS()}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
@@ -908,11 +1022,12 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                   strokeWidth={3}
                   name="TSS"
                   dot={(props) => {
-                    const { cx, cy, payload } = props;
+                    const { cx, cy, payload, index } = props;
                     if (!payload || payload.tss === undefined) return null;
                     const color = getLoadLineColor(payload.tss);
                     return (
                       <circle
+                        key={`tss-dot-${index}`}
                         cx={cx}
                         cy={cy}
                         r={6}
@@ -951,31 +1066,31 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {activities.slice(0, 10).map((activity) => {
+            {activities.slice(0, 20).map((activity) => {
               const isRace = raceActivities[activity.id];
               return (
                 <div
                   key={activity.id}
-                  className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all border-l-4 ${getLoadColor(activity.tss)} ${isRace ? 'bg-yellow-50 border-yellow-300' : ''}`}
+                  className={`flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-all border-l-4 ${getLoadColor(activity.tss)} ${isRace ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}
                 >
-                  <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => setSelectedActivity(activity)}>
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isRace ? 'bg-yellow-100' : 'bg-blue-50'}`}>
+                  <div className="flex items-center gap-3 sm:gap-4 flex-1 cursor-pointer" onClick={() => setSelectedActivity(activity)}>
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center ${isRace ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20'}`}>
                       {isRace ? (
-                        <Trophy className="w-5 h-5 text-yellow-600" />
+                        <Trophy className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                       ) : (
                         getActivityIcon(activity)
                       )}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-900">{activity.name}</h4>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate">{activity.name}</h4>
                         {isRace && (
-                          <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded">
+                          <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 text-xs font-medium rounded">
                             RACE
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {new Date(activity.date).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -984,26 +1099,26 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-6 text-sm text-gray-600">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="hidden md:flex items-center gap-4 lg:gap-6 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       <div className="text-right">
-                        <div className="font-medium">{formatDuration(activity.duration)}</div>
-                        <div className="text-xs text-gray-500">Duration</div>
+                        <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">{formatDuration(activity.duration)}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Duration</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium">{formatDistance(activity.distance)}</div>
-                        <div className="text-xs text-gray-500">Distance</div>
+                        <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">{formatDistance(activity.distance)}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Distance</div>
                       </div>
                       {activity.elevation > 0 && (
                         <div className="text-right">
-                          <div className="font-medium">{Math.round(activity.elevation)}m</div>
-                          <div className="text-xs text-gray-500">Elevation</div>
+                          <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">{Math.round(activity.elevation)}m</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Elevation</div>
                         </div>
                       )}
                       {activity.tss > 0 && (
                         <div className="text-right">
-                          <div className="font-medium text-blue-600">{activity.tss}</div>
-                          <div className="text-xs text-gray-500">TSS</div>
+                          <div className="font-medium text-sm sm:text-base text-[var(--color-primary)] dark:text-[var(--color-primary-dark)]">{activity.tss}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">TSS</div>
                         </div>
                       )}
                     </div>
@@ -1012,10 +1127,10 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                         e.stopPropagation();
                         setEditingActivity(activity);
                       }}
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 sm:p-2.5 text-gray-400 dark:text-gray-500 hover:text-[var(--color-primary)] dark:hover:text-[var(--color-primary-dark)] hover:bg-[var(--color-primary)]/10 dark:hover:bg-[var(--color-primary-dark)]/20 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                       title="Edit activity"
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   </div>
                 </div>
@@ -1100,6 +1215,17 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
           onClose={() => setPendingAdjustment(null)}
         />
       )}
+
+      {/* Onboarding Modal */}
+      {console.log('📺 Rendering OnboardingModal with isOpen:', showWelcomeModal)}
+      <OnboardingModal
+        isOpen={showWelcomeModal}
+        onClose={() => {
+          console.log('❌ Closing onboarding modal');
+          setShowWelcomeModal(false);
+          localStorage.setItem('has_seen_welcome_modal', 'true');
+        }}
+      />
     </div>
   );
 };

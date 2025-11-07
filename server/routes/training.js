@@ -9,6 +9,10 @@ const router = express.Router();
 router.post('/plan/generate', async (req, res) => {
   const { activities, goals, constraints, currentMetrics, userProfile } = req.body;
   
+  // Debug: Log AI context received
+  console.log('📥 Backend received AI Context:', goals?.aiContext);
+  console.log('📥 AI Context length:', goals?.aiContext?.length || 0);
+  
   if (!activities || !goals) {
     return res.status(400).json({ error: 'Activities and goals required' });
   }
@@ -24,8 +28,12 @@ router.post('/plan/generate', async (req, res) => {
     
     res.json(plan);
   } catch (error) {
-    console.error('Error generating training plan:', error.message);
-    res.status(500).json({ error: 'Failed to generate training plan' });
+    console.error('❌ Error generating training plan:', error.message);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: 'Failed to generate training plan',
+      details: error.message 
+    });
   }
 });
 

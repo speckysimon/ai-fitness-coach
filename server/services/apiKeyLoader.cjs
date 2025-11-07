@@ -18,19 +18,42 @@ async function loadApiKeys() {
   try {
     console.log('📥 Loading API keys from database...');
     
-    const keys = await aiConfigService.listApiKeys();
+    const sqlite3 = require('sqlite3').verbose();
+    const path = require('path');
+    const dbPath = path.join(__dirname, '../database.sqlite');
+    const database = new sqlite3.Database(dbPath);
     
     // Clear cache
     cachedKeys = {};
     
-    // Cache active keys by provider
-    keys.forEach(key => {
-      if (key.is_active) {
-        // Decrypt the key (aiConfigService returns decrypted keys)
-        cachedKeys[key.provider] = key.decrypted_key || key.encrypted_key;
-        console.log(`  ✓ Loaded ${key.provider} key: ${key.key_name}`);
-      }
+    // Query database directly to get encrypted keys
+    const keys = await new Promise((resolve, reject) => {
+      database.all(
+        `SELECT * FROM api_keys WHERE is_active = 1`,
+        [],
+        (err, rows) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows || []);
+          }
+        }
+      );
     });
+    
+    // Close database connection
+    database.close();
+    
+    // Decrypt each key
+    for (const key of keys) {
+      try {
+        const decryptedKey = aiConfigService.decryptKey(key.encrypted_key);
+        cachedKeys[key.provider] = decryptedKey;
+        console.log(`  ✓ Loaded ${key.provider} key: ${key.key_name}`);
+      } catch (error) {
+        console.error(`  ✗ Failed to decrypt ${key.provider} key:`, error.message);
+      }
+    }
     
     lastLoadTime = Date.now();
     console.log(`✅ Loaded ${Object.keys(cachedKeys).length} active API keys`);

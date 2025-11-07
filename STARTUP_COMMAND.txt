@@ -1,0 +1,17 @@
+📋 COPY THIS AT THE START OF EACH SESSION:
+
+Read these files to load project context:
+1. /Users/simonosx/CascadeProjects/ai-fitness-coach/README.md
+2. /Users/simonosx/CascadeProjects/ai-fitness-coach/TODO.md
+3. /Users/simonosx/CascadeProjects/ai-fitness-coach/PROJECT_STRUCTURE.md
+4. /Users/simonosx/CascadeProjects/ai-fitness-coach/CHANGELOG.md
+5. /Users/simonosx/CascadeProjects/ai-fitness-coach/package.json
+6. /Users/simonosx/CascadeProjects/ai-fitness-coach/vite.config.js
+7. /Users/simonosx/CascadeProjects/ai-fitness-coach/server/index.js
+
+Quick facts:
+- Frontend: http://localhost:3000 (Vite)
+- Backend: http://localhost:5001 (Express)
+- Database: SQLite (server/database.sqlite)
+- Project directory: cd /Users/simonosx/CascadeProjects/ai-fitness-coach
+- Start command: npm run dev

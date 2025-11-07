@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { trackPageView } from './lib/analytics';
+import { initializeTheme } from './lib/themeService';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
@@ -11,12 +12,14 @@ import PlanGenerator from './pages/PlanGenerator';
 import TodaysWorkout from './pages/TodaysWorkout';
 import Calendar from './pages/Calendar';
 import Settings from './pages/Settings';
-import FTPHistory from './pages/FTPHistory';
+import PerformanceMetrics from './pages/PerformanceMetrics';
 import AllActivities from './pages/AllActivities';
 import RaceAnalytics from './pages/RaceAnalytics';
 import RiderProfile from './pages/RiderProfile';
+import WeeklyReport from './pages/WeeklyReport';
 import RaceDayPredictor from './pages/RaceDayPredictor';
 import PostRaceAnalysis from './pages/PostRaceAnalysis';
+import SeasonPlanner from './pages/SeasonPlanner';
 import Methodology from './pages/Methodology';
 import Form from './pages/Form';
 import ChangelogPage from './pages/ChangelogPage';
@@ -30,6 +33,9 @@ import AdminUsers from './pages/admin/AdminUsers';
 import UserManagement from './pages/admin/UserManagement';
 import AIConfigPage from './pages/admin/AIConfigPage';
 import AIPromptsPage from './pages/admin/AIPromptsPage';
+import CoachPersonasPage from './pages/admin/CoachPersonasPage';
+import PlanTemplatesPage from './pages/admin/PlanTemplatesPage';
+import ThemeConfigPage from './pages/admin/ThemeConfigPage';
 import APIKeysPage from './pages/admin/APIKeysPage';
 import ServicesPage from './pages/admin/ServicesPage';
 import ActivityLogPage from './pages/admin/ActivityLogPage';
@@ -56,6 +62,13 @@ function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   useEffect(() => {
+    // Initialize theme system
+    initializeTheme().then(theme => {
+      console.log('🎨 Theme initialized:', theme?.name || 'Default');
+    }).catch(error => {
+      console.error('Failed to initialize theme:', error);
+    });
+
     // Check for session token and fetch user data from backend
     const sessionToken = localStorage.getItem('session_token');
     if (sessionToken) {
@@ -275,6 +288,9 @@ function App() {
           <Route path="admins" element={<AdminUsers />} />
           <Route path="ai-config" element={<AIConfigPage />} />
           <Route path="ai-prompts" element={<AIPromptsPage />} />
+          <Route path="plan-templates" element={<PlanTemplatesPage />} />
+          <Route path="coach-personas" element={<CoachPersonasPage />} />
+          <Route path="theme-config" element={<ThemeConfigPage />} />
           <Route path="api-keys" element={<APIKeysPage />} />
           <Route path="services" element={<ServicesPage />} />
           <Route path="activity" element={<ActivityLogPage />} />
@@ -349,12 +365,11 @@ function App() {
                       />
                     }
                   />
+                  {/* Legacy FTP route - redirect to new location */}
                   <Route
                     path="/ftp"
                     element={
-                      <FTPHistory
-                        stravaTokens={stravaTokens}
-                      />
+                      <Navigate to="/rider-intelligence/metrics" replace />
                     }
                   />
                   <Route
@@ -373,10 +388,42 @@ function App() {
                       />
                     }
                   />
+                  {/* Rider Intelligence Routes */}
+                  <Route
+                    path="/rider-intelligence/profile"
+                    element={
+                      <RiderProfile
+                        stravaTokens={stravaTokens}
+                      />
+                    }
+                  />
+                  {/* Legacy route redirect */}
                   <Route
                     path="/rider-profile"
                     element={
-                      <RiderProfile
+                      <Navigate to="/rider-intelligence/profile" replace />
+                    }
+                  />
+                  <Route
+                    path="/rider-intelligence/weekly-report"
+                    element={
+                      <WeeklyReport
+                        stravaTokens={stravaTokens}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/rider-intelligence/metrics"
+                    element={
+                      <PerformanceMetrics
+                        stravaTokens={stravaTokens}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/rider-intelligence/form"
+                    element={
+                      <Form
                         stravaTokens={stravaTokens}
                       />
                     }
@@ -398,13 +445,24 @@ function App() {
                     }
                   />
                   <Route
-                    path="/plan"
+                    path="/season-planner"
+                    element={<SeasonPlanner />}
+                  />
+                  <Route
+                    path="/rider-intelligence/plan"
                     element={
                       <PlanGenerator
                         stravaTokens={stravaTokens}
                         googleTokens={googleTokens}
                         userProfile={userProfile}
                       />
+                    }
+                  />
+                  {/* Legacy route redirect */}
+                  <Route
+                    path="/plan"
+                    element={
+                      <Navigate to="/rider-intelligence/plan" replace />
                     }
                   />
                   <Route
@@ -424,12 +482,11 @@ function App() {
                     path="/methodology"
                     element={<Methodology />}
                   />
+                  {/* Legacy Form route - redirect to new location */}
                   <Route
                     path="/form"
                     element={
-                      <Form
-                        stravaTokens={stravaTokens}
-                      />
+                      <Navigate to="/rider-intelligence/form" replace />
                     }
                   />
                   <Route

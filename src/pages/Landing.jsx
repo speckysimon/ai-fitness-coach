@@ -19,18 +19,20 @@ const Landing = () => {
                 <p className="text-xs text-gray-600">Performance Engineered</p>
               </div>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-2 sm:gap-4">
               <Button
                 variant="outline"
                 onClick={() => navigate('/login')}
+                className="text-sm sm:text-base px-3 sm:px-4"
               >
                 Login
               </Button>
               <Button
                 onClick={() => navigate('/login')}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base px-3 sm:px-4"
               >
-                Get Started Free
+                <span className="hidden sm:inline">Get Started Free</span>
+                <span className="sm:hidden">Sign Up</span>
               </Button>
             </div>
           </div>
@@ -39,16 +41,17 @@ const Landing = () => {
 
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-blue-50 to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           {/* Left Column - Text */}
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-6">
-              <Zap className="w-4 h-4" />
-              Data-Driven Cycling Performance Platform
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-semibold mb-4 sm:mb-6">
+              <Zap className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Data-Driven Cycling Performance Platform</span>
+              <span className="sm:hidden">AI-Powered Training</span>
             </div>
             
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
               Where Performance is
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
@@ -56,40 +59,41 @@ const Landing = () => {
               </span>
             </h1>
             
-            <p className="text-xl text-gray-700 mb-8">
+            <p className="text-base sm:text-lg md:text-xl text-gray-700 mb-6 sm:mb-8">
               AI-powered training plans, race-day strategies, and post-race analysis. 
               Complete learning loop from training to racing to improvement.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 mb-12">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-12">
               <Button
                 size="lg"
                 onClick={() => navigate('/login')}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-6"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 w-full sm:w-auto"
               >
                 Start Training Free
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
               </Button>
               <Button
                 size="lg"
                 variant="outline"
                 onClick={() => document.getElementById('features').scrollIntoView({ behavior: 'smooth' })}
-                className="text-lg px-8 py-6"
+                className="text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 w-full sm:w-auto"
               >
                 See How It Works
               </Button>
             </div>
 
             {/* Social Proof */}
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-700">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
                 <div className="flex -space-x-2">
                   <div className="w-8 h-8 rounded-full bg-blue-600 border-2 border-white"></div>
                   <div className="w-8 h-8 rounded-full bg-purple-500 border-2 border-white"></div>
                   <div className="w-8 h-8 rounded-full bg-green-500 border-2 border-white"></div>
                   <div className="w-8 h-8 rounded-full bg-orange-500 border-2 border-white"></div>
                 </div>
-                <span>Join cyclists already training smarter</span>
+                <span className="hidden sm:inline">Join cyclists already training smarter</span>
+                <span className="sm:hidden">Join 1000+ cyclists</span>
               </div>
               <div className="flex items-center gap-1 text-yellow-500">
                 {[...Array(5)].map((_, i) => (
@@ -97,13 +101,13 @@ const Landing = () => {
                     <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
                   </svg>
                 ))}
-                <span className="ml-2 text-gray-700 text-sm">Loved by cyclists worldwide</span>
+                <span className="ml-2 text-gray-700 text-xs sm:text-sm">Loved by cyclists worldwide</span>
               </div>
             </div>
           </div>
 
           {/* Right Column - Image */}
-          <div className="relative">
+          <div className="relative mt-8 md:mt-0">
             <div className="aspect-square rounded-2xl overflow-hidden shadow-2xl">
               <img
                 src="https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=800&q=80"
@@ -112,14 +116,14 @@ const Landing = () => {
               />
             </div>
             {/* Floating badge */}
-            <div className="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl p-4 border-2 border-blue-200">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Trophy className="w-6 h-6 text-white" />
+            <div className="absolute -bottom-4 -left-4 sm:-bottom-6 sm:-left-6 bg-white rounded-xl shadow-xl p-3 sm:p-4 border-2 border-blue-200">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">500+</div>
-                  <div className="text-sm text-gray-700">Races Won</div>
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900">500+</div>
+                  <div className="text-xs sm:text-sm text-gray-700">Races Won</div>
                 </div>
               </div>
             </div>
@@ -129,25 +133,25 @@ const Landing = () => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="bg-gray-50 py-20 border-t border-gray-200">
+      <section id="features" className="bg-gray-50 py-12 sm:py-16 md:py-20 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
               Everything You Need to Excel
             </h2>
-            <p className="text-xl text-gray-700">
+            <p className="text-base sm:text-lg md:text-xl text-gray-700">
               From solo training to team tactics, we've got you covered
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-16">
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8 mb-8 sm:mb-12 md:mb-16">
             {/* Individual Features */}
-            <div className="bg-white rounded-2xl p-8 border-2 border-blue-200 shadow-lg">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 border-2 border-blue-200 shadow-lg">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
                   <Target className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">For You</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900">For You</h3>
               </div>
               
               <ul className="space-y-4">
@@ -183,7 +187,7 @@ const Landing = () => {
             </div>
 
             {/* Team Features */}
-            <div className="bg-white rounded-2xl p-8 border-2 border-purple-200 shadow-lg relative overflow-hidden">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 border-2 border-purple-200 shadow-lg relative overflow-hidden">
               <div className="absolute top-4 right-4 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">
                 UNIQUE
               </div>
@@ -192,7 +196,7 @@ const Landing = () => {
                 <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center">
                   <Users className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">For Your Team</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900">For Your Team</h3>
               </div>
               
               <ul className="space-y-4">
@@ -229,7 +233,7 @@ const Landing = () => {
           </div>
 
           {/* Feature Icons */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-blue-200">
                 <Brain className="w-8 h-8 text-blue-600" />
@@ -266,23 +270,23 @@ const Landing = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-white border-t border-gray-200">
+      <section className="py-12 sm:py-16 md:py-20 bg-white border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
               How It Works
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-base sm:text-lg md:text-xl text-gray-600">
               Get started in minutes, see results in weeks
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
                 1
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Connect Strava</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Connect Strava</h3>
               <p className="text-gray-600">
                 Link your Strava account to import your training history and analyze your fitness
               </p>
@@ -292,8 +296,8 @@ const Landing = () => {
               <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
                 2
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Set Your Goals</h3>
-              <p className="text-gray-600">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Set Your Goals</h3>
+              <p className="text-sm sm:text-base text-gray-600">
                 Tell us about your target event, available time, and preferences. AI does the rest
               </p>
             </div>
@@ -302,8 +306,8 @@ const Landing = () => {
               <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
                 3
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Train & Race</h3>
-              <p className="text-gray-600">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Train & Race</h3>
+              <p className="text-sm sm:text-base text-gray-600">
                 Follow your personalized plan, execute race strategies, and achieve your goals
               </p>
             </div>
@@ -312,41 +316,41 @@ const Landing = () => {
       </section>
 
       {/* Social Proof / Stats */}
-      <section className="py-20 bg-blue-600 text-white">
+      <section className="py-12 sm:py-16 md:py-20 bg-blue-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold mb-2">10,000+</div>
-              <div className="text-white/80">Training Plans Generated</div>
+              <div className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">10,000+</div>
+              <div className="text-sm sm:text-base text-white/80">Training Plans Generated</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2">500+</div>
-              <div className="text-white/80">Races Analyzed</div>
+              <div className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">500+</div>
+              <div className="text-sm sm:text-base text-white/80">Races Analyzed</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2">95%</div>
-              <div className="text-blue-100">User Satisfaction</div>
+              <div className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">95%</div>
+              <div className="text-sm sm:text-base text-blue-100">User Satisfaction</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2">24/7</div>
-              <div className="text-blue-100">AI Coaching Available</div>
+              <div className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">24/7</div>
+              <div className="text-sm sm:text-base text-blue-100">AI Coaching Available</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Pricing */}
-      <section className="py-20 bg-gradient-to-b from-gray-50 to-blue-50 border-t border-gray-200">
+      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-b from-gray-50 to-blue-50 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-4">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-100 text-green-700 rounded-full text-xs sm:text-sm font-bold mb-4">
               <Zap className="w-4 h-4" />
               LIMITED TIME OFFER
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">
               Free During Beta
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
               Get unlimited access to all features while we're in beta. 
               No credit card required. No strings attached.
             </p>
@@ -354,33 +358,33 @@ const Landing = () => {
 
           <div className="max-w-4xl mx-auto">
             {/* Single Beta Card */}
-            <div className="bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-3xl p-12 relative overflow-hidden shadow-2xl">
+            <div className="bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 relative overflow-hidden shadow-2xl">
               {/* Background decoration */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
               
               <div className="relative z-10">
-                <div className="text-center mb-8">
-                  <div className="inline-block bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-full mb-4">
+                <div className="text-center mb-6 sm:mb-8">
+                  <div className="inline-block bg-yellow-400 text-gray-900 text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full mb-4">
                     🎉 BETA ACCESS
                   </div>
-                  <h3 className="text-3xl font-bold mb-2">Everything Included</h3>
+                  <h3 className="text-2xl sm:text-3xl font-bold mb-2">Everything Included</h3>
                   <div className="mb-4">
-                    <span className="text-6xl font-bold">$0</span>
-                    <span className="text-2xl text-blue-100">/month</span>
+                    <span className="text-4xl sm:text-5xl md:text-6xl font-bold">$0</span>
+                    <span className="text-xl sm:text-2xl text-blue-100">/month</span>
                   </div>
-                  <p className="text-blue-100 text-lg">
+                  <p className="text-blue-100 text-base sm:text-lg">
                     Full access to all features during beta period
                   </p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
                   <div>
-                    <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    <h4 className="font-bold text-base sm:text-lg mb-3 flex items-center gap-2">
                       <Target className="w-5 h-5" />
                       Individual Features
                     </h4>
-                    <ul className="space-y-2">
+                    <ul className="space-y-2 text-sm sm:text-base">
                       <li className="flex items-center gap-2">
                         <CheckCircle className="w-5 h-5 text-green-300 flex-shrink-0" />
                         <span>Unlimited AI training plans</span>
@@ -405,11 +409,11 @@ const Landing = () => {
                   </div>
 
                   <div>
-                    <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    <h4 className="font-bold text-base sm:text-lg mb-3 flex items-center gap-2">
                       <Users className="w-5 h-5" />
                       Team Features
                     </h4>
-                    <ul className="space-y-2">
+                    <ul className="space-y-2 text-sm sm:text-base">
                       <li className="flex items-center gap-2">
                         <CheckCircle className="w-5 h-5 text-green-300 flex-shrink-0" />
                         <span>AI team race strategy</span>
@@ -437,13 +441,13 @@ const Landing = () => {
                 <div className="text-center">
                   <Button
                     size="lg"
-                    className="bg-white text-blue-600 hover:bg-blue-50 text-lg px-12 py-6 font-bold"
+                    className="bg-white text-blue-600 hover:bg-blue-50 text-base sm:text-lg px-8 sm:px-12 py-4 sm:py-6 font-bold w-full sm:w-auto"
                     onClick={() => navigate('/login')}
                   >
                     Get Free Beta Access
-                    <ArrowRight className="w-5 h-5 ml-2" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
                   </Button>
-                  <p className="text-sm text-blue-100 mt-4">
+                  <p className="text-xs sm:text-sm text-blue-100 mt-4">
                     ✓ No credit card required  •  ✓ Cancel anytime  •  ✓ Early adopter benefits
                   </p>
                 </div>
@@ -451,8 +455,8 @@ const Landing = () => {
             </div>
 
             {/* Future pricing note */}
-            <div className="mt-8 text-center">
-              <p className="text-gray-600">
+            <div className="mt-6 sm:mt-8 text-center">
+              <p className="text-sm sm:text-base text-gray-600">
                 <strong>After beta:</strong> Individual plans from $12/month • Club plans from $75/month
                 <br />
                 <span className="text-sm">Beta users get special lifetime discounts 🎁</span>
@@ -463,42 +467,42 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
             Ready to Train Smarter?
           </h2>
-          <p className="text-xl text-blue-100 mb-8">
+          <p className="text-base sm:text-lg md:text-xl text-blue-100 mb-6 sm:mb-8">
             Join thousands of cyclists achieving their goals with AI-powered coaching
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             <Button
               size="lg"
-              className="bg-white text-blue-600 hover:bg-blue-50 text-lg px-8 py-6"
+              className="bg-white text-blue-600 hover:bg-blue-50 text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 w-full sm:w-auto"
               onClick={() => navigate('/login')}
             >
               Start Free Today
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
             </Button>
             <Button
               size="lg"
               variant="outline"
-              className="border-2 border-white text-white hover:bg-white/10 text-lg px-8 py-6"
+              className="border-2 border-white text-white hover:bg-white/10 text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 w-full sm:w-auto"
               onClick={() => navigate('/methodology')}
             >
               Learn More
             </Button>
           </div>
-          <p className="text-sm text-blue-100 mt-6">
+          <p className="text-xs sm:text-sm text-blue-100 mt-4 sm:mt-6">
             No credit card required • Free forever • Upgrade anytime
           </p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-12">
+      <footer className="bg-gray-900 text-gray-400 py-8 sm:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -512,7 +516,7 @@ const Landing = () => {
             </div>
             
             <div>
-              <h4 className="text-white font-semibold mb-4">Product</h4>
+              <h4 className="text-white font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Product</h4>
               <ul className="space-y-2 text-sm">
                 <li><a href="#features" className="hover:text-white">Features</a></li>
                 <li><a href="#" onClick={() => navigate('/methodology')} className="hover:text-white">How It Works</a></li>
@@ -522,7 +526,7 @@ const Landing = () => {
             </div>
             
             <div>
-              <h4 className="text-white font-semibold mb-4">Company</h4>
+              <h4 className="text-white font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Company</h4>
               <ul className="space-y-2 text-sm">
                 <li><a href="#" className="hover:text-white">About</a></li>
                 <li><a href="#" className="hover:text-white">Blog</a></li>
@@ -532,7 +536,7 @@ const Landing = () => {
             </div>
             
             <div>
-              <h4 className="text-white font-semibold mb-4">Legal</h4>
+              <h4 className="text-white font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Legal</h4>
               <ul className="space-y-2 text-sm">
                 <li><a href="#" onClick={() => navigate('/privacy')} className="hover:text-white">Privacy Policy</a></li>
                 <li><a href="#" onClick={() => navigate('/terms')} className="hover:text-white">Terms of Service</a></li>
@@ -540,7 +544,7 @@ const Landing = () => {
             </div>
           </div>
           
-          <div className="border-t border-gray-800 pt-8 text-center text-sm">
+          <div className="border-t border-gray-800 pt-6 sm:pt-8 text-center text-xs sm:text-sm">
             <p>&copy; 2025 RiderLabs. All rights reserved.</p>
             <p className="mt-2">Powered by Strava • Built for cyclists</p>
           </div>

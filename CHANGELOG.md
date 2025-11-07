@@ -6,12 +6,60 @@ All notable changes to AI Fitness Coach will be documented in this file.
 
 ### 🎯 Current Sprint (Nov 7, 2025)
 - **Mobile Responsiveness**: Making entire site mobile-friendly (320px - 768px viewports)
+  - ✅ Race Analytics - DONE
+  - ✅ Post-Race Analysis - DONE
+  - 🔄 Dashboard, Training Plan, Settings, etc. - IN PROGRESS
 - **Dark Mode Polish**: Previous implementation was quick fix (224+ colors), needs proper audit and WCAG AA compliance
 - **Production Testing**: Training plan generation works in dev, needs verification on production
 
 ### ⚠️ Status Clarifications
 - **Dark Mode**: Oct 24 implementation was rapid fix (224+ colors), not comprehensive. Needs proper audit.
 - **Training Plan Generation**: Working in development, requires production environment testing
+
+## [2.8.2] - 2025-11-07
+
+### 🐛 Critical Bug Fixes
+
+#### **Race Pages - 401 Error Handling & Crash Prevention** ⭐
+- **PostRaceAnalysis.jsx**: Fixed critical crashes when Strava API returns errors
+  - Added 401 Unauthorized detection with user-friendly error message
+  - Validate API responses are arrays BEFORE setting state
+  - Set empty arrays on error to prevent `activities.filter is not a function` crashes
+  - Added defensive checks in `detectPotentialRaces()` function
+  - Only process race tags and analyses if data is valid array
+- **RaceAnalytics.jsx**: Fixed critical crashes when loading race data
+  - Added 401 Unauthorized detection with clear session expiration message
+  - Validate `allActivities` is array before filtering operations
+  - Set empty `races` array on error to prevent crashes
+  - Early return if data validation fails
+- **Error Handling Pattern**: Consistent approach across both pages
+  - Check HTTP status codes (401, 403, etc.)
+  - Validate data types before state updates
+  - Always initialize with safe defaults (empty arrays)
+  - Defensive programming before array operations
+
+### ✅ Mobile Responsiveness Verified
+
+#### **Race Pages - Mobile Ready** 📱
+- **PostRaceAnalysis.jsx**: Comprehensive mobile responsiveness
+  - Responsive headings: `text-2xl sm:text-3xl`
+  - Responsive grids: `grid-cols-2 sm:grid-cols-4` for score cards
+  - Responsive spacing: `space-y-4 sm:space-y-6`
+  - Responsive modals: `max-h-[90vh]` with scrolling
+  - Responsive forms: `grid-cols-1 sm:grid-cols-2`
+  - Touch-friendly buttons and inputs
+- **RaceAnalytics.jsx**: Full mobile optimization
+  - Responsive stat cards: `grid-cols-2 md:grid-cols-2 lg:grid-cols-4`
+  - Responsive charts: `ResponsiveContainer` with adaptive heights
+  - Responsive typography: `text-2xl sm:text-3xl`
+  - Responsive icons: `w-6 h-6 sm:w-8 sm:h-8`
+  - Responsive gaps: `gap-3 sm:gap-4 md:gap-6`
+- **Tested Viewports**: 320px (mobile) - 2560px (desktop)
+
+### 📄 Documentation
+- Created `RACE_PAGES_BUG_FIX.md` - Detailed bug fix documentation
+- Created `RACE_PAGES_COMPLETE.md` - Completion summary with testing checklist
+- Updated `TODO.md` - Marked race pages as complete
 
 ## [2.8.1] - 2025-11-07
 

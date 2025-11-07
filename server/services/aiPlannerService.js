@@ -47,15 +47,43 @@ class AIPlannerService {
     try {
       // Get active AI config from database
       const config = await aiConfigService.getConfig('training_plan_generation');
+      console.log('✅ Loaded AI config from database:', config.model_provider);
       return config.model_provider || 'openai';
     } catch (error) {
-      console.log('Could not load AI config, defaulting to OpenAI');
-      return 'openai';
+      console.log('⚠️ Could not load AI config from database. Error:', error.message);
+      console.log('💡 Please activate the "Training Plan Generation" configuration in the Admin Panel');
+      // Fallback to environment variable
+      const envProvider = process.env.AI_PROVIDER || 'openai';
+      console.log(`📌 Using fallback provider from env: ${envProvider}`);
+      return envProvider;
+    }
+  }
+
+  async getActiveModel(useCase = 'training_plan_generation') {
+    try {
+      // Get active AI config from database
+      const config = await aiConfigService.getConfig(useCase);
+      console.log('✅ Loaded AI model from database:', config.model_name);
+      return config.model_name || null;
+    } catch (error) {
+      console.log('⚠️ Could not load AI model config from database. Error:', error.message);
+      // Fallback to environment variable or default based on provider
+      const provider = await this.getActiveProvider();
+      const defaultModel = provider === 'gemini' ? 'gemini-2.0-flash-exp' : 'gpt-4-turbo';
+      const envModel = process.env.AI_MODEL || defaultModel;
+      console.log(`📌 Using fallback model: ${envModel}`);
+      return envModel;
     }
   }
 
   async callAI(prompt, systemPrompt, options = {}) {
     const provider = await this.getActiveProvider();
+    const modelName = await this.getActiveModel(options.useCase || 'training_plan_generation');
+    
+    // Override options.model with database config if available
+    if (modelName && !options.model) {
+      options.model = modelName;
+    }
     
     if (provider === 'gemini') {
       return await this.callGemini(prompt, systemPrompt, options);
@@ -81,8 +109,12 @@ class AIPlannerService {
 
   async callGemini(prompt, systemPrompt, options = {}) {
     const genAI = this.getGemini();
+    // Use model from options (set by getActiveModel) or fallback to gemini-2.0-flash-exp
+    const modelName = options.model || 'gemini-2.0-flash-exp';
+    console.log(`🤖 Using Gemini model: ${modelName}`);
+    
     const model = genAI.getGenerativeModel({ 
-      model: options.model || 'gemini-1.5-pro',
+      model: modelName,
       generationConfig: {
         temperature: options.temperature || 0.7,
         maxOutputTokens: options.maxTokens,
@@ -97,9 +129,19 @@ class AIPlannerService {
       ? `${fullPrompt}\n\nIMPORTANT: You MUST respond with valid JSON only. No markdown, no explanations, just pure JSON.`
       : fullPrompt;
 
+    console.log(`📝 Prompt length: ${finalPrompt.length} characters`);
+    console.log(`📝 System prompt preview: ${systemPrompt.substring(0, 200)}...`);
+    
+    const startTime = Date.now();
     const result = await model.generateContent(finalPrompt);
     const response = await result.response;
-    return response.text();
+    const responseText = response.text();
+    const duration = Date.now() - startTime;
+    
+    console.log(`⚡ Gemini response time: ${duration}ms`);
+    console.log(`📊 Response length: ${responseText.length} characters`);
+    
+    return responseText;
   }
 
   async generateTrainingPlan({ activities, goals, constraints, currentMetrics, userProfile, raceHistory, trainingPriorities }) {
@@ -124,10 +166,20 @@ class AIPlannerService {
       const systemPrompt = `You are an expert cycling and running coach with deep knowledge of training periodization, physiology, and adaptive planning. You create structured training plans based on athlete data, goals, and constraints. Always respond with valid JSON.`;
       
       const responseText = await this.callAI(prompt, systemPrompt, { jsonMode: true });
-      const planData = JSON.parse(responseText);
+      
+      // Clean up markdown-wrapped JSON (remove ```json and ``` if present)
+      let cleanedResponse = responseText.trim();
+      if (cleanedResponse.startsWith('```json')) {
+        cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/```\s*$/, '');
+      } else if (cleanedResponse.startsWith('```')) {
+        cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/```\s*$/, '');
+      }
+      
+      const planData = JSON.parse(cleanedResponse);
       return this.formatPlan(planData, goals);
     } catch (error) {
       console.error('OpenAI API error:', error.message);
+      console.error('Response text preview:', responseText?.substring(0, 200));
       // Fallback to rule-based plan
       return this.generateRuleBasedPlan({ activities, goals, constraints, ftp, loadMetrics });
     }
@@ -263,10 +315,33 @@ EVENT GOALS & TARGET PROFILE:
 - Priority: ${goals.priority || 'Medium'}
 - Duration: ${planDuration} weeks
 
+${goals.aiContext ? `
+⚠️⚠️⚠️ HIGHEST PRIORITY - ATHLETE'S SPECIFIC REQUESTS ⚠️⚠️⚠️
+${goals.aiContext}
+
+🔴 MANDATORY INSTRUCTIONS 🔴
+The athlete has provided SPECIFIC requirements above that OVERRIDE all default recommendations.
+You MUST follow these instructions EXACTLY:
+1. If the athlete specifies NO BIKE ACCESS for certain dates/weeks - DO NOT include cycling workouts for those periods
+2. If the athlete requests STRENGTH TRAINING or CROSS-TRAINING - include those session types instead of rides
+3. If the athlete specifies specific dates or week numbers - apply changes to EXACTLY those weeks
+4. If the athlete mentions equipment limitations - respect those constraints completely
+5. The athlete's custom requests take ABSOLUTE PRIORITY over the standard event type training
+
+EXAMPLE: If athlete says "Week 3 should be strength training because no bike" then Week 3 MUST contain:
+- Strength Training sessions (NOT cycling)
+- Core work
+- Flexibility/mobility
+- Active recovery
+- NO bike rides or cycling workouts
+
+DO NOT ignore or override the athlete's specific requests with generic cycling workouts.
+` : ''}
 TRAINING CONSTRAINTS:
 - Available days per week: ${constraints?.daysPerWeek || 5}
 - Max hours per week: ${constraints?.maxHoursPerWeek || 10}
 - Indoor/outdoor preference: ${constraints?.preference || 'Both'}
+- Week starts on: ${constraints?.weekStartDay || 'Monday'} (athlete's preference for week structure)
 
 CRITICAL REQUIREMENTS FOR ${goals.eventType.toUpperCase()} PREPARATION:
 
@@ -296,19 +371,24 @@ CRITICAL REQUIREMENTS FOR ${goals.eventType.toUpperCase()} PREPARATION:
    - Increase load gradually, respecting the athlete's recent training
    - Include recovery weeks if plan is longer than 4 weeks
 
+🔴 REMINDER: If the athlete provided specific requests in the ATHLETE'S SPECIFIC REQUESTS section above, those MUST be implemented EXACTLY as requested. Do not substitute with default cycling workouts.
+
 Generate a structured training plan with:
 1. Weekly overview (volume, intensity distribution, race-specific focus)
 2. Individual sessions for each week with:
-   - Day of week
-   - Session type (Endurance, Tempo, Threshold, VO2Max, Recovery, Rest)
+   - ⚠️ CRITICAL: "day" field (REQUIRED - must be one of: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)
+   - Session type - IMPORTANT: Can be Endurance, Tempo, Threshold, VO2Max, Recovery, Rest, Strength Training, Core Work, Yoga, Cross-Training, Swimming, Running
    - Duration (minutes)
-   - Target zones/power/HR (be specific with FTP percentages)
-   - Title that reflects race-specific purpose
-   - Description explaining HOW this develops ${targetProfile.riderType} abilities
+   - Target zones/power/HR (be specific with FTP percentages for cycling, or appropriate metrics for other activities)
+   - Title that reflects the session purpose
+   - Description explaining the workout and its benefits
    - Specific intervals/structure when applicable
    - Indoor/outdoor recommendation
-3. Progression rationale linked to ${goals.eventType} demands
-4. Adaptation notes specific to ${targetProfile.riderType} development
+   - ⚠️ CRITICAL: DO NOT include "date" field - dates are auto-calculated from "day"
+3. Progression rationale
+4. Adaptation notes
+
+🔴 FINAL CHECK: Before generating the plan, re-read the ATHLETE'S SPECIFIC REQUESTS section. If they mentioned specific weeks, dates, or workout types, ensure those are included EXACTLY as requested.
 
 Return as JSON with structure:
 {
@@ -599,17 +679,18 @@ ${context ? JSON.stringify(context, null, 2) : 'No additional context'}
 
 INSTRUCTIONS:
 1. Understand what the athlete is asking for (e.g., reschedule missed sessions, reduce intensity, accommodate schedule changes, change training days, etc.)
-2. **CRITICAL**: If the athlete says they DID an activity (past tense), you MUST update that past session to EXACTLY match what they actually did. DO NOT suggest lighter alternatives or "active recovery" - replace the session with the actual activity they completed. Use the activity data from RECENT ACTIVITIES to get the exact details (duration, distance, TSS).
-3. **SCHEDULE CHANGES**: If the athlete requests no training on specific days (e.g., "no training on Mondays"), you MUST:
+2. **IMPORTANT**: If the athlete asks to ADD MORE WEEKS or EXTEND THE PLAN DURATION, you should respond in the explanation: "To extend your plan beyond ${planDuration} weeks, please use the 'Regenerate Plan' button and update your event date. The adjustment feature can only modify existing weeks, not add new ones."
+3. **CRITICAL**: If the athlete says they DID an activity (past tense), you MUST update that past session to EXACTLY match what they actually did. DO NOT suggest lighter alternatives or "active recovery" - replace the session with the actual activity they completed. Use the activity data from RECENT ACTIVITIES to get the exact details (duration, distance, TSS).
+4. **SCHEDULE CHANGES**: If the athlete requests no training on specific days (e.g., "no training on Mondays"), you MUST:
    - Move those sessions to different days of the week
    - Update the "day" field to the new day name (e.g., "Tuesday", "Thursday")
    - Ensure the new schedule respects rest days and training load distribution
    - **ACTUALLY CHANGE THE DAY FIELD** - do not just mark them as "modified" - actually change the day
-4. For past sessions: ACCEPT what was done and update the plan to reflect reality
-5. For future sessions: Make adjustments to compensate for the unexpected training load or schedule constraints
-6. Analyze the impact on their training progression
-7. Explain the reasoning behind each change
-8. Ensure the adjustments maintain training principles (progressive overload, recovery, specificity)
+5. For past sessions: ACCEPT what was done and update the plan to reflect reality
+6. For future sessions: Make adjustments to compensate for the unexpected training load or schedule constraints
+7. Analyze the impact on their training progression
+8. Explain the reasoning behind each change
+9. Ensure the adjustments maintain training principles (progressive overload, recovery, specificity)
 
 Return a JSON object with:
 {
@@ -632,13 +713,14 @@ Return a JSON object with:
         "totalHours": X,
         "sessions": [
           {
-            "day": "Monday",  // IMPORTANT: Update this to the new day if rescheduling
+            "day": "Monday",  // REQUIRED: Must be one of: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
             "title": "...",
             "type": "Recovery|Endurance|Tempo|Threshold|VO2Max|Intervals",
             "duration": 60,
             "description": "...",
             "targets": "...",
-            // DO NOT include "date" field - dates are calculated automatically from the "day" field
+            // ⚠️ CRITICAL: NEVER include "date" field in sessions - dates are auto-calculated from "day" field
+            // ⚠️ CRITICAL: ALWAYS include "day" field - it is REQUIRED for every session
             // Add "modified": true and "modificationReason": "..." for changed sessions
             // Add "status": "cancelled" and "cancellationReason": "..." for cancelled sessions
           }
@@ -658,13 +740,15 @@ Return a JSON object with:
 }
 
 CRITICAL REQUIREMENTS:
+- ⚠️ EVERY SESSION MUST HAVE A "day" FIELD (Monday/Tuesday/Wednesday/Thursday/Friday/Saturday/Sunday)
+- ⚠️ NEVER INCLUDE A "date" FIELD IN SESSIONS - dates are calculated automatically from the "day" field
 - You MUST return ALL ${planDuration} weeks with ALL sessions
 - Maintain the EXACT structure of the original plan (same number of weeks and sessions per week)
 - Only modify the content of sessions that need adjustment based on the request
 - DO NOT delete or remove any incomplete sessions - they should remain in the plan
 - Mark modified sessions with "modified": true and "modificationReason"
 - For cancelled sessions, set "status": "cancelled" and "cancellationReason"
-- Preserve all existing session data (dates, descriptions, etc.) unless specifically modifying that session
+- Preserve all existing session data (descriptions, etc.) unless specifically modifying that session
 - Ensure training load progression remains sensible
 - DO NOT include "coachNotes" in your response - this will be handled separately
 

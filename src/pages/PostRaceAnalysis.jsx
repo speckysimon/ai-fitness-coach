@@ -67,46 +67,84 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
   const loadActivities = async () => {
     setLoading(true);
     try {
-      // Load recent activities (last 3 months)
-      const threeMonthsAgo = Math.floor(Date.now() / 1000) - (90 * 24 * 60 * 60);
-      const response = await fetch(
-        `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${threeMonthsAgo}&per_page=100`
-      );
-      const data = await response.json();
-      setActivities(data);
+      // Try to use cached activities first
+      const cachedActivities = localStorage.getItem('cached_activities_recent');
+      let data = [];
+      
+      if (cachedActivities) {
+        console.log('Using cached activities for post-race analysis');
+        data = JSON.parse(cachedActivities);
+      } else {
+        // Load recent activities (last 3 months)
+        const threeMonthsAgo = Math.floor(Date.now() / 1000) - (90 * 24 * 60 * 60);
+        const response = await fetch(
+          `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${threeMonthsAgo}&per_page=100`
+        );
+        
+        if (!response.ok) {
+          // Handle 401 Unauthorized - token expired
+          if (response.status === 401) {
+            throw new Error('Your Strava session has expired. Please refresh the page or log in again.');
+          }
+          throw new Error('Failed to fetch activities');
+        }
+        
+        data = await response.json();
+        
+        // Check if response is an error object BEFORE using it
+        if (data.error || !Array.isArray(data)) {
+          throw new Error(data.error || 'Invalid response from Strava');
+        }
+      }
+      
+      // Only set activities if data is valid array
+      if (Array.isArray(data)) {
+        setActivities(data);
+      } else {
+        console.error('Data is not an array:', data);
+        setActivities([]);
+        throw new Error('Invalid data format received');
+      }
 
-      // Load race tags
-      const sessionToken = localStorage.getItem('session_token');
-      if (sessionToken) {
-        const raceTagsResponse = await fetch('/api/race-tags', {
-          headers: { 'Authorization': `Bearer ${sessionToken}` }
-        });
-        if (raceTagsResponse.ok) {
-          const raceTagsData = await raceTagsResponse.json();
-          const raceTags = raceTagsData.raceTags || {};
-          
-          // Filter for race activities and attach race type
-          const races = data.filter(activity => raceTags[activity.id]?.isRace).map(activity => ({
-            ...activity,
-            raceType: raceTags[activity.id]?.raceType
-          }));
-          setRaceActivities(races);
+      // Load race tags - only if data is valid
+      if (Array.isArray(data) && data.length > 0) {
+        const sessionToken = localStorage.getItem('session_token');
+        if (sessionToken) {
+          const raceTagsResponse = await fetch('/api/race-tags', {
+            headers: { 'Authorization': `Bearer ${sessionToken}` }
+          });
+          if (raceTagsResponse.ok) {
+            const raceTagsData = await raceTagsResponse.json();
+            const raceTags = raceTagsData.raceTags || {};
+            
+            // Filter for race activities and attach race type
+            const races = data.filter(activity => raceTags[activity.id]?.isRace).map(activity => ({
+              ...activity,
+              raceType: raceTags[activity.id]?.raceType
+            }));
+            setRaceActivities(races);
+          }
         }
       }
 
-      // Load existing analyses from localStorage
-      const storedAnalyses = localStorage.getItem('race_analyses');
-      if (storedAnalyses) {
-        const analyses = JSON.parse(storedAnalyses);
-        // Check if any activities have analyses
-        data.forEach(activity => {
-          if (analyses[activity.id]) {
-            activity.analysis = analyses[activity.id];
-          }
-        });
+      // Load existing analyses from localStorage - only if data is valid
+      if (Array.isArray(data) && data.length > 0) {
+        const storedAnalyses = localStorage.getItem('race_analyses');
+        if (storedAnalyses) {
+          const analyses = JSON.parse(storedAnalyses);
+          // Check if any activities have analyses
+          data.forEach(activity => {
+            if (analyses[activity.id]) {
+              activity.analysis = analyses[activity.id];
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading activities:', error);
+      // Ensure activities is always an array even on error
+      setActivities([]);
+      setRaceActivities([]);
     } finally {
       setLoading(false);
     }
@@ -114,6 +152,12 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
 
   const detectPotentialRaces = () => {
     // Auto-detect potential races based on intensity
+    // Ensure activities is an array before filtering
+    if (!Array.isArray(activities)) {
+      console.error('Activities is not an array:', activities);
+      return [];
+    }
+    
     return activities.filter(activity => {
       const hasHighIntensity = activity.normalizedPower && activity.avgPower && 
                                (activity.normalizedPower / activity.avgPower) > 1.05;
@@ -319,11 +363,11 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
   const potentialRaces = detectPotentialRaces();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Post-Race Analysis</h1>
-        <p className="text-gray-600 mt-1">Analyze your race performance and get AI-powered insights</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Post-Race Analysis</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Analyze your race performance and get AI-powered insights</p>
       </div>
 
       {/* Recent Races */}
@@ -442,7 +486,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
                 Post-Race Feedback
               </h2>
               <p className="text-gray-600 mb-6">
@@ -460,7 +504,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                       <button
                         key={star}
                         onClick={() => handleFeedbackChange('overallFeeling', star)}
-                        className={`text-3xl ${
+                        className={`text-2xl sm:text-3xl ${
                           star <= feedback.overallFeeling ? 'text-yellow-500' : 'text-gray-300'
                         }`}
                       >
@@ -527,7 +571,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                 </div>
 
                 {/* Placement */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Placement (Optional)
@@ -594,7 +638,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
               {/* Header */}
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                     Race Analysis
                   </h2>
                   <p className="text-gray-600 dark:text-gray-400">
@@ -613,25 +657,25 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
               </div>
 
               {/* Performance Scores */}
-              <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className={`p-4 rounded-lg ${getScoreColor(analysis.performanceScore)}`}>
-                  <div className="text-sm font-medium mb-1">Overall</div>
-                  <div className="text-2xl font-bold">{analysis.performanceScore}/100</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                <div className={`p-3 sm:p-4 rounded-lg ${getScoreColor(analysis.performanceScore)}`}>
+                  <div className="text-xs sm:text-sm font-medium mb-1">Overall</div>
+                  <div className="text-xl sm:text-2xl font-bold">{analysis.performanceScore}/100</div>
                   <div className="text-xs mt-1">{getScoreStars(analysis.performanceScore)}</div>
                 </div>
-                <div className={`p-4 rounded-lg ${getScoreColor(analysis.pacingScore)}`}>
-                  <div className="text-sm font-medium mb-1">Pacing</div>
-                  <div className="text-2xl font-bold">{analysis.pacingScore}/100</div>
+                <div className={`p-3 sm:p-4 rounded-lg ${getScoreColor(analysis.pacingScore)}`}>
+                  <div className="text-xs sm:text-sm font-medium mb-1">Pacing</div>
+                  <div className="text-xl sm:text-2xl font-bold">{analysis.pacingScore}/100</div>
                   <div className="text-xs mt-1">{getScoreStars(analysis.pacingScore)}</div>
                 </div>
-                <div className={`p-4 rounded-lg ${getScoreColor(analysis.executionScore)}`}>
-                  <div className="text-sm font-medium mb-1">Execution</div>
-                  <div className="text-2xl font-bold">{analysis.executionScore}/100</div>
+                <div className={`p-3 sm:p-4 rounded-lg ${getScoreColor(analysis.executionScore)}`}>
+                  <div className="text-xs sm:text-sm font-medium mb-1">Execution</div>
+                  <div className="text-xl sm:text-2xl font-bold">{analysis.executionScore}/100</div>
                   <div className="text-xs mt-1">{getScoreStars(analysis.executionScore)}</div>
                 </div>
-                <div className={`p-4 rounded-lg ${getScoreColor(analysis.tacticalScore)}`}>
-                  <div className="text-sm font-medium mb-1">Tactical</div>
-                  <div className="text-2xl font-bold">{analysis.tacticalScore}/100</div>
+                <div className={`p-3 sm:p-4 rounded-lg ${getScoreColor(analysis.tacticalScore)}`}>
+                  <div className="text-xs sm:text-sm font-medium mb-1">Tactical</div>
+                  <div className="text-xl sm:text-2xl font-bold">{analysis.tacticalScore}/100</div>
                   <div className="text-xs mt-1">{getScoreStars(analysis.tacticalScore)}</div>
                 </div>
               </div>

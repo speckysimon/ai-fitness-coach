@@ -1,10 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, Info } from 'lucide-react';
-import { COACH_PERSONAS, getUserCoach, setUserCoach } from '../lib/coachPersonas';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/Card';
+import { fetchCoachPersonas, getUserCoach, setUserCoach } from '../lib/coachPersonas';
 
 const CoachAvatarSelector = ({ onCoachChange }) => {
   const [selectedCoach, setSelectedCoach] = useState(getUserCoach());
+  const [personas, setPersonas] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPersonas();
+  }, []);
+
+  const loadPersonas = async () => {
+    try {
+      const data = await fetchCoachPersonas();
+      setPersonas(data);
+    } catch (error) {
+      console.error('Error loading personas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSelectCoach = (coachId) => {
     setSelectedCoach(coachId);
@@ -15,19 +31,14 @@ const CoachAvatarSelector = ({ onCoachChange }) => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-2xl">👤</span>
-          Choose Your Coach
-        </CardTitle>
-        <CardDescription>
-          Select a coaching style that resonates with you. Your coach's personality will influence training notes and feedback.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {COACH_PERSONAS.map((coach) => (
+    <>
+      {loading ? (
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          Loading coaches...
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {personas.map((coach) => (
             <div
               key={coach.id}
               onClick={() => handleSelectCoach(coach.id)}
@@ -46,9 +57,23 @@ const CoachAvatarSelector = ({ onCoachChange }) => {
 
               {/* Coach Avatar */}
               <div className="text-center mb-3">
-                <div className="text-6xl mb-2">{coach.avatar}</div>
-                <h3 className="font-bold text-lg text-gray-900">{coach.name}</h3>
-                <p className="text-sm text-gray-600 font-medium">{coach.style}</p>
+                {coach.avatar_url ? (
+                  <img
+                    src={coach.avatar_url}
+                    alt={coach.name}
+                    className="mx-auto mb-2 rounded-full object-cover border-2 border-gray-300"
+                    style={{ width: '300px', height: '300px' }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
+                  />
+                ) : null}
+                <div className="text-6xl mb-2" style={{ display: coach.avatar_url ? 'none' : 'block' }}>
+                  {coach.avatar || '👤'}
+                </div>
+                <h3 className="font-bold text-lg text-gray-900 dark:text-white">{coach.name}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{coach.style}</p>
               </div>
 
               {/* Coach Description */}
@@ -67,27 +92,45 @@ const CoachAvatarSelector = ({ onCoachChange }) => {
             </div>
           ))}
         </div>
+      )}
 
-        {/* Current Selection Summary */}
-        {selectedCoach && (
-          <div className="mt-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+      {/* Current Selection Summary */}
+      {selectedCoach && personas.length > 0 && (() => {
+        const selected = personas.find(c => c.id === selectedCoach);
+        if (!selected) return null;
+        return (
+          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg">
             <div className="flex items-center gap-3">
               <div className="text-4xl">
-                {COACH_PERSONAS.find(c => c.id === selectedCoach)?.avatar}
+                {selected.avatar_url ? (
+                  <img
+                    src={selected.avatar_url}
+                    alt={selected.name}
+                    className="rounded-full object-cover border-2 border-blue-300"
+                    style={{ width: '48px', height: '48px' }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'inline';
+                    }}
+                  />
+                ) : null}
+                <span style={{ display: selected.avatar_url ? 'none' : 'inline' }}>
+                  {selected.avatar || '👤'}
+                </span>
               </div>
               <div>
-                <p className="text-sm font-semibold text-blue-900">
-                  You've selected {COACH_PERSONAS.find(c => c.id === selectedCoach)?.name}
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                  You've selected {selected.name}
                 </p>
-                <p className="text-xs text-blue-700">
-                  Your training notes will reflect a {COACH_PERSONAS.find(c => c.id === selectedCoach)?.style.toLowerCase()} coaching style
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Your training notes will reflect a {selected.style.toLowerCase()} coaching style
                 </p>
               </div>
             </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        );
+      })()}
+    </>
   );
 };
 
