@@ -28,7 +28,7 @@ const Landing = () => {
                 Login
               </Button>
               <Button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/login?register=true')}
                 className="bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base px-3 sm:px-4"
               >
                 <span className="hidden sm:inline">Get Started Free</span>
@@ -67,7 +67,7 @@ const Landing = () => {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-12">
               <Button
                 size="lg"
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/login?register=true')}
                 className="bg-blue-600 hover:bg-blue-700 text-white text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 w-full sm:w-auto"
               >
                 Start Training Free
@@ -442,7 +442,7 @@ const Landing = () => {
                   <Button
                     size="lg"
                     className="bg-white text-blue-600 hover:bg-blue-50 text-base sm:text-lg px-8 sm:px-12 py-4 sm:py-6 font-bold w-full sm:w-auto"
-                    onClick={() => navigate('/login')}
+                    onClick={() => navigate('/login?register=true')}
                   >
                     Get Free Beta Access
                     <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
@@ -479,7 +479,7 @@ const Landing = () => {
             <Button
               size="lg"
               className="bg-white text-blue-600 hover:bg-blue-50 text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 w-full sm:w-auto"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/login?register=true')}
             >
               Start Free Today
               <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />

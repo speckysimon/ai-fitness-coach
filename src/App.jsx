@@ -23,6 +23,7 @@ import SeasonPlanner from './pages/SeasonPlanner';
 import Methodology from './pages/Methodology';
 import Form from './pages/Form';
 import ChangelogPage from './pages/ChangelogPage';
+import KnownIssuesPage from './pages/KnownIssuesPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Layout from './components/Layout';
@@ -492,6 +493,10 @@ function App() {
                   <Route
                     path="/changelog"
                     element={<ChangelogPage />}
+                  />
+                  <Route
+                    path="/known-issues"
+                    element={<KnownIssuesPage />}
                   />
                   <Route
                     path="/privacy"

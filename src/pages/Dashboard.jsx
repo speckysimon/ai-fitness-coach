@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Activity, Clock, Mountain, Zap, Calendar as CalendarIcon, ArrowRight, Home, RefreshCw, LogOut, Bell, Trophy, Edit2 } from 'lucide-react';
+import { TrendingUp, Activity, Clock, Mountain, Zap, Calendar as CalendarIcon, ArrowRight, Home, RefreshCw, LogOut, Bell, Trophy, Edit2, AlertTriangle, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -50,6 +50,10 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     const hasStrava = stravaTokens && stravaTokens.access_token;
     console.log('🎯 Onboarding check:', { hasSeenWelcome, hasStrava, stravaTokens });
     return !hasSeenWelcome && !hasStrava;
+  });
+  const [showAlphaWarning, setShowAlphaWarning] = useState(() => {
+    // Show alpha warning unless dismissed
+    return !sessionStorage.getItem('alpha_warning_dismissed');
   });
 
   // Calculate TSS for a single activity
@@ -712,13 +716,51 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         </div>
       </div>
       
-      {/* Upcoming Workout Card - Centered */}
-      {upcomingWorkout && (
-        <Card 
-          className="max-w-2xl mx-auto border-2 border-[var(--color-primary)]/30 shadow-lg cursor-pointer hover:shadow-xl hover:border-[var(--color-primary)]/40 transition-all"
-          onClick={() => setSelectedSession(upcomingWorkout)}
-        >
-          <CardContent className="pt-4 sm:pt-6">
+      {/* Alpha Testing Warning & Today's Workout */}
+      <div className={`grid grid-cols-1 ${showAlphaWarning && upcomingWorkout ? 'lg:grid-cols-2' : ''} gap-4 sm:gap-6 ${!showAlphaWarning && upcomingWorkout ? 'max-w-2xl' : 'max-w-7xl'} mx-auto`}>
+        {/* Alpha Testing Warning Card */}
+        {showAlphaWarning && (
+          <Card className="border-2 border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20 relative">
+            <button
+              onClick={() => {
+                setShowAlphaWarning(false);
+                sessionStorage.setItem('alpha_warning_dismissed', 'true');
+              }}
+              className="absolute top-3 right-3 p-1 hover:bg-orange-200 dark:hover:bg-orange-800 rounded transition-colors"
+              aria-label="Dismiss warning"
+            >
+              <X className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+            </button>
+            <CardContent className="pt-4 sm:pt-6 pr-10">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-6 h-6 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-base sm:text-lg font-semibold text-orange-900 dark:text-orange-100 mb-2">
+                    Alpha Testing Phase
+                  </h3>
+                  <p className="text-sm text-orange-800 dark:text-orange-200 mb-3">
+                    You're using an early version of RiderLabs. Some features may be incomplete or change without notice. 
+                    We appreciate your feedback as we build and improve the platform.
+                  </p>
+                  <p className="text-xs text-orange-700 dark:text-orange-300">
+                    Found a bug or have suggestions? Let us know through Settings → About.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Today's Workout Card */}
+        {upcomingWorkout && (
+          <Card 
+            className="border-2 border-[var(--color-primary)] bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 shadow-lg cursor-pointer hover:shadow-xl hover:border-[var(--color-primary-hover)] transition-all"
+            onClick={() => setSelectedSession(upcomingWorkout)}
+          >
+            <CardHeader className="pb-2 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white">
+              <CardTitle className="text-lg sm:text-xl">Today's Workout</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
             <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
               {/* Notification Icon */}
               <div className="flex-shrink-0 hidden sm:block">
@@ -734,7 +776,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
               {/* Workout Details */}
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">{upcomingWorkout.title}</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{upcomingWorkout.title}</h3>
                   <span className={`px-2 py-1 text-xs rounded font-medium ${
                     upcomingWorkout.type === 'Recovery' ? 'bg-green-100 text-green-700' :
                     upcomingWorkout.type === 'Endurance' ? 'bg-[var(--color-endurance)]/20 text-[var(--color-endurance)]' :
@@ -746,7 +788,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                     {upcomingWorkout.type}
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">{upcomingWorkout.description}</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-3">{upcomingWorkout.description}</p>
                 <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 flex-wrap">
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
@@ -785,7 +827,8 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
             </div>
           </CardContent>
         </Card>
-      )}
+        )}
+      </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">

@@ -366,8 +366,8 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Post-Race Analysis</h1>
-        <p className="text-sm sm:text-base text-gray-600 mt-1">Analyze your race performance and get AI-powered insights</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Race Analysis</h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Analyze your race performance and get AI-powered insights</p>
       </div>
 
       {/* Recent Races */}
@@ -399,7 +399,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
                         {new Date(activity.date).toLocaleDateString()}

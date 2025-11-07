@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { Activity, Calendar, Trash2, CheckCircle2, User, ChevronRight, Clock, ChevronDown, Package } from 'lucide-react';
+import { Activity, Calendar, Trash2, CheckCircle2, User, ChevronRight, Clock, ChevronDown, Package, AlertTriangle } from 'lucide-react';
 import packageJson from '../../package.json';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -261,7 +261,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 md:space-y-8 max-w-4xl">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
@@ -574,6 +574,20 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
               </div>
               <div className="px-2 sm:px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full flex-shrink-0">
                 <span className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">v{packageJson.version}</span>
+              </div>
+            </Link>
+
+            {/* Known Issues Link */}
+            <Link 
+              to="/known-issues"
+              className="flex items-center gap-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[60px]"
+            >
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Known Issues</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">View known bugs and improvements</p>
               </div>
             </Link>
           </div>

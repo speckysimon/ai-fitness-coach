@@ -1055,7 +1055,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-6xl">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Training Plan</h1>

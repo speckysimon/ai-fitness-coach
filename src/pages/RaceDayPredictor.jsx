@@ -613,7 +613,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
       {/* Recommendations */}
       {formData.recommendations && formData.recommendations.length > 0 && (
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <Zap className="w-6 h-6 text-yellow-500" />
             Recommendations
           </h2>
@@ -629,12 +629,12 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-gray-900">{rec.title}</h3>
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{rec.title}</h3>
                           <span className={`px-2 py-0.5 text-xs font-medium rounded ${getPriorityBadge(rec.priority)}`}>
                             {rec.priority.toUpperCase()}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600">{rec.message}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{rec.message}</p>
                       </div>
                     </div>
                   </CardContent>

@@ -51,7 +51,7 @@ const Methodology = () => {
   );
 
   return (
-    <div className="space-y-4 sm:space-y-6 max-w-5xl">
+    <div className="space-y-4 sm:space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 sm:gap-3">
           <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />

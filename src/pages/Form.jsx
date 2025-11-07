@@ -274,7 +274,7 @@ const Form = ({ stravaTokens }) => {
   // No data available
   if (!loading && formData.length === 0) {
     return (
-      <div className="space-y-4 sm:space-y-6 max-w-7xl">
+      <div className="space-y-4 sm:space-y-6">
         <div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Fitness & Form</h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Track your training load, fitness, and freshness using Joe Friel's TSB methodology</p>
@@ -300,7 +300,7 @@ const Form = ({ stravaTokens }) => {
   const formStatus = currentMetrics ? getFormStatus(currentMetrics.form) : null;
 
   return (
-    <div className="space-y-4 sm:space-y-6 max-w-7xl">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Fitness & Form</h1>

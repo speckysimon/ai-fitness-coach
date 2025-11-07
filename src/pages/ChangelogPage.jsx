@@ -5,6 +5,31 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 const ChangelogPage = () => {
   const versions = [
     {
+      version: '2.8.0',
+      date: '2025-11-07',
+      type: 'minor',
+      changes: {
+        features: [
+          '📄 Known Issues Page - Public-facing page showing current bugs and planned improvements',
+          '⚠️ Alpha Testing Warning Card - Dashboard alert for alpha testers with dismissible X button',
+          '🎨 Today\'s Workout Card Redesign - Bold gradient header with theme colors',
+        ],
+        improvements: [
+          'Login/Register dark mode - Fixed visibility of input fields and text in dark mode',
+          'Landing page routing - All CTA buttons now correctly navigate to register form',
+          'Today\'s Workout card centers when alpha warning is dismissed',
+          'Alpha warning persists across sessions (sessionStorage)',
+          'Known Issues link added to Settings page',
+          'Internal KNOWN_ISSUES.md created for development reference',
+        ],
+        fixes: [
+          '🐛 Fixed dark mode on Login/Register screens (text now visible)',
+          '🐛 Fixed "Get Started Free" button routing to login instead of register',
+          '🐛 Fixed Today\'s Workout card layout when alpha warning dismissed',
+        ],
+      },
+    },
+    {
       version: '2.7.1',
       date: '2025-10-30',
       type: 'minor',
@@ -392,7 +417,7 @@ const ChangelogPage = () => {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">

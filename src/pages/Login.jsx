@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LogIn, UserPlus, Activity, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -8,7 +8,15 @@ import { trackFunnel } from '../lib/analytics';
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isRegister, setIsRegister] = useState(false);
+  
+  // Check if we should show register form from URL parameter
+  useEffect(() => {
+    if (searchParams.get('register') === 'true') {
+      setIsRegister(true);
+    }
+  }, [searchParams]);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -110,15 +118,15 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4 sm:p-6 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             <img src="/favicon.svg" alt="RiderLabs" className="w-10 h-10 sm:w-12 sm:h-12" />
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">RiderLabs</h1>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">RiderLabs</h1>
           </div>
-          <p className="text-sm sm:text-base text-gray-600">Where Performance is Engineered</p>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Where Performance is Engineered</p>
         </div>
 
         {/* Login/Register Card */}
@@ -277,7 +285,7 @@ const Login = ({ onLogin }) => {
         </Card>
 
         {/* Info */}
-        <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm text-gray-600">
+        <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           <p>
             Connect with Strava and Google Calendar after signing in
           </p>
