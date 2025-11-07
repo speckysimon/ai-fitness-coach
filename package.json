@@ -1,11 +1,11 @@
 {
   "name": "riderlabs",
-  "version": "2.5.0",
+  "version": "2.8.1",
   "description": "Data-driven cycling performance platform powered by AI. Integrates with Strava and Google Calendar.",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "server": "nodemon server/index.js",
+    "server": "nodemon --ext js,json,cjs server/index.js",
     "client": "vite",
     "build": "vite build",
     "preview": "vite preview",

@@ -4,6 +4,131 @@ All notable changes to AI Fitness Coach will be documented in this file.
 
 ## [Unreleased]
 
+### 🎯 Current Sprint (Nov 7, 2025)
+- **Mobile Responsiveness**: Making entire site mobile-friendly (320px - 768px viewports)
+- **Dark Mode Polish**: Previous implementation was quick fix (224+ colors), needs proper audit and WCAG AA compliance
+- **Production Testing**: Training plan generation works in dev, needs verification on production
+
+### ⚠️ Status Clarifications
+- **Dark Mode**: Oct 24 implementation was rapid fix (224+ colors), not comprehensive. Needs proper audit.
+- **Training Plan Generation**: Working in development, requires production environment testing
+
+## [2.8.1] - 2025-11-07
+
+### 🎨 UI/UX Improvements
+
+#### **Homepage Styling Overhaul** ⭐
+- **Complete Theme Independence**: Homepage (`Landing.jsx`) now completely disconnected from theme system and dark mode
+  - Removed ALL `dark:` Tailwind classes (100+ instances)
+  - Removed CSS custom property dependencies (`var(--color-primary)`)
+  - Fixed, light-themed design that never changes
+- **Enhanced Visual Hierarchy**: Clear section separation with distinct backgrounds
+  - Hero: Gradient from blue-50 to white
+  - Features: Gray-50 background with border separator
+  - How It Works: White background with border separator
+  - Stats: Solid blue-600 background
+  - Pricing: Gradient from gray-50 to blue-50
+  - CTA: Gradient from blue-600 to purple-600
+  - Footer: Gray-900 background
+- **Improved Card Design**: Feature cards with better visual definition
+  - White backgrounds with colored borders (blue-200, purple-200)
+  - Added shadow-lg for depth
+  - Border-2 for clear boundaries
+- **Better Icon Containers**: Light backgrounds with matching borders
+  - Blue-50/green-50/purple-50/orange-50 backgrounds
+  - Matching border colors for consistency
+- **Navigation Enhancement**: Clean white nav with subtle shadow
+- **Typography Consistency**: All text uses fixed gray scale (900/700/600)
+  - No dark mode variants
+  - Consistent across all sections
+
+### 🐛 Bug Fixes
+- **JSX Syntax Error**: Fixed missing closing `</div>` tag in Hero section
+  - Error was preventing page from rendering
+  - Added proper closing tag for max-w-7xl container
+
+### 🔧 Technical Improvements
+- **Hardcoded Tailwind Classes**: Replaced all dynamic CSS variables with explicit Tailwind utilities
+- **Removed Dark Mode Dependencies**: Homepage no longer responds to `.dark` class on HTML element
+- **Cleaner Component Structure**: Proper JSX nesting and closing tags
+
+### 📝 Files Modified
+- `src/pages/Landing.jsx` - Complete styling overhaul (200+ line changes)
+
+### 🎯 User Benefits
+- **Consistent Branding**: Homepage always looks the same, regardless of user settings
+- **Better First Impression**: Professional, clean light theme for all visitors
+- **Clear Visual Sections**: Obvious boundaries between different page sections
+- **Improved Readability**: Fixed color scheme optimized for light backgrounds
+
+## [2.8.0] - 2025-11-01
+
+### 🎨 UI/UX Improvements
+
+#### **Navigation Menu Cleanup** ⭐
+- **Race Intelligence Section**: Grouped race-related pages under collapsible "Race Intelligence" menu
+  - Race Day Predictor, Race Analysis, Race Analytics now nested
+  - Sparkles icon (✨) represents AI-powered insights
+  - Collapsible by default to reduce menu clutter
+  - Parent button highlights when any race page is active
+  - Smooth chevron rotation animation
+- **Cleaner Menu Structure**: Removed 3 top-level items, improved hierarchy
+- **Better Organization**: Related features grouped together for easier navigation
+
+#### **Sidebar Compaction** 🎯
+- **API Attribution Logos**: Removed text labels, kept logos only
+  - Strava, Garmin, Zwift logos now display horizontally
+  - Tooltips provide full text on hover
+  - Still fully compliant with trademark requirements
+  - Saved significant vertical space
+- **Removed Changelog Link**: Moved to Settings page About section
+- **Cleaner Footer**: More compact and focused
+
+#### **Settings Page Reorganization** ⚙️
+- **Removed Legacy Sections**:
+  - API Configuration section (now managed in Admin panel)
+  - Account section with logout button (now in sidebar)
+- **Collapsible Sections** (collapsed by default):
+  - Choose Your Coach section
+  - Workout Reminders section
+  - Click header to expand/collapse
+  - Smooth animations with chevron indicators
+- **Layout Improvements**:
+  - Timezone & Data Management now side-by-side (2-column grid)
+  - Moved directly under Connected Accounts
+  - Responsive: stacks on mobile, side-by-side on desktop
+  - Better space efficiency
+- **About Section Enhanced**:
+  - Added Changelog link with beautiful card design
+  - Dynamic version number from package.json (always current)
+  - Version badge displays current version
+  - Package icon for visual consistency
+  - Full dark mode support
+
+### 🔧 Technical Improvements
+- **Dynamic Versioning**: Version number pulled from package.json automatically
+- **Component Refactoring**: 
+  - CoachAvatarSelector no longer wraps in Card (handled by parent)
+  - NotificationSettings no longer wraps in Card (handled by parent)
+- **Import Cleanup**: Removed unused imports from components
+- **Dark Mode Consistency**: All new sections have proper dark mode classes
+
+### 📝 Files Modified
+- `src/components/Layout.jsx` - Navigation restructure, sidebar cleanup
+- `src/pages/Settings.jsx` - Major reorganization and improvements
+- `src/components/CoachAvatarSelector.jsx` - Removed Card wrapper
+- `src/components/NotificationSettings.jsx` - Removed Card wrapper
+- `src/components/StravaAttribution.jsx` - Logo only, added tooltip
+- `src/components/GarminAttribution.jsx` - Logo only, added tooltip
+- `src/components/ZwiftAttribution.jsx` - Logo only, added tooltip
+
+### 🎯 User Benefits
+- **Cleaner Navigation**: Less overwhelming, better organized
+- **More Space**: Compact sidebar leaves more room for content
+- **Better Settings**: Logical grouping, collapsible sections reduce clutter
+- **Always Current**: Version number automatically updates
+- **Easier Access**: Changelog in logical location (About section)
+
 ## [2.7.2] - 2025-10-31
 
 ### ✨ New Features
