@@ -130,41 +130,41 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Training Calendar</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Past activities and upcoming planned sessions</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex-1">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Training Calendar</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Past activities and upcoming planned sessions</p>
         </div>
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={previousMonth}>
+        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+          <Button variant="outline" size="icon" onClick={previousMonth} className="min-h-[44px] min-w-[44px]">
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white min-w-[200px] text-center">
+          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-white min-w-[140px] sm:min-w-[200px] text-center">
             {format(currentMonth, 'MMMM yyyy')}
           </h2>
-          <Button variant="outline" size="icon" onClick={nextMonth}>
+          <Button variant="outline" size="icon" onClick={nextMonth} className="min-h-[44px] min-w-[44px]">
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 text-sm">
+      <div className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-100 border-2 border-green-500 rounded"></div>
+          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-100 border-2 border-green-500 rounded flex-shrink-0"></div>
           <span className="text-gray-700 dark:text-gray-300">Completed</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-100 border-2 border-blue-500 rounded"></div>
+          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-100 border-2 border-blue-500 rounded flex-shrink-0"></div>
           <span className="text-gray-700 dark:text-gray-300">Planned</span>
         </div>
       </div>
 
       {/* Calendar */}
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-3 sm:p-4 md:p-6">
           {loading ? (
             <div className="flex items-center justify-center h-96">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -172,16 +172,17 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
           ) : (
             <div>
               {/* Week day headers */}
-              <div className="grid grid-cols-7 gap-2 mb-2">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
                 {weekDays.map(day => (
-                  <div key={day} className="text-center text-sm font-medium text-gray-500 dark:text-gray-400 py-2">
-                    {day}
+                  <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 py-1 sm:py-2">
+                    <span className="hidden sm:inline">{day}</span>
+                    <span className="sm:hidden">{day.slice(0, 1)}</span>
                   </div>
                 ))}
               </div>
 
               {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2">
                 {/* Empty cells for days before month starts */}
                 {Array.from({ length: days[0].getDay() }).map((_, i) => (
                   <div key={`empty-${i}`} className="aspect-square"></div>
@@ -196,21 +197,21 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                   return (
                     <div
                       key={day.toISOString()}
-                      className={`aspect-square border rounded-lg p-2 ${
+                      className={`aspect-square border rounded-lg p-1 sm:p-2 ${
                         isToday ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700'
                       } ${!isSameMonth(day, currentMonth) ? 'opacity-50' : ''}`}
                     >
-                      <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                      <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white mb-0.5 sm:mb-1">
                         {format(day, 'd')}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-0.5 sm:space-y-1">
                         {/* Completed activities */}
                         {dayActivities.map((activity, idx) => {
                           const isRace = raceActivities[activity.id];
                           return (
                             <div
                               key={`activity-${idx}`}
-                              className={`text-xs px-2 py-1 rounded truncate border cursor-pointer transition-colors flex items-center gap-1 ${
+                              className={`text-[10px] sm:text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded truncate border cursor-pointer transition-colors flex items-center gap-0.5 sm:gap-1 min-h-[24px] sm:min-h-[28px] ${
                                 isRace 
                                   ? 'bg-yellow-100 text-yellow-700 border-yellow-500 hover:bg-yellow-200' 
                                   : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-500 dark:border-green-600 hover:bg-green-200 dark:hover:bg-green-900/40'
@@ -219,11 +220,12 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                               onClick={() => setSelectedActivity(activity)}
                             >
                               {isRace ? (
-                                <Trophy className="w-3 h-3 flex-shrink-0" />
+                                <Trophy className="w-2 h-2 sm:w-3 sm:h-3 flex-shrink-0" />
                               ) : (
-                                <span>✓</span>
+                                <span className="text-[10px] sm:text-xs">✓</span>
                               )}
-                              <span className="truncate">{activity.type}</span>
+                              <span className="truncate hidden sm:inline">{activity.type}</span>
+                              <span className="truncate sm:hidden">{activity.type.slice(0, 3)}</span>
                             </div>
                           );
                         })}
@@ -235,7 +237,7 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                           return (
                             <div
                               key={`planned-${idx}`}
-                              className={`text-xs px-2 py-1 rounded truncate border cursor-pointer transition-colors ${
+                              className={`text-[10px] sm:text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded truncate border cursor-pointer transition-colors min-h-[24px] sm:min-h-[28px] flex items-center gap-0.5 sm:gap-1 ${
                                 isCancelled 
                                   ? 'bg-red-100 text-red-700 border-red-500 line-through hover:bg-red-200'
                                   : isModified
@@ -245,7 +247,9 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                               title={isCancelled ? `Cancelled: ${session.cancellationReason || 'Recovery needed'}` : isModified ? `Modified: ${session.modificationReason || 'Plan adjusted'}` : session.title}
                               onClick={() => setSelectedSession(session)}
                             >
-                              {isCancelled ? '❌' : isModified ? '⚠️' : '📅'} {session.type}
+                              <span className="text-[10px] sm:text-xs flex-shrink-0">{isCancelled ? '❌' : isModified ? '⚠️' : '📅'}</span>
+                              <span className="truncate hidden sm:inline">{session.type}</span>
+                              <span className="truncate sm:hidden">{session.type.slice(0, 3)}</span>
                             </div>
                           );
                         })}
@@ -260,38 +264,38 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
       </Card>
 
       {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">This Month</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-sm sm:text-base">This Month</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{activities.length}</div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Activities completed</p>
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{activities.length}</div>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Activities completed</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Total Time</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-sm sm:text-base">Total Time</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
               {Math.round(activities.reduce((sum, a) => sum + (a.duration || 0), 0) / 3600)}h
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Training hours</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Training hours</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Total Distance</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-sm sm:text-base">Total Distance</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
               {Math.round(activities.reduce((sum, a) => sum + (a.distance || 0), 0) / 1000)} km
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Covered this month</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Covered this month</p>
           </CardContent>
         </Card>
       </div>
