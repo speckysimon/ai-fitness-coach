@@ -625,7 +625,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {/* Notification Prompt */}
       <NotificationPrompt />
 
@@ -691,19 +691,19 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       )}
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Your training overview and progress</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">Your training overview and progress</p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-wrap">
           <WeatherWidget />
           <DashboardClock />
           <Button
             onClick={handleForceRefresh}
             disabled={refreshing}
             variant="outline"
-            className="flex items-center gap-2 text-sm sm:text-base"
+            className="flex items-center gap-2 text-sm min-h-[44px]"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
@@ -788,14 +788,15 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       )}
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <Card className={smartFTPContext?.confidence === 'high' ? 'border-green-200 dark:border-green-800' : smartFTPContext?.confidence === 'medium' ? 'border-yellow-200 dark:border-yellow-800' : smartFTPContext?.confidence === 'low' ? 'border-orange-200 dark:border-orange-800' : ''}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              Current FTP
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 md:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
+              <span className="hidden sm:inline">Current FTP</span>
+              <span className="sm:hidden">FTP</span>
               {smartFTPContext?.confidence && (
                 <span 
-                  className={`px-2 py-0.5 text-xs rounded-full cursor-help ${
+                  className={`px-1.5 sm:px-2 py-0.5 text-xs rounded-full cursor-help ${
                     smartFTPContext.confidence === 'high' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                     smartFTPContext.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
                     smartFTPContext.confidence === 'low' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
@@ -807,13 +808,13 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                 </span>
               )}
             </CardTitle>
-            <Zap className="h-4 w-4 text-yellow-500" />
+            <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <div className="text-xl sm:text-2xl md:text-3xl font-bold">
               {metrics?.ftp ? `${metrics.ftp}W` : 'N/A'}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {smartFTPContext?.method === 'hard_efforts' && smartFTPContext?.effortsUsed && (
                 `From ${smartFTPContext.effortsUsed} hard effort${smartFTPContext.effortsUsed > 1 ? 's' : ''} (${smartFTPContext.avgDuration}min avg)`
               )}
@@ -834,45 +835,45 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Weekly Load</CardTitle>
-            <TrendingUp className="h-4 w-4 text-[var(--color-primary)]" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 md:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium"><span className="hidden sm:inline">Weekly Load</span><span className="sm:hidden">Load</span></CardTitle>
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-[var(--color-primary)]" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {metrics?.currentWeek.tss || 0} TSS
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <div className="text-xl sm:text-2xl md:text-3xl font-bold">
+              {metrics?.currentWeek.tss || 0}<span className="hidden sm:inline"> TSS</span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Training Stress Score
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Weekly Time</CardTitle>
-            <Clock className="h-4 w-4 text-green-500" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 md:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium"><span className="hidden sm:inline">Weekly Time</span><span className="sm:hidden">Time</span></CardTitle>
+            <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <div className="text-xl sm:text-2xl md:text-3xl font-bold">
               {metrics?.currentWeek.time || 0}h
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {metrics?.currentWeek.activities || 0} activities
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Weekly Distance</CardTitle>
-            <Mountain className="h-4 w-4 text-purple-500" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 md:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium"><span className="hidden sm:inline">Weekly Distance</span><span className="sm:hidden">Distance</span></CardTitle>
+            <Mountain className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {metrics?.currentWeek.distance || 0} km
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <div className="text-xl sm:text-2xl md:text-3xl font-bold">
+              {metrics?.currentWeek.distance || 0}<span className="hidden sm:inline"> km</span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {metrics?.currentWeek.elevation || 0}m elevation
             </p>
           </CardContent>
@@ -923,8 +924,8 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <ResponsiveContainer width="100%" height={200} className="sm:h-[250px]">
               <LineChart data={getFilteredTrendsVolume()}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
@@ -972,8 +973,8 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="mb-3 flex items-center gap-2 sm:gap-4 text-xs flex-wrap">
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <div className="mb-3 flex items-center gap-2 sm:gap-3 md:gap-4 text-xs flex-wrap">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 <span className="text-gray-600 text-xs">Low (&lt;200)</span>
@@ -992,11 +993,11 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
               </div>
             </div>
             {getFilteredTrendsTSS().length === 0 || !getFilteredTrendsTSS().some(t => t.tss > 0) ? (
-              <div className="flex items-center justify-center h-[300px] text-gray-500">
+              <div className="flex items-center justify-center h-[200px] sm:h-[250px] text-gray-500 text-xs sm:text-sm text-center px-4">
                 <p>No TSS data available. Complete more activities to see training load trends.</p>
               </div>
             ) : (
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={200} className="sm:h-[250px]">
               <LineChart data={getFilteredTrendsTSS()}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
@@ -1048,30 +1049,31 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
 
       {/* Recent Activities */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <CardTitle>Recent Activities</CardTitle>
-              <CardDescription>Your last 10 workouts</CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Recent Activities</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Your last 10 workouts</CardDescription>
             </div>
             <Button
               variant="outline"
               onClick={() => navigate('/activities')}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-sm min-h-[44px]"
             >
-              View All
+              <span className="hidden sm:inline">View All</span>
+              <span className="sm:hidden">All</span>
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="p-3 sm:p-4 md:p-6">
+          <div className="space-y-3 sm:space-y-4">
             {activities.slice(0, 20).map((activity) => {
               const isRace = raceActivities[activity.id];
               return (
                 <div
                   key={activity.id}
-                  className={`flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-all border-l-4 ${getLoadColor(activity.tss)} ${isRace ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}
+                  className={`flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:shadow-md transition-all border-l-4 ${getLoadColor(activity.tss)} ${isRace ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}
                 >
                   <div className="flex items-center gap-3 sm:gap-4 flex-1 cursor-pointer" onClick={() => setSelectedActivity(activity)}>
                     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center ${isRace ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20'}`}>

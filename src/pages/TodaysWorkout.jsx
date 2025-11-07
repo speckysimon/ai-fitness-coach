@@ -226,37 +226,38 @@ const TodaysWorkout = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+              className="flex items-center gap-1 sm:gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors min-h-[44px] px-2"
             >
-              <Home className="w-5 h-5" />
-              <span className="font-medium">Home</span>
+              <Home className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="font-medium text-sm sm:text-base">Home</span>
             </button>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Today's Workout</h1>
-            <div className="w-20"></div> {/* Spacer for centering */}
+            <h1 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">Today's Workout</h1>
+            <div className="w-12 sm:w-20"></div> {/* Spacer for centering */}
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <Button
             onClick={goToPrevious}
             disabled={sessionIndex === 0}
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-1 sm:gap-2 min-h-[44px] text-sm sm:text-base"
           >
             <ChevronLeft className="w-4 h-4" />
-            Previous
+            <span className="hidden sm:inline">Previous</span>
+            <span className="sm:hidden">Prev</span>
           </Button>
           
-          <div className="text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-center flex-1">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Session {sessionIndex + 1} of {allSessions.length}
             </p>
           </div>
@@ -265,7 +266,7 @@ const TodaysWorkout = () => {
             onClick={goToNext}
             disabled={sessionIndex === allSessions.length - 1}
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-1 sm:gap-2 min-h-[44px] text-sm sm:text-base"
           >
             Next
             <ChevronRight className="w-4 h-4" />
@@ -275,12 +276,12 @@ const TodaysWorkout = () => {
         {/* Workout Card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
           {/* Header Section */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Calendar className="w-6 h-6" />
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
                 <div>
-                  <p className="text-sm opacity-90">
+                  <p className="text-xs sm:text-sm opacity-90">
                     {new Date(currentSession.date).toLocaleDateString('en-US', { 
                       weekday: 'long', 
                       month: 'long', 
@@ -299,9 +300,9 @@ const TodaysWorkout = () => {
               </span>
             </div>
             
-            <h2 className="text-3xl font-bold mb-2">{currentSession.title}</h2>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">{currentSession.title}</h2>
             
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
                 <span>{currentSession.duration} min</span>
@@ -312,48 +313,48 @@ const TodaysWorkout = () => {
           </div>
 
           {/* Description */}
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Description</h3>
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
+          <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">Description</h3>
+            <p className="text-sm sm:text-base md:text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
               {currentSession.description}
             </p>
           </div>
 
           {/* Main Set */}
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <Target className="w-5 h-5 text-blue-600" />
+          <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3 flex items-center gap-2">
+              <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
               Main Set
             </h3>
-            <p className="text-gray-700 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 text-lg">
+            <p className="text-sm sm:text-base md:text-lg text-gray-700 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg border border-blue-200 dark:border-blue-800">
               {getZoneBreakdown(currentSession.type, currentSession.duration).mainSet}
             </p>
           </div>
 
           {/* Time in Zones */}
-          <div className="p-6 bg-gray-50 dark:bg-gray-900">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-yellow-600" />
+          <div className="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 flex items-center gap-2">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 dark:text-yellow-400" />
               Time in Zones
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {getZoneBreakdown(currentSession.type, currentSession.duration).zones.map((zone, idx) => (
-                <div key={idx} className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-3">
+                <div key={idx} className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded ${zone.color}`} />
-                      <span className="font-semibold text-gray-900 dark:text-gray-100 text-lg">{zone.name}</span>
+                      <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded ${zone.color}`} />
+                      <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base md:text-lg">{zone.name}</span>
                     </div>
-                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {Math.round(zone.time)} min
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4" />
                       <span>Power: {zone.power}</span>
                       {ftp && getPowerTargets(zone) && (
-                        <span className="font-semibold text-blue-600 text-base">
+                        <span className="font-semibold text-blue-600 dark:text-blue-400 text-sm sm:text-base">
                           ({getPowerTargets(zone)})
                         </span>
                       )}
@@ -370,28 +371,28 @@ const TodaysWorkout = () => {
 
           {/* Targets */}
           {currentSession.targets && (
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
+            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                 Additional Targets
               </h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
+              <p className="text-sm sm:text-base md:text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
                 {currentSession.targets}
               </p>
             </div>
           )}
 
           {/* Zwift Recommendation */}
-          <div className="p-6 bg-orange-50 dark:bg-orange-900/20 border-t border-orange-200 dark:border-orange-800">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <div className="p-4 sm:p-6 bg-orange-50 dark:bg-orange-900/20 border-t border-orange-200 dark:border-orange-800">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3 flex items-center gap-2">
               <span className="text-orange-600 font-bold text-xl">Z</span>
               Zwift® Workout Recommendation
             </h3>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-orange-200 dark:border-orange-800">
-              <p className="font-semibold text-lg text-orange-900 dark:text-orange-300 mb-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 shadow-sm border border-orange-200 dark:border-orange-800">
+              <p className="font-semibold text-base sm:text-lg text-orange-900 dark:text-orange-300 mb-2">
                 {getZwiftRecommendation(currentSession.type, currentSession.duration).name}
               </p>
-              <p className="text-gray-700 dark:text-gray-300 mb-3">
+              <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 mb-3">
                 {getZwiftRecommendation(currentSession.type, currentSession.duration).description}
               </p>
               <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -421,22 +422,22 @@ const TodaysWorkout = () => {
           </div>
 
           {/* Key Points */}
-          <div className="p-6 bg-blue-50 dark:bg-blue-900/20">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Key Points</h3>
-            <ul className="text-gray-700 dark:text-gray-300 space-y-2 list-disc list-inside">
-              {currentSession.targets && <li className="text-lg">{currentSession.targets}</li>}
-              <li className="text-lg">Stay hydrated throughout the session</li>
-              <li className="text-lg">Focus on smooth, consistent effort</li>
-              <li className="text-lg">Listen to your body and adjust if needed</li>
+          <div className="p-4 sm:p-6 bg-blue-50 dark:bg-blue-900/20">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">Key Points</h3>
+            <ul className="text-gray-700 dark:text-gray-300 space-y-1 sm:space-y-2 list-disc list-inside">
+              {currentSession.targets && <li className="text-sm sm:text-base md:text-lg">{currentSession.targets}</li>}
+              <li className="text-sm sm:text-base md:text-lg">Stay hydrated throughout the session</li>
+              <li className="text-sm sm:text-base md:text-lg">Focus on smooth, consistent effort</li>
+              <li className="text-sm sm:text-base md:text-lg">Listen to your body and adjust if needed</li>
             </ul>
           </div>
         </div>
 
         {/* Action Button */}
-        <div className="text-center pb-6">
+        <div className="text-center pb-4 sm:pb-6">
           <Button
             onClick={() => navigate('/plan')}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg min-h-[44px] w-full sm:w-auto"
           >
             View Full Training Plan
           </Button>

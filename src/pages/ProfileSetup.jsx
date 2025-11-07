@@ -66,12 +66,12 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-2xl">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Your Profile</h1>
-          <p className="text-gray-600">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">Complete Your Profile</h1>
+          <p className="text-sm sm:text-base text-gray-600">
             Help us personalize your training experience
           </p>
         </div>
@@ -79,20 +79,20 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
         {/* Form Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <User className="w-5 h-5 sm:w-6 sm:h-6" />
               Personal Information
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm sm:text-base">
               This information helps us provide better training insights and recommendations
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Age */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                  <label className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
                     Age
                   </label>
@@ -104,14 +104,14 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
                     placeholder="30"
                     min="13"
                     max="100"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-3 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for age-graded performance analysis</p>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Used for age-graded performance analysis</p>
                 </div>
 
                 {/* Gender */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                  <label className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     Gender
                   </label>
@@ -119,19 +119,19 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
                     name="gender"
                     value={formData.gender}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-3 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Select gender</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                     <option value="other">Other</option>
                   </select>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Helps provide gender-specific recommendations</p>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Helps provide gender-specific recommendations</p>
                 </div>
 
                 {/* Height */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                  <label className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
                     <Ruler className="w-4 h-4" />
                     Height (cm)
                   </label>
@@ -144,14 +144,14 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
                     min="100"
                     max="250"
                     step="0.1"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-3 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for BMI and body composition metrics</p>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Used for BMI and body composition metrics</p>
                 </div>
 
                 {/* Weight */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                  <label className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
                     <Weight className="w-4 h-4" />
                     Weight (kg)
                   </label>
@@ -164,32 +164,33 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
                     min="30"
                     max="200"
                     step="0.1"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-3 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Used for power-to-weight ratio calculations</p>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Used for power-to-weight ratio calculations</p>
                 </div>
               </div>
 
               {/* Info Box */}
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <User className="w-5 h-5 text-blue-600" />
+              <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-800 rounded-lg flex-shrink-0">
+                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div className="flex-1 text-sm text-gray-700">
-                    <p className="font-medium text-gray-900 mb-1">Your privacy matters</p>
+                  <div className="flex-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                    <p className="font-medium text-gray-900 dark:text-gray-100 mb-1">Your privacy matters</p>
                     <p>All data is stored locally on your device and never shared with third parties. You can update or delete this information anytime in your profile settings.</p>
                   </div>
                 </div>
               </div>
 
               {/* Buttons */}
-              <div className="flex gap-3">
-                <Button type="submit" className="flex-1" size="lg">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button type="submit" className="flex-1 w-full sm:w-auto" size="lg">
                   <ArrowRight className="w-4 h-4 mr-2" />
-                  Continue to Setup
+                  <span className="hidden sm:inline">Continue to Setup</span>
+                  <span className="sm:hidden">Continue</span>
                 </Button>
-                <Button type="button" onClick={handleSkip} variant="outline" size="lg">
+                <Button type="button" onClick={handleSkip} variant="outline" size="lg" className="w-full sm:w-auto">
                   <SkipForward className="w-4 h-4 mr-2" />
                   Skip for Now
                 </Button>
@@ -199,7 +200,7 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
         </Card>
 
         {/* Footer Note */}
-        <div className="mt-6 text-center text-sm text-gray-600">
+        <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm text-gray-600">
           <p>You can always update this information later in your profile settings</p>
         </div>
       </div>

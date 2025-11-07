@@ -201,59 +201,59 @@ const SeasonPlanner = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-            <Calendar className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex-1">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 sm:gap-3">
+            <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
             Season Planner
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Plan your race calendar for the season</p>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Plan your race calendar for the season</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+        <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 w-full sm:w-auto min-h-[44px]">
           <Plus className="w-4 h-4" />
           Add Race
         </Button>
       </div>
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{races.length}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Total Races</div>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{races.length}</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Total Races</div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+              <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">
                 {races.filter(r => r.status === 'confirmed').length}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Confirmed</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Confirmed</div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+              <div className="text-2xl sm:text-3xl font-bold text-yellow-600 dark:text-yellow-400">
                 {races.filter(r => r.status === 'provisional').length}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Provisional</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">Provisional</div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+              <div className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">
                 {races.filter(r => r.priority === 'A').length}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">A Priority</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">A Priority</div>
             </div>
           </CardContent>
         </Card>
@@ -262,14 +262,14 @@ const SeasonPlanner = () => {
       {/* Race Calendar */}
       {races.length === 0 ? (
         <Card>
-          <CardContent className="pt-12 pb-12">
+          <CardContent className="p-6 sm:p-12">
             <div className="text-center">
-              <Trophy className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No Races Planned</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <Trophy className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No Races Planned</h3>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
                 Start planning your season by adding your target races
               </p>
-              <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 mx-auto">
+              <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 mx-auto min-h-[44px]">
                 <Plus className="w-4 h-4" />
                 Add Your First Race
               </Button>
@@ -277,31 +277,31 @@ const SeasonPlanner = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {sortedMonths.map(month => (
             <Card key={month}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                   {month}
                 </CardTitle>
-                <CardDescription>{racesByMonth[month].length} race{racesByMonth[month].length !== 1 ? 's' : ''}</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">{racesByMonth[month].length} race{racesByMonth[month].length !== 1 ? 's' : ''}</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 <div className="space-y-3">
                   {racesByMonth[month].map(race => (
                     <div 
                       key={race.id}
-                      className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                      className="p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-semibold text-gray-900 dark:text-gray-100">{race.name}</h4>
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0 w-full">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100">{race.name}</h4>
                             {getPriorityBadge(race.priority)}
                             {getStatusBadge(race.status)}
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600 dark:text-gray-400">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                             <div className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />
                               {new Date(race.date).toLocaleDateString('en-US', { 
@@ -324,21 +324,21 @@ const SeasonPlanner = () => {
                             </div>
                           </div>
                           {race.notes && (
-                            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2 italic">
+                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-500 mt-2 italic">
                               {race.notes}
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 ml-4">
+                        <div className="flex items-center gap-2 sm:ml-4">
                           <button
                             onClick={() => handleEdit(race)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded transition-colors"
+                            className="p-2 sm:p-2.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(race.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded transition-colors"
+                            className="p-2 sm:p-2.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -357,12 +357,12 @@ const SeasonPlanner = () => {
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+            <div className="p-4 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6">
                 {editingRace ? 'Edit Race' : 'Add New Race'}
               </h2>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 {/* Race Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -373,7 +373,7 @@ const SeasonPlanner = () => {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[44px]"
                     placeholder="e.g., Tour of California"
                   />
                 </div>
@@ -488,11 +488,11 @@ const SeasonPlanner = () => {
                 </div>
 
                 {/* Buttons */}
-                <div className="flex gap-3 pt-4">
-                  <Button type="submit" className="flex-1">
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <Button type="submit" className="flex-1 min-h-[44px]">
                     {editingRace ? 'Update Race' : 'Add Race'}
                   </Button>
-                  <Button type="button" onClick={handleCloseModal} variant="outline" className="flex-1">
+                  <Button type="button" onClick={handleCloseModal} variant="outline" className="flex-1 min-h-[44px]">
                     Cancel
                   </Button>
                 </div>

@@ -463,10 +463,10 @@ const PerformanceMetrics = ({ stravaTokens }) => {
   // Show message if no Strava tokens
   if (!stravaTokens || !stravaTokens.access_token) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-6 md:space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">FTP History</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Track your Functional Threshold Power over time</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Performance Metrics</h1>
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">Track your FTP, FTHR, and Aerobic Capacity over time</p>
         </div>
         <Card>
           <CardContent className="pt-6">
@@ -487,8 +487,8 @@ const PerformanceMetrics = ({ stravaTokens }) => {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading FTP history...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Loading performance metrics...</p>
         </div>
       </div>
     );
@@ -497,10 +497,10 @@ const PerformanceMetrics = ({ stravaTokens }) => {
   // Show error if API call failed
   if (error) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-6 md:space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">FTP History</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Track your Functional Threshold Power over time</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Performance Metrics</h1>
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">Track your FTP, FTHR, and Aerobic Capacity over time</p>
         </div>
         <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
           <CardContent className="pt-6">
@@ -521,11 +521,11 @@ const PerformanceMetrics = ({ stravaTokens }) => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Performance Metrics</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Track your FTP, FTHR, and Aerobic Capacity over time</p>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Performance Metrics</h1>
+        <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">Track your FTP, FTHR, and Aerobic Capacity over time</p>
       </div>
 
       {/* Debug Info Banner - only show when no FTP data */}
@@ -556,15 +556,15 @@ const PerformanceMetrics = ({ stravaTokens }) => {
       )}
 
       {/* Current Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
         {/* Current FTP */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Current FTP</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Current FTP</CardTitle>
             <Zap className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">
               {currentFTP ? `${currentFTP}W` : 'N/A'}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -575,12 +575,12 @@ const PerformanceMetrics = ({ stravaTokens }) => {
 
         {/* Current FTHR */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Current FTHR</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Current FTHR</CardTitle>
             <Heart className="h-4 w-4 text-red-500 dark:text-red-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">
               {currentFTHR ? `${currentFTHR} bpm` : 'N/A'}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -591,12 +591,12 @@ const PerformanceMetrics = ({ stravaTokens }) => {
 
         {/* Aerobic Efficiency */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Aerobic Efficiency</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Aerobic Efficiency</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500 dark:text-green-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">
               {efficiencyMetrics ? efficiencyMetrics.currentEfficiency : 'N/A'}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -612,14 +612,14 @@ const PerformanceMetrics = ({ stravaTokens }) => {
       </div>
 
       {/* Time Range Selector */}
-      <div className="flex items-center gap-4">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Time Range:</span>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+        <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Time Range:</span>
         <div className="flex gap-2 flex-wrap">
           {[8, 12, 16, 24].map((weeks) => (
             <button
               key={weeks}
               onClick={() => setTimeRange(weeks)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] ${
                 timeRange === weeks
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -635,10 +635,10 @@ const PerformanceMetrics = ({ stravaTokens }) => {
               const weeksFromYearStart = differenceInWeeks(now, yearStart) + 1;
               setTimeRange(weeksFromYearStart);
             }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] ${
               timeRange > 24
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             This Year
@@ -648,13 +648,14 @@ const PerformanceMetrics = ({ stravaTokens }) => {
 
       {/* FTP Chart */}
       <Card>
-        <CardHeader>
-          <CardTitle>FTP Progression</CardTitle>
-          <CardDescription>Your estimated FTP over the last {timeRange} weeks ({displayData.length} data points)</CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg md:text-xl">FTP Progression</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Your estimated FTP over the last {timeRange} weeks ({displayData.length} data points)</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           {displayData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={400} key={timeRange}>
+            <div className="h-[250px] sm:h-[300px] md:h-[400px]">
+              <ResponsiveContainer width="100%" height="100%" key={timeRange}>
               <AreaChart data={displayData}>
                 <defs>
                   <linearGradient id="ftpGradient" x1="0" y1="0" x2="0" y2="1">
@@ -699,7 +700,8 @@ const PerformanceMetrics = ({ stravaTokens }) => {
                   activeDot={{ r: 6 }}
                 />
               </AreaChart>
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-96 text-gray-500 dark:text-gray-400">
               <Zap className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600" />
@@ -727,15 +729,16 @@ const PerformanceMetrics = ({ stravaTokens }) => {
       {/* FTHR Chart */}
       {displayFTHRData.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Heart className="w-5 h-5 text-red-500 dark:text-red-400" />
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
+              <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 dark:text-red-400" />
               FTHR Progression
             </CardTitle>
-            <CardDescription>Your estimated FTHR over the last {timeRange} weeks ({displayFTHRData.length} data points)</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Your estimated FTHR over the last {timeRange} weeks ({displayFTHRData.length} data points)</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-4 sm:p-6">
+            <div className="h-[200px] sm:h-[250px] md:h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={displayFTHRData}>
                 <defs>
                   <linearGradient id="fthrGradient" x1="0" y1="0" x2="0" y2="1">
@@ -765,7 +768,8 @@ const PerformanceMetrics = ({ stravaTokens }) => {
                 />
                 <Area type="monotone" dataKey="fthr" stroke="#ef4444" strokeWidth={3} fill="url(#fthrGradient)" dot={{ fill: '#ef4444', r: 4 }} activeDot={{ r: 6 }} />
               </AreaChart>
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       )}

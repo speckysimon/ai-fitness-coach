@@ -274,10 +274,10 @@ const Form = ({ stravaTokens }) => {
   // No data available
   if (!loading && formData.length === 0) {
     return (
-      <div className="space-y-6 max-w-7xl">
+      <div className="space-y-4 sm:space-y-6 max-w-7xl">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Fitness & Form</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Track your training load, fitness, and freshness using Joe Friel's TSB methodology</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Fitness & Form</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Track your training load, fitness, and freshness using Joe Friel's TSB methodology</p>
         </div>
         <Card>
           <CardContent className="pt-6">
@@ -300,52 +300,52 @@ const Form = ({ stravaTokens }) => {
   const formStatus = currentMetrics ? getFormStatus(currentMetrics.form) : null;
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-4 sm:space-y-6 max-w-7xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Fitness & Form</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Track your training load, fitness, and freshness using Joe Friel's TSB methodology</p>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Fitness & Form</h1>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Track your training load, fitness, and freshness using Joe Friel's TSB methodology</p>
       </div>
 
       {/* Current Metrics */}
       {currentMetrics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Fitness (CTL)</CardTitle>
+            <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Fitness (CTL)</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-600">{currentMetrics.fitness}</div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">42-day average training load</p>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{currentMetrics.fitness}</div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">42-day avg load</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Fatigue (ATL)</CardTitle>
+            <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Fatigue (ATL)</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-purple-600">{currentMetrics.fatigue}</div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">7-day average training load</p>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">{currentMetrics.fatigue}</div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">7-day avg load</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Form (TSB)</CardTitle>
+            <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Form (TSB)</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className={`text-3xl font-bold ${formStatus.color}`}>{currentMetrics.form}</div>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className={`text-2xl sm:text-3xl font-bold ${formStatus.color}`}>{currentMetrics.form}</div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Fitness - Fatigue</p>
             </CardContent>
           </Card>
 
           <Card className={formStatus.bg}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Status</CardTitle>
+            <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Status</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className={`text-xl font-bold ${formStatus.color}`}>{formStatus.status}</div>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className={`text-lg sm:text-xl font-bold ${formStatus.color}`}>{formStatus.status}</div>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{formStatus.description}</p>
             </CardContent>
           </Card>
@@ -353,14 +353,14 @@ const Form = ({ stravaTokens }) => {
       )}
 
       {/* Time Range Selector */}
-      <div className="flex items-center gap-4">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Time Range:</span>
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+        <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Time Range:</span>
+        <div className="flex gap-2 flex-wrap">
           {[42, 90, 180].map((days) => (
             <button
               key={days}
               onClick={() => setTimeRange(days)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] ${
                 timeRange === days
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -374,14 +374,15 @@ const Form = ({ stravaTokens }) => {
 
       {/* Main Chart */}
       <Card>
-        <CardHeader>
-          <CardTitle>Fitness & Form Chart</CardTitle>
-          <CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg md:text-xl">Fitness & Form Chart</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Blue: Fitness (CTL) | Purple: Fatigue (ATL) | Form (TSB): Green (optimal), Gray (neutral), Yellow (building), Red (risk)
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
+        <CardContent className="p-4 sm:p-6">
+          <div className="h-[250px] sm:h-[300px] md:h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
             <LineChart data={formData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
@@ -440,18 +441,20 @@ const Form = ({ stravaTokens }) => {
                 activeDot={{ r: 7 }}
               />
             </LineChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 
       {/* TSS Bar Chart */}
       <Card>
-        <CardHeader>
-          <CardTitle>Daily Training Stress Score (TSS)</CardTitle>
-          <CardDescription>Your daily training load over time</CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg md:text-xl">Daily Training Stress Score (TSS)</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Your daily training load over time</CardDescription>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={200}>
+        <CardContent className="p-4 sm:p-6">
+          <div className="h-[150px] sm:h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={formData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} />
@@ -459,22 +462,23 @@ const Form = ({ stravaTokens }) => {
               <Tooltip />
               <Area type="monotone" dataKey="tss" stroke="#f59e0b" fill="#fef3c7" />
             </AreaChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 
       {/* Methodology */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Info className="w-5 h-5 text-blue-500" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
+            <Info className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 dark:text-blue-400" />
             Understanding Fitness & Form
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
           <div>
-            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">The Three Metrics:</h4>
-            <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+            <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100 mb-2">The Three Metrics:</h4>
+            <ul className="space-y-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
               <li className="flex items-start gap-2">
                 <span className="text-blue-600 font-bold">CTL (Fitness):</span>
                 <span>Chronic Training Load - 42-day exponentially weighted average of daily TSS. Represents your fitness level.</span>
@@ -491,8 +495,8 @@ const Form = ({ stravaTokens }) => {
           </div>
 
           <div>
-            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Form Zones:</h4>
-            <div className="space-y-2 text-sm">
+            <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100 mb-2">Form Zones:</h4>
+            <div className="space-y-2 text-xs sm:text-sm">
               <div className="flex items-center gap-3 p-2 bg-red-50 dark:bg-red-900/20 rounded">
                 <span className="font-bold text-red-600 dark:text-red-400">TSB &gt; 25:</span>
                 <span className="text-gray-700 dark:text-gray-300">High Risk - Detraining or overreached</span>
@@ -516,9 +520,9 @@ const Form = ({ stravaTokens }) => {
             </div>
           </div>
 
-          <div className="border-l-4 border-blue-500 pl-4 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
-            <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">📚 Methodology Source</h4>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
+          <div className="border-l-4 border-blue-500 pl-3 sm:pl-4 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+            <h4 className="font-semibold text-sm sm:text-base text-blue-900 dark:text-blue-300 mb-2">📚 Methodology Source</h4>
+            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
               Based on <strong>Joe Friel's Training Stress Balance</strong> methodology from "The Cyclist's Training Bible" 
               and his blog post "Managing Training Using TSB". This approach is used by professional coaches worldwide 
               and implemented in TrainingPeaks, intervals.icu, and other leading platforms.

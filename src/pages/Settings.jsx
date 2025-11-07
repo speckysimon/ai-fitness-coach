@@ -261,38 +261,38 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-4xl">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Manage your connections and preferences</p>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">Manage your connections and preferences</p>
       </div>
 
       {/* Connected Accounts */}
       <Card>
-        <CardHeader>
-          <CardTitle>Connected Accounts</CardTitle>
-          <CardDescription>Manage your third-party integrations</CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">Connected Accounts</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Manage your third-party integrations</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
           {/* Strava */}
-          <div className="flex items-center justify-between p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex items-center gap-3 sm:gap-4 flex-1">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="#FC4C02">
                   <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
                 </svg>
               </div>
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">Strava</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Activity tracking and history</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Strava</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Activity tracking and history</p>
                 {stravaTokens && (
                   <StravaAttribution className="mt-1" />
                 )}
               </div>
             </div>
             {stravaTokens ? (
-              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle2 className="w-5 h-5" />
                   <span className="text-sm font-medium">Connected</span>
@@ -302,7 +302,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                   size="sm" 
                   onClick={disconnectStrava}
                   disabled={connecting}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 min-h-[44px] w-full sm:w-auto"
                 >
                   Disconnect
                 </Button>
@@ -313,6 +313,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                 size="sm" 
                 onClick={connectStrava}
                 disabled={connecting}
+                className="min-h-[44px] w-full sm:w-auto"
               >
                 {connecting ? 'Connecting...' : 'Connect'}
               </Button>
@@ -320,9 +321,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
           </div>
 
           {/* Google Calendar */}
-          <div className="flex items-center justify-between p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex items-center gap-3 sm:gap-4 flex-1">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M19.5 3.5h-2V2h-2v1.5h-7V2h-2v1.5h-2C3.67 3.5 3 4.17 3 5v14c0 .83.67 1.5 1.5 1.5h15c.83 0 1.5-.67 1.5-1.5V5c0-.83-.67-1.5-1.5-1.5zm0 15.5h-15V8.5h15V19z"/>
                   <path fill="#EA4335" d="M7 10h2v2H7z"/>
@@ -333,13 +334,13 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                   <path fill="#FBBC04" d="M15 14h2v2h-2z"/>
                 </svg>
               </div>
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">Google Calendar</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Training plan synchronization</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Google Calendar</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Training plan synchronization</p>
               </div>
             </div>
             {googleTokens ? (
-              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle2 className="w-5 h-5" />
                   <span className="text-sm font-medium">Connected</span>
@@ -349,7 +350,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                   size="sm" 
                   onClick={disconnectGoogle}
                   disabled={connecting}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 min-h-[44px] w-full sm:w-auto"
                 >
                   Disconnect
                 </Button>
@@ -360,6 +361,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                 size="sm" 
                 onClick={connectGoogle}
                 disabled={connecting}
+                className="min-h-[44px] w-full sm:w-auto"
               >
                 {connecting ? 'Connecting...' : 'Connect'}
               </Button>
@@ -372,38 +374,38 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Timezone Preferences */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Clock className="w-5 h-5" />
               Timezone
             </CardTitle>
-            <CardDescription>Configure your timezone for accurate AI adjustments</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Configure your timezone for accurate AI adjustments</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
             {/* Current Time Display */}
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Current Time</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{currentTime.time}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{currentTime.date}</p>
+            <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Current Time</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{currentTime.time}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">{currentTime.date}</p>
                 </div>
-                <div className="px-3 py-2 bg-blue-100 dark:bg-blue-800 rounded-lg">
+                <div className="px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-100 dark:bg-blue-800 rounded-lg flex-shrink-0">
                   <p className="text-xs text-gray-600 dark:text-gray-400">Timezone</p>
-                  <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">{timezone.split('/').pop().replace('_', ' ')}</p>
+                  <p className="text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300">{timezone.split('/').pop().replace('_', ' ')}</p>
                 </div>
               </div>
             </div>
 
             {/* Timezone Selector */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Select Timezone
               </label>
               <select
                 value={localStorage.getItem('user_timezone') || 'auto'}
                 onChange={handleTimezoneChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-[44px]"
               >
                 {getCommonTimezones().map((tz) => (
                   <option key={tz.value} value={tz.value}>
@@ -418,13 +420,13 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
 
             {/* Week Start Day Selector */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Week Starts On
               </label>
               <select
                 value={weekStartDay}
                 onChange={handleWeekStartDayChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-[44px]"
               >
                 <option value="Monday">Monday</option>
                 <option value="Sunday">Sunday</option>
@@ -438,19 +440,20 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
 
         {/* Data Management */}
         <Card>
-          <CardHeader>
-            <CardTitle>Data Management</CardTitle>
-            <CardDescription>Manage your local application data</CardDescription>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-lg sm:text-xl">Data Management</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Manage your local application data</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">Clear Local Data</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Remove all stored tokens and cached data</p>
+          <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <div className="flex-1">
+                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Clear Local Data</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Remove all stored tokens and cached data</p>
               </div>
-              <Button variant="outline" onClick={clearData}>
+              <Button variant="outline" onClick={clearData} className="min-h-[44px] w-full sm:w-auto">
                 <Trash2 className="w-4 h-4 mr-2" />
-                Clear Data
+                <span className="hidden sm:inline">Clear Data</span>
+                <span className="sm:hidden">Clear</span>
               </Button>
             </div>
           </CardContent>
@@ -459,25 +462,25 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
 
       {/* User Profile */}
       <Card>
-        <CardHeader>
-          <CardTitle>User Profile</CardTitle>
-          <CardDescription>Manage your personal information</CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">User Profile</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Manage your personal information</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           <Link 
             to="/profile"
-            className="flex items-center justify-between p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center justify-between gap-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[60px]"
           >
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">Edit Profile</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Update your name, age, weight, height, and gender</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Edit Profile</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Update your name, age, weight, height, and gender</p>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
+            <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
           </Link>
         </CardContent>
       </Card>
@@ -544,13 +547,13 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
 
       {/* About */}
       <Card>
-        <CardHeader>
-          <CardTitle>About</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">About</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <p className="text-base"><strong className="text-gray-900 dark:text-gray-100">RiderLabs</strong> <span className="text-gray-500 dark:text-gray-500">v{packageJson.version}</span></p>
+        <CardContent className="p-4 sm:p-6">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm sm:text-base"><strong className="text-gray-900 dark:text-gray-100">RiderLabs</strong> <span className="text-gray-500 dark:text-gray-500">v{packageJson.version}</span></p>
               <p>Data-driven cycling performance platform powered by AI. Integrates with Strava and Google Calendar.</p>
               <p className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 Built with React, Express, OpenAI, and modern web technologies.
@@ -560,17 +563,17 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
             {/* Changelog Link */}
             <Link 
               to="/changelog"
-              className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[60px]"
             >
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className="flex-1">
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">Changelog</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">View version history and updates</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Changelog</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">View version history and updates</p>
               </div>
-              <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">v{packageJson.version}</span>
+              <div className="px-2 sm:px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full flex-shrink-0">
+                <span className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">v{packageJson.version}</span>
               </div>
             </Link>
           </div>

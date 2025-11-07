@@ -122,23 +122,23 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
   const bmiCategory = getBMICategory(bmi);
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-4 sm:space-y-6 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-          <User className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 sm:gap-3">
+          <User className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
           User Profile
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
+        <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-2">
           Manage your basic personal information. For performance metrics and training zones, visit the <a href="/rider-profile" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium">Rider Profile</a> page.
         </p>
       </div>
 
       {/* Success Message */}
       {saveSuccess && (
-        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2">
+        <div className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2">
           <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
-          <p className="text-green-700 dark:text-green-300 font-medium">Profile updated successfully!</p>
+          <p className="text-sm sm:text-base text-green-700 dark:text-green-300 font-medium">Profile updated successfully!</p>
         </div>
       )}
 
@@ -151,26 +151,27 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
 
       {/* Profile Information */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex-1">
+              <CardTitle className="text-lg sm:text-xl">Personal Information</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 This data helps personalize your training recommendations
               </CardDescription>
             </div>
             {!isEditing ? (
-              <Button onClick={() => setIsEditing(true)} variant="outline">
+              <Button onClick={() => setIsEditing(true)} variant="outline" className="min-h-[44px] w-full sm:w-auto">
                 <Edit2 className="w-4 h-4 mr-2" />
-                Edit Profile
+                <span className="hidden sm:inline">Edit Profile</span>
+                <span className="sm:hidden">Edit</span>
               </Button>
             ) : (
-              <div className="flex gap-2">
-                <Button onClick={handleSave} size="sm">
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button onClick={handleSave} size="sm" className="min-h-[44px] flex-1 sm:flex-none">
                   <Save className="w-4 h-4 mr-2" />
                   Save
                 </Button>
-                <Button onClick={handleCancel} variant="outline" size="sm">
+                <Button onClick={handleCancel} variant="outline" size="sm" className="min-h-[44px] flex-1 sm:flex-none">
                   <X className="w-4 h-4 mr-2" />
                   Cancel
                 </Button>
@@ -178,11 +179,11 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
             )}
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Email (Read-only) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 Email
               </label>
@@ -190,13 +191,13 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 type="email"
                 value={userProfile?.email || ''}
                 disabled
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-not-allowed"
+                className="w-full px-3 py-2 sm:px-4 sm:py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-not-allowed min-h-[44px]"
               />
             </div>
 
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Full Name
               </label>
@@ -207,7 +208,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 placeholder="John Doe"
-                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                className={`w-full px-3 py-2 sm:px-4 sm:py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-[44px] ${
                   !isEditing ? 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : ''
                 }`}
               />
@@ -215,7 +216,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
 
             {/* Age */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Age
               </label>
@@ -228,7 +229,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 placeholder="30"
                 min="13"
                 max="100"
-                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                className={`w-full px-3 py-2 sm:px-4 sm:py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-[44px] ${
                   !isEditing ? 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : ''
                 }`}
               />
@@ -236,7 +237,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
 
             {/* Gender */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Gender
               </label>
@@ -245,7 +246,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 value={formData.gender}
                 onChange={handleInputChange}
                 disabled={!isEditing}
-                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                className={`w-full px-3 py-2 sm:px-4 sm:py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-[44px] ${
                   !isEditing ? 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : ''
                 }`}
               >
@@ -258,7 +259,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
 
             {/* Height */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Ruler className="w-4 h-4" />
                 Height (cm)
               </label>
@@ -272,7 +273,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 min="100"
                 max="250"
                 step="0.1"
-                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                className={`w-full px-3 py-2 sm:px-4 sm:py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-[44px] ${
                   !isEditing ? 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : ''
                 }`}
               />
@@ -280,7 +281,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
 
             {/* Weight */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Weight className="w-4 h-4" />
                 Weight (kg)
               </label>
@@ -294,7 +295,7 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
                 min="30"
                 max="200"
                 step="0.1"
-                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                className={`w-full px-3 py-2 sm:px-4 sm:py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-[44px] ${
                   !isEditing ? 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400' : ''
                 }`}
               />
@@ -306,23 +307,23 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
       {/* BMI Card */}
       {bmi && (
         <Card>
-          <CardHeader>
-            <CardTitle>Body Mass Index (BMI)</CardTitle>
-            <CardDescription>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-lg sm:text-xl">Body Mass Index (BMI)</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
               Calculated from your height and weight
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-6">
-              <div className="text-5xl font-bold text-blue-600 dark:text-blue-400">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+              <div className="text-4xl sm:text-5xl md:text-6xl font-bold text-blue-600 dark:text-blue-400">
                 {bmi}
               </div>
               {bmiCategory && (
                 <div>
-                  <div className={`text-xl font-semibold ${bmiCategory.color}`}>
+                  <div className={`text-lg sm:text-xl md:text-2xl font-semibold ${bmiCategory.color}`}>
                     {bmiCategory.text}
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
                     BMI Category
                   </p>
                 </div>
