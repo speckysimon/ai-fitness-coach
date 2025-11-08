@@ -8,8 +8,11 @@ const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
 
-// Database path
-const dbPath = path.join(__dirname, '../fitness-coach.db');
+// Database path - check both possible locations
+let dbPath = path.join(__dirname, '../database.sqlite');
+if (!fs.existsSync(dbPath)) {
+  dbPath = path.join(__dirname, '../fitness-coach.db');
+}
 
 console.log('🔄 Starting migration process...');
 console.log('📁 Database:', dbPath);
