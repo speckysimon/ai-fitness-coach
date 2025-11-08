@@ -79,8 +79,8 @@ for (const file of migrationFiles) {
         throw new Error('Migration must export an up() function or be a function itself');
       }
       
-      // Record migration
-      db.prepare('INSERT INTO migrations (name) VALUES (?)').run(migrationName);
+      // Record migration with timestamp
+      db.prepare('INSERT INTO migrations (name, applied_at) VALUES (?, CURRENT_TIMESTAMP)').run(migrationName);
     });
     
     runMigration();
