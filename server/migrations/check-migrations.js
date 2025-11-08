@@ -9,7 +9,7 @@ const path = require('path');
 const Database = require('better-sqlite3');
 
 // Database path
-const dbPath = path.join(__dirname, '../../data/riderlabs.db');
+const dbPath = path.join(__dirname, '../fitness-coach.db');
 
 console.log('🔍 Checking migration status...');
 console.log('📁 Database:', dbPath);
