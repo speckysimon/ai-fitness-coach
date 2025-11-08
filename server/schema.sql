@@ -310,6 +310,19 @@ CREATE TABLE IF NOT EXISTS theme_configs (
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Admin activity log - Track admin actions
+CREATE TABLE IF NOT EXISTS admin_activity_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_id INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  resource_type TEXT,
+  resource_id TEXT,
+  details TEXT,
+  ip_address TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE CASCADE
+);
+
 -- ============================================================================
 -- FEEDBACK & ANALYTICS
 -- ============================================================================
@@ -367,6 +380,8 @@ CREATE INDEX IF NOT EXISTS idx_ai_configs_feature ON ai_model_configs(feature_na
 CREATE INDEX IF NOT EXISTS idx_settings_key ON global_settings(setting_key);
 CREATE INDEX IF NOT EXISTS idx_personas_active ON coach_personas(is_active, sort_order);
 CREATE INDEX IF NOT EXISTS idx_theme_active ON theme_configs(is_active);
+CREATE INDEX IF NOT EXISTS idx_admin_activity_log_admin_id ON admin_activity_log(admin_id);
+CREATE INDEX IF NOT EXISTS idx_admin_activity_log_created_at ON admin_activity_log(created_at DESC);
 
 -- Feedback indexes
 CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
