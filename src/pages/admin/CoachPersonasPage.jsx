@@ -338,8 +338,8 @@ const CoachPersonasPage = () => {
       {/* Header with Stats */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Coach Personas</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <h1 className="text-3xl font-bold text-gray-900">Coach Personas</h1>
+          <p className="text-gray-600 mt-1">
             Manage AI coach personalities and avatars
           </p>
         </div>
@@ -998,15 +998,15 @@ const CoachPersonasPage = () => {
                   <div className="flex-1">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <h3 className="text-lg font-semibold text-gray-900">
                           {persona.name}
                           {!persona.is_active && (
-                            <span className="ml-2 text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
+                            <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
                               Inactive
                             </span>
                           )}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{persona.style}</p>
+                        <p className="text-sm text-gray-600">{persona.style}</p>
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -1027,7 +1027,7 @@ const CoachPersonasPage = () => {
                       </div>
                     </div>
                     
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+                    <p className="text-sm text-gray-700 mt-2">
                       {persona.description}
                     </p>
                     
@@ -1035,7 +1035,7 @@ const CoachPersonasPage = () => {
                       "{persona.catchphrase}"
                     </div>
                     
-                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="mt-2 text-xs text-gray-500">
                       <span className="font-medium">Tone:</span> {persona.tone} • 
                       <span className="font-medium ml-2">ID:</span> {persona.id}
                     </div>
