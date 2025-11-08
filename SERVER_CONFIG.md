@@ -56,6 +56,13 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
+    # Serve uploaded files (avatars, images)
+    location /uploads/ {
+        alias /home/riderlabs/ai-fitness-coach/server/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
     # All other requests serve the React app
     location / {
         try_files $uri $uri/ /index.html;
@@ -89,6 +96,8 @@ server {
 ### Key Settings
 - **`client_max_body_size 50M`**: Allows uploads up to 50MB (AI-generated images, avatars)
 - **`proxy_pass http://localhost:5001`**: Forwards API requests to Express backend
+- **`alias /home/riderlabs/ai-fitness-coach/server/uploads/`**: Serves uploaded files (avatars, images)
+- **`expires 30d`**: Caches uploaded files for 30 days (performance optimization)
 - **`try_files $uri $uri/ /index.html`**: Enables React Router (SPA routing)
 - **SSL**: Managed by Let's Encrypt Certbot (auto-renewal)
 
@@ -357,6 +366,35 @@ grep -r "client_max_body_size" /etc/nginx/
 
 # Should show: client_max_body_size 50M;
 # If not, add it to /api/ location block and reload nginx
+```
+
+### Uploaded Images Not Displaying
+**Symptom**: Images upload successfully but don't display (broken image icon)
+
+**Cause**: Nginx not serving the `/uploads/` directory
+
+**Solution**:
+```bash
+# 1. Check if /uploads/ location block exists in nginx config
+grep -A 3 "location /uploads/" /etc/nginx/sites-available/riderlabs
+
+# 2. If missing, add this block to nginx config:
+#    location /uploads/ {
+#        alias /home/riderlabs/ai-fitness-coach/server/uploads/;
+#        expires 30d;
+#        add_header Cache-Control "public, immutable";
+#    }
+
+# 3. Test and reload nginx
+sudo nginx -t
+sudo systemctl reload nginx
+
+# 4. Verify uploaded files exist
+ls -la /home/riderlabs/ai-fitness-coach/server/uploads/personas/
+
+# 5. Test direct access
+curl -I https://riderlabs.io/uploads/personas/test-image.png
+# Should return 200 OK, not 404
 ```
 
 ---
