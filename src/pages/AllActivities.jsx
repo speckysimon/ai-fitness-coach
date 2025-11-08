@@ -404,28 +404,29 @@ const AllActivities = ({ stravaTokens }) => {
       <Card>
         <CardContent className="pt-4 sm:pt-6">
           <div className="flex flex-col gap-3 sm:gap-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              {/* Search */}
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
-                  <input
-                    type="text"
-                    placeholder="Search activities..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+            {/* Search Bar - Full width on mobile */}
+            <div className="w-full">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search activities..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px]"
+                />
               </div>
+            </div>
 
+            {/* Filter and Sort - Stack on mobile, side by side on tablet+ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Type Filter */}
-              <div className="flex items-center gap-2 flex-1 sm:flex-initial">
-                <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-gray-400" />
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base flex-1 sm:flex-initial"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px]"
                 >
                   {getActivityTypes().map(type => (
                     <option key={type} value={type}>{type}</option>
@@ -434,12 +435,12 @@ const AllActivities = ({ stravaTokens }) => {
               </div>
 
               {/* Sort */}
-              <div className="flex items-center gap-2 flex-1 sm:flex-initial">
-                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-gray-400" />
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base flex-1 sm:flex-initial"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px]"
                 >
                   <option value="date">Date (Newest)</option>
                   <option value="distance">Distance</option>
@@ -448,11 +449,11 @@ const AllActivities = ({ stravaTokens }) => {
               </div>
             </div>
 
-            {/* Race Filter Button */}
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* Action Buttons - Stack on mobile, wrap on desktop */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setShowRacesOnly(!showRacesOnly)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 transition-all min-h-[44px] ${
                   showRacesOnly
                     ? 'bg-yellow-500 text-white border-yellow-600 hover:bg-yellow-600'
                     : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
@@ -473,7 +474,7 @@ const AllActivities = ({ stravaTokens }) => {
               <button
                 onClick={() => loadAllActivities(true)}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
                 title="Refresh activities from Strava"
               >
                 <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
@@ -483,18 +484,19 @@ const AllActivities = ({ stravaTokens }) => {
               {/* Add Manual Activity Button */}
               <button
                 onClick={() => setShowManualActivityModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-700 hover:from-purple-700 hover:to-pink-700 transition-all font-medium"
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-700 hover:from-purple-700 hover:to-pink-700 transition-all font-medium min-h-[44px]"
               >
                 <Plus className="w-5 h-5" />
                 <span>Add Manual Activity</span>
               </button>
-              
-              {showRacesOnly && (
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {filteredActivities.length} race{filteredActivities.length !== 1 ? 's' : ''}
-                </span>
-              )}
             </div>
+            
+            {/* Results count */}
+            {showRacesOnly && (
+              <div className="text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
+                Showing {filteredActivities.length} race{filteredActivities.length !== 1 ? 's' : ''}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -513,43 +515,49 @@ const AllActivities = ({ stravaTokens }) => {
               return (
                 <div
                   key={activity.id}
-                  className={`flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-all border-l-4 ${getLoadColor(activity.tss)} ${isRace ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}
+                  className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border rounded-lg hover:shadow-md transition-all border-l-4 gap-3 ${getLoadColor(activity.tss)} ${isRace ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}
                 >
-                  <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => setSelectedActivity({
+                  {/* Main content - clickable */}
+                  <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedActivity({
                     ...activity,
                     isRace: isRace?.isRace,
                     raceType: isRace?.raceType
                   })}>
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isRace ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-blue-50 dark:bg-blue-900/30'}`}>
+                    {/* Icon */}
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${isRace ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-blue-50 dark:bg-blue-900/30'}`}>
                       {isRace ? (
-                        <Trophy className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                        <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 dark:text-yellow-400" />
                       ) : (
                         getActivityIcon(activity)
                       )}
                     </div>
+                    
+                    {/* Title and metadata */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate">{activity.name}</h4>
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h4 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate">{activity.name}</h4>
                         {isManualActivity(activity) && (
-                          <span className="px-2 py-0.5 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300 text-xs font-medium rounded flex items-center gap-1">
+                          <span className="px-2 py-0.5 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300 text-xs font-medium rounded flex items-center gap-1 flex-shrink-0">
                             {activity.icon} Manual
                           </span>
                         )}
                         {isRace && (
                           <>
-                            <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 text-xs font-medium rounded">
+                            <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 text-xs font-medium rounded flex-shrink-0">
                               RACE
                             </span>
                             {isRace.raceType && (
-                              <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-xs font-medium rounded">
+                              <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-xs font-medium rounded flex-shrink-0">
                                 {getRaceTypeLabel(isRace.raceType)}
                               </span>
                             )}
                           </>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-sm text-gray-500 dark:text-gray-500 flex items-center gap-1">
+                      
+                      {/* Date and type */}
+                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                        <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-500 flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {formatDate(activity.date)}
                         </span>
@@ -557,10 +565,31 @@ const AllActivities = ({ stravaTokens }) => {
                           {activity.type}
                         </span>
                       </div>
+                      
+                      {/* Stats - Show on mobile below title */}
+                      <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:hidden text-xs text-gray-600 dark:text-gray-400 flex-wrap">
+                        <div>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{formatDuration(activity.duration)}</span>
+                          <span className="text-gray-500 dark:text-gray-400 ml-1">Duration</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{formatDistance(activity.distance)}</span>
+                          <span className="text-gray-500 dark:text-gray-400 ml-1">Distance</span>
+                        </div>
+                        {activity.tss > 0 && (
+                          <div>
+                            <span className="font-medium text-blue-600 dark:text-blue-400">{activity.tss}</span>
+                            <span className="text-gray-500 dark:text-gray-400 ml-1">TSS</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+                  
+                  {/* Stats and actions - Desktop only for stats, always show actions */}
+                  <div className="flex items-center gap-2 sm:gap-4 justify-between sm:justify-end">
+                    {/* Stats - Desktop only */}
+                    <div className="hidden sm:flex items-center gap-4 lg:gap-6 text-sm text-gray-600 dark:text-gray-400">
                       <div className="text-right">
                         <div className="font-medium text-gray-900 dark:text-gray-100">{formatDuration(activity.duration)}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">Duration</div>
@@ -582,14 +611,15 @@ const AllActivities = ({ stravaTokens }) => {
                         </div>
                       )}
                     </div>
+                    {/* Action buttons */}
                     {isManualActivity(activity) ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditingManualActivity(activity);
                           }}
-                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
                           title="Edit manual activity"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -613,7 +643,7 @@ const AllActivities = ({ stravaTokens }) => {
                               }
                             }
                           }}
-                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
                           title="Delete manual activity"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -625,7 +655,7 @@ const AllActivities = ({ stravaTokens }) => {
                           e.stopPropagation();
                           setEditingActivity(activity);
                         }}
-                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg transition-colors"
+                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center flex-shrink-0"
                         title="Tag as race"
                       >
                         <Trophy className="w-4 h-4" />

@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Trophy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import ActivityDetailModal from '../components/ActivityDetailModal';
 import SessionHoverModal from '../components/SessionHoverModal';
 import logger from '../lib/logger';
 
 const Calendar = ({ stravaTokens, googleTokens }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [viewMode, setViewMode] = useState('month'); // 'month' or 'week'
   const [activities, setActivities] = useState([]);
   const [plannedSessions, setPlannedSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -126,25 +128,80 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
     setCurrentMonth(addMonths(currentMonth, 1));
   };
 
-  const days = getDaysInMonth();
+  const previousWeek = () => {
+    setCurrentWeek(subWeeks(currentWeek, 1));
+  };
+
+  const nextWeek = () => {
+    setCurrentWeek(addWeeks(currentWeek, 1));
+  };
+
+  const getDaysInWeek = () => {
+    const start = startOfWeek(currentWeek, { weekStartsOn: 0 });
+    const end = endOfWeek(currentWeek, { weekStartsOn: 0 });
+    return eachDayOfInterval({ start, end });
+  };
+
+  const days = viewMode === 'month' ? getDaysInMonth() : getDaysInWeek();
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="flex-1">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Training Calendar</h1>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Past activities and upcoming planned sessions</p>
+      <div className="flex flex-col gap-3 sm:gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Training Calendar</h1>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Past activities and upcoming planned sessions</p>
+          </div>
+          
+          {/* View Mode Switcher */}
+          <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+            <button
+              onClick={() => setViewMode('month')}
+              className={`px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px] ${
+                viewMode === 'month'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              Month
+            </button>
+            <button
+              onClick={() => setViewMode('week')}
+              className={`px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px] ${
+                viewMode === 'week'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              Week
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
-          <Button variant="outline" size="icon" onClick={previousMonth} className="min-h-[44px] min-w-[44px]">
+        
+        {/* Navigation */}
+        <div className="flex items-center gap-2 sm:gap-4 justify-center sm:justify-start">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={viewMode === 'month' ? previousMonth : previousWeek} 
+            className="min-h-[44px] min-w-[44px]"
+          >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-white min-w-[140px] sm:min-w-[200px] text-center">
-            {format(currentMonth, 'MMMM yyyy')}
+          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-white min-w-[180px] sm:min-w-[240px] text-center">
+            {viewMode === 'month' 
+              ? format(currentMonth, 'MMMM yyyy')
+              : `${format(startOfWeek(currentWeek), 'MMM d')} - ${format(endOfWeek(currentWeek), 'MMM d, yyyy')}`
+            }
           </h2>
-          <Button variant="outline" size="icon" onClick={nextMonth} className="min-h-[44px] min-w-[44px]">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={viewMode === 'month' ? nextMonth : nextWeek} 
+            className="min-h-[44px] min-w-[44px]"
+          >
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
@@ -183,8 +240,8 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
 
               {/* Calendar grid */}
               <div className="grid grid-cols-7 gap-1 sm:gap-2">
-                {/* Empty cells for days before month starts */}
-                {Array.from({ length: days[0].getDay() }).map((_, i) => (
+                {/* Empty cells for days before month starts (month view only) */}
+                {viewMode === 'month' && Array.from({ length: days[0].getDay() }).map((_, i) => (
                   <div key={`empty-${i}`} className="aspect-square"></div>
                 ))}
 
@@ -197,9 +254,9 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
                   return (
                     <div
                       key={day.toISOString()}
-                      className={`aspect-square border rounded-lg p-1 sm:p-2 ${
+                      className={`${viewMode === 'month' ? 'aspect-square' : 'min-h-[120px] sm:min-h-[150px]'} border rounded-lg p-1 sm:p-2 ${
                         isToday ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700'
-                      } ${!isSameMonth(day, currentMonth) ? 'opacity-50' : ''}`}
+                      } ${viewMode === 'month' && !isSameMonth(day, currentMonth) ? 'opacity-50' : ''}`}
                     >
                       <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white mb-0.5 sm:mb-1">
                         {format(day, 'd')}

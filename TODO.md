@@ -2,6 +2,21 @@
 
 ## 🔴 HIGH PRIORITY - Current Sprint
 
+### 0. Onboarding Modal Testing (Nov 8, 2025)
+- [ ] **Test multi-step onboarding flow end-to-end**
+  - [ ] Test Step 1: Welcome screen displays correctly
+  - [ ] Test Step 2: Strava OAuth flow (connect → authorize → return)
+  - [ ] Verify modal reopens at Step 3 after OAuth
+  - [ ] Test Step 3: Coach selection (all 5 coaches load)
+  - [ ] Test Step 4: Plan generation prompt
+  - [ ] Test Step 5: Success screen and navigation to plan
+  - [ ] Test "Skip" button on Strava step
+  - [ ] Test "Back" button navigation
+  - [ ] Test progress indicator updates
+  - [ ] Verify localStorage flags are cleared properly
+  - [ ] Test on mobile devices (touch interactions)
+  - [ ] Check console for any errors during flow
+
 ### 1. Theme System Integration ✅ COMPLETED (Nov 5, 2025)
 - [x] **Connect main site themes to admin backend**
   - [x] Create theme service (`src/lib/themeService.js`)
@@ -15,27 +30,30 @@
   - [ ] Replace hardcoded Tailwind classes with CSS variables (optional migration)
   - [ ] Test theme switching across all pages (requires active theme in DB)
 
-### 2. Mobile Responsiveness ✅ IN PROGRESS (Nov 7, 2025)
-- [ ] **Make all pages mobile responsive**
-  - [ ] Dashboard - cards, charts, activity feed
-  - [ ] Training Plan - session cards, calendar view
-  - [ ] All Activities - list view, filters
+### 2. Mobile Responsiveness ✅ 95% COMPLETE (Nov 8, 2025)
+- [x] **Make all pages mobile responsive** - 19/20 pages done
+  - [x] Dashboard - cards, charts, activity feed ✅ DONE
+  - [x] Training Plan - session cards, calendar view ✅ DONE
+  - [x] All Activities - list view, filters ✅ DONE (re-audited Nov 8)
   - [x] Race Analytics - analysis cards, charts ✅ DONE
   - [x] Post-Race Analysis - feedback form, analysis display ✅ DONE
-  - [ ] Methodology - collapsible sections, info boxes
-  - [ ] Form & Fitness - metrics cards, charts
-  - [ ] Settings - form layouts, sections
-  - [ ] Profile Setup - multi-step form
-  - [ ] Calendar - month/week views
+  - [x] Methodology - collapsible sections, info boxes ✅ DONE
+  - [x] Form & Fitness - metrics cards, charts ✅ DONE
+  - [x] Settings - form layouts, sections ✅ DONE
+  - [x] Profile Setup - multi-step form ✅ DONE
+  - [x] Calendar - month/week views ✅ DONE (added week view switcher)
   - [x] Today's Workout - already mobile-friendly ✅
-  - [ ] Admin pages - tables, forms
-- [ ] Test all pages on mobile viewport (320px - 768px)
-- [ ] Fix layout issues on small screens
-- [ ] Ensure touch-friendly buttons and interactions
-- [ ] Test navigation menu on mobile
-- [ ] Verify forms work on mobile (plan generation, race analysis, etc.)
-- [ ] Test charts and graphs on mobile
-- [ ] Ensure modals display properly on small screens
+  - [x] Rider Profile, Weekly Report, Performance Metrics ✅ DONE
+  - [x] Session Planner, Race Day Predictor, Race Analysis ✅ DONE
+  - [ ] Admin pages - tables, forms (DEFERRED - low priority)
+- [x] Test all pages on mobile viewport (320px - 768px)
+- [x] Fix layout issues on small screens
+- [x] Ensure touch-friendly buttons and interactions
+- [x] Test navigation menu on mobile
+- [x] Verify forms work on mobile (plan generation, race analysis, etc.)
+- [x] Test charts and graphs on mobile
+- [x] Ensure modals display properly on small screens
+- **See MOBILE_RESPONSIVENESS_CHECKLIST.md for detailed progress**
 
 ### 3. Menu Cleanup & Navigation ✅ COMPLETED (Nov 1, 2025)
 - [x] Review current navigation structure
@@ -119,7 +137,12 @@
 - [ ] Review Google Calendar API compliance
 
 ### User Experience
-- [ ] Add onboarding flow for new users
+- [x] Add onboarding flow for new users ✅ DONE (Nov 8, 2025)
+  - Multi-step modal with 5 steps
+  - Strava connection integration
+  - Coach selection
+  - Plan generation prompt
+  - See TODO_ONBOARDING_MODAL.md for details
 - [ ] Create help/FAQ page
 - [ ] Add tooltips to complex features
 - [ ] Improve error messages (user-friendly)

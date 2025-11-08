@@ -45,6 +45,12 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
   });
   const [smartFTPContext, setSmartFTPContext] = useState(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
+    // Check if we're returning from onboarding OAuth
+    const onboardingInProgress = localStorage.getItem('onboarding_in_progress');
+    if (onboardingInProgress === 'true') {
+      console.log('🔄 Onboarding in progress - showing modal');
+      return true;
+    }
     // Show welcome modal for users WITHOUT Strava (only once)
     const hasSeenWelcome = localStorage.getItem('has_seen_welcome_modal');
     const hasStrava = stravaTokens && stravaTokens.access_token;
@@ -132,12 +138,34 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
 
   // Check notification and onboarding modal on mount and when stravaTokens changes
   useEffect(() => {
+    // Check if returning from Strava OAuth during onboarding
+    const onboardingInProgress = localStorage.getItem('onboarding_in_progress');
+    const savedStep = localStorage.getItem('onboarding_step');
+    
+    console.log('📊 Dashboard effect:', { 
+      hasStrava: !!stravaTokens?.access_token, 
+      onboardingInProgress, 
+      savedStep,
+      currentModalState: showWelcomeModal
+    });
+    
     if (stravaTokens && stravaTokens.access_token) {
       setCurrentTokens(stravaTokens);
       loadDashboardData(false);
       setShowStravaNotification(false);
-      // Hide welcome modal if Strava is connected
-      setShowWelcomeModal(false);
+      
+      // If onboarding was in progress, reopen modal to continue
+      if (onboardingInProgress === 'true') {
+        console.log('🔄 Reopening onboarding modal after Strava connection (step:', savedStep, ')');
+        setShowWelcomeModal(true);
+      } else if (!showWelcomeModal) {
+        // Only hide welcome modal if it's not already showing and not onboarding
+        const hasSeenWelcome = localStorage.getItem('has_seen_welcome_modal');
+        if (hasSeenWelcome) {
+          console.log('✅ User has seen welcome, keeping modal closed');
+          setShowWelcomeModal(false);
+        }
+      }
     } else {
       // Show notification if no Strava tokens and hasn't been dismissed
       const dismissed = sessionStorage.getItem('strava_notification_dismissed');
@@ -150,10 +178,6 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       if (!hasSeenWelcome) {
         console.log('👋 Showing onboarding modal - setting state to true');
         setShowWelcomeModal(true);
-        // Verify state after setting
-        setTimeout(() => {
-          console.log('✅ Modal state should be true now');
-        }, 100);
       }
     }
   }, [stravaTokens]);
@@ -618,6 +642,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         {console.log('📺 Rendering OnboardingModal with isOpen:', showWelcomeModal)}
         <OnboardingModal
           isOpen={showWelcomeModal}
+          stravaTokens={stravaTokens}
           onClose={() => {
             console.log('❌ Closing onboarding modal');
             setShowWelcomeModal(false);
@@ -695,23 +720,25 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       )}
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+      <div className="flex flex-col gap-4">
+        {/* Title Section */}
         <div>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
           <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">Your training overview and progress</p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-wrap">
+        
+        {/* Weather, Clock, and Refresh - Stack on mobile, horizontal on desktop */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 md:gap-4">
           <WeatherWidget />
           <DashboardClock />
           <Button
             onClick={handleForceRefresh}
             disabled={refreshing}
             variant="outline"
-            className="flex items-center gap-2 text-sm min-h-[44px]"
+            className="flex items-center justify-center gap-2 text-sm min-h-[44px] w-full sm:w-auto"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
-            <span className="sm:hidden">{refreshing ? '...' : '↻'}</span>
+            <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
           </Button>
         </div>
       </div>
@@ -1265,6 +1292,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       {console.log('📺 Rendering OnboardingModal with isOpen:', showWelcomeModal)}
       <OnboardingModal
         isOpen={showWelcomeModal}
+        stravaTokens={stravaTokens}
         onClose={() => {
           console.log('❌ Closing onboarding modal');
           setShowWelcomeModal(false);

@@ -4,17 +4,95 @@ All notable changes to AI Fitness Coach will be documented in this file.
 
 ## [Unreleased]
 
-### 🎯 Current Sprint (Nov 7, 2025)
-- **Mobile Responsiveness**: Making entire site mobile-friendly (320px - 768px viewports)
-  - ✅ Race Analytics - DONE
-  - ✅ Post-Race Analysis - DONE
-  - 🔄 Dashboard, Training Plan, Settings, etc. - IN PROGRESS
-- **Dark Mode Polish**: Previous implementation was quick fix (224+ colors), needs proper audit and WCAG AA compliance
+### 🎯 Current Sprint (Nov 8, 2025)
+- **Mobile Responsiveness**: 95% complete (19/20 pages done)
+  - ✅ All Activities - DONE (re-audited and fixed)
+  - ✅ Calendar - DONE (added week view switcher)
+  - ⏳ Admin Pages - Deferred
+- **Onboarding Flow**: Multi-step modal implementation complete
 - **Production Testing**: Training plan generation works in dev, needs verification on production
 
-### ⚠️ Status Clarifications
-- **Dark Mode**: Oct 24 implementation was rapid fix (224+ colors), not comprehensive. Needs proper audit.
-- **Training Plan Generation**: Working in development, requires production environment testing
+## [2.8.3] - 2025-11-08
+
+### ✨ New Features
+
+#### **Multi-Step Onboarding Modal** ⭐
+- **Complete 5-step guided onboarding flow**
+  - Step 1: Welcome screen with benefits
+  - Step 2: Connect Strava with OAuth integration
+  - Step 3: Choose your coach (5 personas)
+  - Step 4: Generate first training plan
+  - Step 5: Success screen with navigation to plan
+- **Smart flow management**
+  - Auto-detects if Strava already connected (skips to step 3)
+  - Saves progress through OAuth redirects
+  - Resumes at correct step after Strava authorization
+  - Skip options on Strava step
+- **Visual enhancements**
+  - Progress indicator (4 dots) showing current step
+  - Color-coded gradient headers per step
+  - Back button navigation (steps 2-4)
+  - Touch-friendly buttons (min-h-[44px])
+  - Mobile-responsive layout
+  - Dark mode support
+- **Files Modified**:
+  - `src/components/OnboardingModal.jsx` - Complete rewrite
+  - `src/pages/Dashboard.jsx` - OAuth return detection
+  - `TODO_ONBOARDING_MODAL.md` - Documentation
+
+#### **Calendar Week View** 📅
+- **Added week view switcher to Calendar page**
+  - Toggle between month and week views
+  - Week view shows 7 days with more vertical space
+  - Navigation adapts to view mode (month/week arrows)
+  - Date range display for week view
+  - Touch-friendly toggle buttons
+- **Files Modified**:
+  - `src/pages/Calendar.jsx` - Week view implementation
+
+### 🐛 Bug Fixes
+
+#### **All Activities Page - Mobile Layout** 📱
+- **Fixed text overflow and icon positioning issues**
+  - Cards now stack vertically on mobile (flex-col sm:flex-row)
+  - Stats shown inline below title on mobile
+  - Desktop stats column hidden on mobile (hidden sm:flex)
+  - Action buttons: Touch-friendly sizing (min-w-[40px] min-h-[40px])
+  - Proper truncation and flex-wrap to prevent overflow
+  - Search bar, filters, and buttons stack properly on mobile
+- **Files Modified**:
+  - `src/pages/AllActivities.jsx` - Complete mobile audit and fixes
+
+#### **Onboarding Modal - OAuth Flow** 🔄
+- **Fixed modal flow breaking during Strava OAuth**
+  - Changed from navigate to Settings to direct OAuth API call
+  - Added state tracking (onboarding_in_progress, onboarding_step)
+  - Modal detects flags and resumes at correct step
+  - Dashboard reopens modal after OAuth return
+  - Added hasInitialized flag to prevent multiple initializations
+  - Fixed JSX warning (removed jsx attribute from style tag)
+- **Files Modified**:
+  - `src/components/OnboardingModal.jsx` - OAuth handling, resume logic
+  - `src/pages/Dashboard.jsx` - Modal reopening logic
+
+### 📊 Mobile Responsiveness Progress
+
+- **Completed**: 19/20 pages (95%)
+- **Pages Marked Done**:
+  - Profile Setup (user confirmed)
+  - FTP History (combined into Performance Metrics)
+  - All Activities (re-audited and fixed)
+  - Calendar (added week view feature)
+  - Rider Profile, Weekly Report, Performance Metrics, Form & Fitness
+  - Session Planner, Race Day Predictor, Race Analysis, Race Analytics
+  - Methodology, Settings
+- **Remaining**: Admin Pages (deferred - low priority)
+
+### 📝 Documentation
+
+- **Updated Files**:
+  - `MOBILE_RESPONSIVENESS_CHECKLIST.md` - Updated to 95% complete
+  - `TODO_ONBOARDING_MODAL.md` - Marked complete with bug fix documentation
 
 ## [2.8.2] - 2025-11-07
 

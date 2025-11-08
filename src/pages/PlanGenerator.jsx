@@ -1661,9 +1661,10 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4">
+              {/* Title and Description - Top on mobile */}
               <div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <CardTitle>Your Plan</CardTitle>
                   {planLoadedFromStorage && (
                     <span className="px-3 py-1 bg-[var(--color-primary)]/20 dark:bg-[var(--color-primary-dark)]/20 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] text-xs font-semibold rounded-full flex items-center gap-1">
@@ -1672,13 +1673,15 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                     </span>
                   )}
                 </div>
-                <CardDescription>{plan.planSummary}</CardDescription>
+                <CardDescription className="mt-2">{plan.planSummary}</CardDescription>
               </div>
-              <div className="flex gap-2">
+              
+              {/* Buttons - Bottom on mobile, stacked vertically on small screens */}
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button 
                   onClick={() => setShowAdaptiveModal(true)}
                   variant="default"
-                  className="bg-gradient-to-r from-purple-600 to-[var(--color-primary)] hover:from-purple-700 hover:to-[var(--color-primary)]/90"
+                  className="bg-gradient-to-r from-purple-600 to-[var(--color-primary)] hover:from-purple-700 hover:to-[var(--color-primary)]/90 w-full sm:w-auto"
                   title="Modify existing sessions (reschedule, change intensity, move days). Cannot add new weeks."
                 >
                   <Brain className="w-4 h-4 mr-2" />
@@ -1688,7 +1691,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                   onClick={syncToCalendar} 
                   disabled={syncing} 
                   variant="default"
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
                   title="Add all training sessions to your Google Calendar"
                 >
                   {syncing ? (
@@ -1705,7 +1708,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                 </Button>
                 <Button onClick={() => {
                   generatePlan(false); // Will show confirmation since plan exists
-                }} variant="outline" disabled={loading} title="Create a new plan from scratch. Use this to change event date or add more weeks.">
+                }} variant="outline" disabled={loading} title="Create a new plan from scratch. Use this to change event date or add more weeks." className="w-full sm:w-auto">
                   {loading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
@@ -1815,9 +1818,11 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                           }`}
                           onClick={() => setHoveredSession(session)}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 flex-1">
-                              <div className={`w-2 h-12 rounded ${
+                          {/* Mobile: Stack vertically, Desktop: Side by side */}
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            {/* Title and Description Section */}
+                            <div className="flex items-start gap-4 flex-1">
+                              <div className={`w-2 h-12 rounded flex-shrink-0 ${
                                 session.type === 'Recovery' ? 'bg-green-500' :
                                 session.type === 'Endurance' ? 'bg-[var(--color-endurance)]' :
                                 session.type === 'Tempo' ? 'bg-yellow-500' :
@@ -1825,7 +1830,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                 session.type === 'VO2Max' ? 'bg-red-500' :
                                 'bg-purple-500'
                               }`} />
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <h4 className={`font-semibold ${
                                     isCompleted ? `${completionStatus.color} line-through` : 
@@ -1940,7 +1945,9 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                 </div>
                               </div>
                             </div>
-                            <div className="ml-4 flex gap-2">
+                            
+                            {/* Buttons Section - Stack vertically on mobile, horizontal on desktop */}
+                            <div className="flex flex-col sm:flex-row gap-2 sm:ml-4 w-full sm:w-auto">
                               {isMissed ? (
                                 <Button
                                   onClick={(e) => {
@@ -1948,7 +1955,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                     undoMissed(sessionKey);
                                   }}
                                   variant="outline"
-                                  className="border-red-300 text-red-700 hover:bg-red-50"
+                                  className="border-red-300 text-red-700 hover:bg-red-50 w-full sm:w-auto"
                                 >
                                   <RefreshCw className="w-4 h-4 mr-2" />
                                   Undo Missed
@@ -1961,7 +1968,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                       toggleSessionComplete(week.weekNumber, idx);
                                     }}
                                     variant={isCompleted ? "default" : "outline"}
-                                    className={isCompleted ? 'bg-green-600 hover:bg-green-700' : ''}
+                                    className={`${isCompleted ? 'bg-green-600 hover:bg-green-700' : ''} w-full sm:w-auto`}
                                   >
                                     {isCompleted ? (
                                       <>
@@ -1977,21 +1984,21 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                                   </Button>
                                   
                                   {isPastSession && !isCompleted && (
-                                    <div className="relative">
+                                    <div className="relative w-full sm:w-auto">
                                       <Button
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           setShowMissedDropdown(showMissedDropdown === sessionKey ? null : sessionKey);
                                         }}
                                         variant="outline"
-                                        className="border-red-300 text-red-700 hover:bg-red-50"
+                                        className="border-red-300 text-red-700 hover:bg-red-50 w-full sm:w-auto"
                                       >
                                         <X className="w-4 h-4 mr-2" />
                                         Mark Missed
                                       </Button>
                                       
                                       {showMissedDropdown === sessionKey && (
-                                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 z-10">
+                                        <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 z-10">
                                           <div className="p-2">
                                             <div className="text-xs font-semibold text-gray-500 px-3 py-2">
                                               Reason for missing:
