@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -9,134 +10,16 @@ const __dirname = path.dirname(__filename);
 // Initialize database
 const db = new Database(path.join(__dirname, 'fitness-coach.db'));
 
-// Enable foreign keys
+// Enable foreign keys and WAL mode for better concurrency
 db.pragma('foreign_keys = ON');
+db.pragma('journal_mode = WAL');
 
-// Create tables
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    name TEXT NOT NULL,
-    age INTEGER,
-    height REAL,
-    weight REAL,
-    gender TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    token TEXT UNIQUE NOT NULL,
-    created_at TEXT NOT NULL,
-    expires_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS strava_tokens (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER UNIQUE NOT NULL,
-    access_token TEXT NOT NULL,
-    refresh_token TEXT NOT NULL,
-    expires_at INTEGER NOT NULL,
-    athlete_id TEXT,
-    athlete_data TEXT,
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS google_tokens (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER UNIQUE NOT NULL,
-    access_token TEXT NOT NULL,
-    refresh_token TEXT NOT NULL,
-    expires_at INTEGER NOT NULL,
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS race_tags (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    activity_id TEXT NOT NULL,
-    is_race INTEGER NOT NULL DEFAULT 1,
-    race_type TEXT,
-    created_at TEXT NOT NULL,
-    UNIQUE(user_id, activity_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS adaptation_events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    event_type TEXT NOT NULL,
-    severity TEXT,
-    start_date TEXT NOT NULL,
-    end_date TEXT,
-    category TEXT,
-    notes TEXT,
-    data_json TEXT,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS plan_adjustments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    adaptation_event_id INTEGER,
-    adjustment_type TEXT NOT NULL,
-    changes_json TEXT NOT NULL,
-    ai_reasoning TEXT,
-    user_accepted INTEGER,
-    applied_at TEXT,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (adaptation_event_id) REFERENCES adaptation_events(id) ON DELETE SET NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS wellness_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    date TEXT NOT NULL,
-    feeling TEXT,
-    sleep_quality INTEGER,
-    stress_level INTEGER,
-    soreness INTEGER,
-    motivation INTEGER,
-    notes TEXT,
-    created_at TEXT NOT NULL,
-    UNIQUE(user_id, date),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS workout_comparisons (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    date TEXT NOT NULL,
-    planned_tss REAL,
-    actual_tss REAL,
-    planned_duration INTEGER,
-    actual_duration INTEGER,
-    planned_power REAL,
-    actual_power REAL,
-    deviation_severity TEXT,
-    strava_activity_id TEXT,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-
-  CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
-  CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
-  CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-  CREATE INDEX IF NOT EXISTS idx_race_tags_user_id ON race_tags(user_id);
-  CREATE INDEX IF NOT EXISTS idx_adaptation_events_user_id ON adaptation_events(user_id);
-  CREATE INDEX IF NOT EXISTS idx_plan_adjustments_user_id ON plan_adjustments(user_id);
-  CREATE INDEX IF NOT EXISTS idx_wellness_log_user_date ON wellness_log(user_id, date);
-  CREATE INDEX IF NOT EXISTS idx_workout_comparisons_user_date ON workout_comparisons(user_id, date);
-`);
+// Load and execute schema from file
+console.log('📦 Loading database schema...');
+const schemaPath = path.join(__dirname, 'schema.sql');
+const schema = readFileSync(schemaPath, 'utf8');
+db.exec(schema);
+console.log('✅ Database schema loaded successfully');
 
 // Helper function to hash passwords
 function hashPassword(password) {
