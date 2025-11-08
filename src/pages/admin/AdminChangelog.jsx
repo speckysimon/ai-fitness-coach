@@ -1,9 +1,55 @@
 import React from 'react';
 import { Package, CheckCircle, Bug, Sparkles, Shield } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import { AdminCard as Card, AdminCardContent as CardContent, AdminCardHeader as CardHeader, AdminCardTitle as CardTitle } from '../../components/ui/AdminCard';
 
 const AdminChangelog = () => {
   const versions = [
+    {
+      version: '1.3.0',
+      date: '2025-11-08',
+      type: 'major',
+      changes: {
+        features: [
+          '🎨 Admin UI Component Library - Dedicated AdminCard and AdminButton components',
+          '💡 Light Theme Enforcement - Admin panel always displays with professional light theme',
+          '🔧 Complete UI Separation - Admin and app styling now fully independent',
+        ],
+        improvements: [
+          'All 14 admin pages updated with dedicated components',
+          'AdminCard with explicit light colors (white bg, gray borders)',
+          'AdminButton with blue/gray color variants',
+          'No dark mode interference in admin panel',
+          'Consistent professional appearance across all admin pages',
+          'Better text visibility and contrast',
+          'Separated from main app theme system',
+        ],
+        fixes: [
+          '🐛 Fixed admin panel displaying with dark mode styling',
+          '🐛 Fixed button text visibility in admin interface',
+          '🐛 Fixed card backgrounds showing dark colors',
+          '🐛 Fixed semantic CSS classes affecting admin panel',
+        ],
+        technical: [
+          'Created AdminCard.jsx with light-only styling',
+          'Created AdminButton.jsx with explicit color variants',
+          'Updated AdminDashboard.jsx to use AdminCard',
+          'Updated AdminUsers.jsx to use AdminCard/AdminButton',
+          'Updated UserManagement.jsx to use AdminCard/AdminButton',
+          'Updated AIConfigPage.jsx to use AdminCard/AdminButton',
+          'Updated ServicesPage.jsx to use AdminCard/AdminButton',
+          'Updated AdminChangelog.jsx to use AdminCard',
+          'Updated AdminLogin.jsx to use AdminCard/AdminButton',
+          'Updated ThemeConfigPage.jsx to use AdminCard/AdminButton',
+          'Updated CoachPersonasPage.jsx to use AdminCard/AdminButton',
+          'Updated APIKeysPage.jsx to use AdminCard/AdminButton',
+          'Updated PlanTemplatesPage.jsx to use AdminCard/AdminButton',
+          'Updated GlobalSettings.jsx to use AdminCard/AdminButton',
+          'Updated ActivityLogPage.jsx to use AdminCard/AdminButton',
+          'Updated AIPromptsPage.jsx to use AdminCard/AdminButton',
+          'Reverted Card.jsx to maintain dark mode for main app',
+        ],
+      },
+    },
     {
       version: '1.2.0',
       date: '2025-10-30',

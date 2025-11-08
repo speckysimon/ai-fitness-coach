@@ -5,6 +5,46 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 const ChangelogPage = () => {
   const versions = [
     {
+      version: '2.9.0',
+      date: '2025-11-08',
+      type: 'major',
+      changes: {
+        features: [
+          '🎯 Onboarding Modal - 5-step guided onboarding flow for new users',
+          '👔 Coach Selection - Choose from 5 AI coach personas during onboarding',
+          '📱 Mobile-Ready Dashboard - Fully responsive design with touch-friendly controls',
+          '🎨 Admin Panel UI Separation - Dedicated light-theme components for admin interface',
+        ],
+        improvements: [
+          'Onboarding flow: Welcome → Connect Strava → Choose Coach → Generate Plan → Success',
+          'Progress indicator with 4 dots showing current step',
+          'Smart flow detection (auto-skips Strava if already connected)',
+          'Color-coded gradients for each onboarding step',
+          'Modal persists through OAuth flow and returns to correct step',
+          'Dashboard fully responsive on mobile devices (320px+)',
+          'Touch-friendly buttons (min 44px height)',
+          'Admin panel always displays with professional light theme',
+          'Separate AdminCard and AdminButton components',
+          'All 14 admin pages updated with dedicated components',
+        ],
+        fixes: [
+          '🐛 Fixed admin panel dark mode styling issues',
+          '🐛 Fixed Dashboard userProfile undefined error',
+          '🐛 Fixed OnboardingModal planService import path',
+          '🐛 Fixed mobile layout issues on Dashboard',
+          '🐛 Fixed button text visibility in admin panel',
+        ],
+        technical: [
+          'Created AdminCard.jsx with light-only styling',
+          'Created AdminButton.jsx with explicit color variants',
+          'Updated 14 admin pages to use admin-specific components',
+          'OnboardingModal state management with localStorage persistence',
+          'Mobile-first responsive design patterns',
+          'Separated admin and app UI component libraries',
+        ],
+      },
+    },
+    {
       version: '2.8.0',
       date: '2025-11-07',
       type: 'minor',

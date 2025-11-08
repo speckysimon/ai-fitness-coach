@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trash2, Eye } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
+import { Search, Trash2, Eye, RefreshCw } from 'lucide-react';
+import { AdminCard as Card, AdminCardContent as CardContent, AdminCardHeader as CardHeader, AdminCardTitle as CardTitle } from '../../components/ui/AdminCard';
+import { AdminButton as Button } from '../../components/ui/AdminButton';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -32,6 +33,15 @@ const UserManagement = () => {
       console.error('Error loading users:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadUsers();
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -71,7 +81,7 @@ const UserManagement = () => {
         <p className="text-gray-600 mt-1">Manage registered users</p>
       </div>
 
-      {/* Search */}
+      {/* Search and Refresh */}
       <div className="flex gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -83,6 +93,10 @@ const UserManagement = () => {
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        <Button onClick={handleRefresh} variant="outline" disabled={refreshing}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Users Table */}

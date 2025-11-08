@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, TrendingUp, Calendar, Award, ArrowRight, X, ChevronLeft, Check, Loader2, Zap, Target, Users } from 'lucide-react';
+import { Activity, TrendingUp, Calendar, Award, ArrowRight, X, ChevronLeft, Check, Loader2, Zap, Target, Users, AlertCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useNavigate } from 'react-router-dom';
 import { fetchCoachPersonas, setUserCoach, getUserCoach } from '../lib/coachPersonas';
+import { planService } from '../services/planService';
 
-const OnboardingModal = ({ isOpen, onClose, stravaTokens }) => {
+const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [coaches, setCoaches] = useState([]);
@@ -12,6 +13,17 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens }) => {
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [planGenerated, setPlanGenerated] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [formData, setFormData] = useState({
+    eventName: '',
+    eventDate: '',
+    startDate: new Date().toISOString().split('T')[0],
+    eventType: 'Endurance',
+    priority: 'High Priority',
+    daysPerWeek: 5,
+    maxHoursPerWeek: 10,
+    preference: 'Both',
+  });
+  const [formErrors, setFormErrors] = useState({});
 
   console.log('🎭 OnboardingModal received isOpen:', isOpen, 'currentStep:', currentStep);
 
@@ -121,18 +133,137 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens }) => {
     setUserCoach(coachId);
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error for this field
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.eventName.trim()) errors.eventName = 'Event name is required';
+    if (!formData.eventDate) errors.eventDate = 'Event date is required';
+    if (!formData.startDate) errors.startDate = 'Start date is required';
+    
+    // Validate dates
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.eventDate);
+    if (end <= start) {
+      errors.eventDate = 'Event date must be after start date';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleGeneratePlan = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
     setGeneratingPlan(true);
     try {
-      // Navigate to plan generator which will auto-generate
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate generation
+      // Calculate duration in weeks
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.eventDate);
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const duration = Math.max(1, Math.ceil(diffDays / 7));
+
+      // Call the actual plan generation API
+      const response = await fetch('/api/training/plan/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activities: [], // Empty for new users
+          goals: {
+            eventName: formData.eventName,
+            eventDate: formData.eventDate,
+            eventType: formData.eventType,
+            priority: formData.priority,
+            duration,
+          },
+          constraints: {
+            daysPerWeek: parseInt(formData.daysPerWeek),
+            maxHoursPerWeek: parseInt(formData.maxHoursPerWeek),
+            preference: formData.preference,
+            weekStartDay: 'Monday',
+          },
+          userProfile: userProfile || {},
+          illnessHistory: [],
+          athleteMetrics: {},
+          raceHistory: [],
+          trainingPriorities: null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate plan');
+      }
+
+      const planData = await response.json();
+      
+      // Add dates to sessions
+      const planWithDates = addDatesToSessions(planData, formData.startDate);
+      
+      // Add metadata
+      planWithDates.eventType = formData.eventType;
+      planWithDates.goals = {
+        eventName: formData.eventName,
+        eventDate: formData.eventDate,
+        startDate: formData.startDate,
+        eventType: formData.eventType,
+        priority: formData.priority,
+        daysPerWeek: parseInt(formData.daysPerWeek),
+        maxHoursPerWeek: parseInt(formData.maxHoursPerWeek),
+        preference: formData.preference,
+        duration: duration,
+      };
+
+      // Save plan to backend
+      if (userProfile?.id) {
+        await planService.savePlan(userProfile.id, planWithDates);
+      } else {
+        // Fallback to localStorage
+        localStorage.setItem('training_plan', JSON.stringify(planWithDates));
+      }
+
       setPlanGenerated(true);
       setCurrentStep(5);
     } catch (error) {
       console.error('Error generating plan:', error);
+      alert('Failed to generate plan. Please try again.');
     } finally {
       setGeneratingPlan(false);
     }
+  };
+
+  const addDatesToSessions = (planData, startDate) => {
+    const start = new Date(startDate + 'T00:00:00');
+    const dayMap = {
+      'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4,
+      'Friday': 5, 'Saturday': 6, 'Sunday': 0
+    };
+
+    planData.weeks.forEach((week, weekIdx) => {
+      const weekStartDate = new Date(start);
+      weekStartDate.setDate(start.getDate() + (weekIdx * 7));
+      
+      week.sessions.forEach(session => {
+        const targetDay = dayMap[session.day];
+        const sessionDate = new Date(weekStartDate);
+        const daysFromMonday = targetDay === 0 ? 6 : targetDay - 1;
+        sessionDate.setDate(weekStartDate.getDate() + daysFromMonday);
+        
+        session.date = sessionDate.toISOString().split('T')[0];
+        session.dateObj = sessionDate;
+      });
+    });
+
+    return planData;
   };
 
   const handleComplete = () => {
@@ -371,33 +502,162 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens }) => {
   const renderPlanStep = () => (
     <>
       <div className="relative bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 p-6 text-white">
-        <h2 className="text-2xl font-bold text-center">Step 3: Generate Your Plan</h2>
+        <h2 className="text-2xl font-bold text-center">Step 3: Create Your Training Plan</h2>
       </div>
-      <div className="p-8">
-        <div className="text-center mb-6">
-          <Target className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600 dark:text-gray-300 text-lg">
-            Ready to create your personalized training plan?
-          </p>
+      <div className="p-6 max-h-[60vh] overflow-y-auto">
+        <div className="space-y-4">
+          {/* Event Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Event Name *
+            </label>
+            <input
+              type="text"
+              name="eventName"
+              value={formData.eventName}
+              onChange={handleInputChange}
+              placeholder="e.g., Spring Century Ride"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white ${
+                formErrors.eventName ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {formErrors.eventName && (
+              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {formErrors.eventName}
+              </p>
+            )}
+          </div>
+
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Start Date *
+              </label>
+              <input
+                type="date"
+                name="startDate"
+                value={formData.startDate}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white ${
+                  formErrors.startDate ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {formErrors.startDate && (
+                <p className="text-red-500 text-xs mt-1">{formErrors.startDate}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Event Date *
+              </label>
+              <input
+                type="date"
+                name="eventDate"
+                value={formData.eventDate}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white ${
+                  formErrors.eventDate ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {formErrors.eventDate && (
+                <p className="text-red-500 text-xs mt-1">{formErrors.eventDate}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Event Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Event Type
+            </label>
+            <select
+              name="eventType"
+              value={formData.eventType}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            >
+              <option value="Endurance">Endurance (Gran Fondo, Century)</option>
+              <option value="Climbing">Climbing (Hilly/Mountain)</option>
+              <option value="Time Trial">Time Trial</option>
+              <option value="Criterium">Criterium</option>
+              <option value="Road Race">Road Race</option>
+              <option value="General Fitness">General Fitness</option>
+            </select>
+          </div>
+
+          {/* Training Volume */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Days per Week
+              </label>
+              <select
+                name="daysPerWeek"
+                value={formData.daysPerWeek}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+              >
+                {[3, 4, 5, 6, 7].map(days => (
+                  <option key={days} value={days}>{days} days</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Max Hours/Week
+              </label>
+              <select
+                name="maxHoursPerWeek"
+                value={formData.maxHoursPerWeek}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+              >
+                {[5, 6, 7, 8, 9, 10, 12, 15, 20].map(hours => (
+                  <option key={hours} value={hours}>{hours} hours</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Training Preference */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Training Preference
+            </label>
+            <select
+              name="preference"
+              value={formData.preference}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            >
+              <option value="Both">Both Indoor & Outdoor</option>
+              <option value="Indoor Only">Indoor Only (Trainer)</option>
+              <option value="Outdoor Only">Outdoor Only</option>
+            </select>
+          </div>
+
+          {/* Generate Button */}
+          <Button
+            onClick={handleGeneratePlan}
+            disabled={generatingPlan}
+            size="lg"
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-500 mt-4"
+          >
+            {generatingPlan ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Generating Your Plan...
+              </>
+            ) : (
+              <>
+                <Zap className="w-5 h-5 mr-2" />
+                Generate My Training Plan
+              </>
+            )}
+          </Button>
         </div>
-        <Button
-          onClick={handleGeneratePlan}
-          disabled={generatingPlan}
-          size="lg"
-          className="w-full bg-gradient-to-r from-blue-500 to-purple-500"
-        >
-          {generatingPlan ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Generating Plan...
-            </>
-          ) : (
-            <>
-              <Zap className="w-5 h-5 mr-2" />
-              Generate My Plan
-            </>
-          )}
-        </Button>
       </div>
     </>
   );

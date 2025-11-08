@@ -28,6 +28,11 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
   const [showLogIllness, setShowLogIllness] = useState(false);
+  const [userProfile, setUserProfile] = useState(() => {
+    // Load user profile from localStorage
+    const currentUser = localStorage.getItem('current_user');
+    return currentUser ? JSON.parse(currentUser) : null;
+  });
   const [pendingAdjustment, setPendingAdjustment] = useState(null);
   const [aiCoachKey, setAiCoachKey] = useState(0);
   const [editingActivity, setEditingActivity] = useState(null);
@@ -643,6 +648,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         <OnboardingModal
           isOpen={showWelcomeModal}
           stravaTokens={stravaTokens}
+          userProfile={userProfile}
           onClose={() => {
             console.log('❌ Closing onboarding modal');
             setShowWelcomeModal(false);
@@ -1293,6 +1299,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       <OnboardingModal
         isOpen={showWelcomeModal}
         stravaTokens={stravaTokens}
+        userProfile={userProfile}
         onClose={() => {
           console.log('❌ Closing onboarding modal');
           setShowWelcomeModal(false);

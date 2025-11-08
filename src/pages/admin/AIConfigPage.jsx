@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, Save, RefreshCw, Sparkles, TrendingUp, Calendar, Zap, DollarSign, Calculator } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
+import { AdminCard as Card, AdminCardContent as CardContent, AdminCardHeader as CardHeader, AdminCardTitle as CardTitle, AdminCardDescription as CardDescription } from '../../components/ui/AdminCard';
+import { AdminButton as Button } from '../../components/ui/AdminButton';
 import CostEstimationModal from '../../components/CostEstimationModal';
 
 // Available models for each provider
