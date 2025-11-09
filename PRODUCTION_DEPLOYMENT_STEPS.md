@@ -50,7 +50,7 @@ git push origin main
 
 ```bash
 # SSH to production server
-ssh riderlabs@riderlabs-prod
+ssh riderlabs@riderlabs.io
 
 # Navigate to project directory
 cd ~/ai-fitness-coach
@@ -125,7 +125,7 @@ exit
 
 ```bash
 # SSH to production
-ssh riderlabs@riderlabs-prod
+ssh riderlabs@riderlabs.io
 cd ~/ai-fitness-coach
 
 # Stop application
@@ -153,7 +153,7 @@ pm2 logs riderlabs
 
 ```bash
 # SSH to production
-ssh riderlabs@riderlabs-prod
+ssh riderlabs@riderlabs.io
 cd ~/ai-fitness-coach
 
 # Create admin user via sqlite3

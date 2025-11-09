@@ -14,58 +14,31 @@ const ThemeConfigPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [copiedColor, setCopiedColor] = useState('');
 
-  // Default theme categories and their colors
+  // Default theme categories and their colors (CONSOLIDATED - 12 colors)
   const defaultThemeCategories = [
     {
-      category: 'primary',
-      label: 'Primary Colors',
-      description: 'Main brand colors used throughout the app',
+      category: 'brand',
+      label: 'Brand Colors',
+      description: 'Primary brand color and accent for gradients',
       colors: [
         { name: 'primary', label: 'Primary', light: '#2563EB', dark: '#3B82F6' },
-        { name: 'primary-hover', label: 'Primary Hover', light: '#1D4ED8', dark: '#2563EB' },
-      ]
-    },
-    {
-      category: 'secondary',
-      label: 'Secondary Colors',
-      description: 'Accent and supporting colors',
-      colors: [
-        { name: 'secondary', label: 'Secondary', light: '#06B6D4', dark: '#22D3EE' },
         { name: 'accent', label: 'Accent', light: '#9333EA', dark: '#A855F7' },
       ]
     },
     {
       category: 'status',
       label: 'Status Colors',
-      description: 'Colors for success, warning, error states',
+      description: 'Colors for success, warning, and error states',
       colors: [
         { name: 'success', label: 'Success', light: '#10B981', dark: '#34D399' },
         { name: 'warning', label: 'Warning', light: '#F59E0B', dark: '#FBBF24' },
         { name: 'error', label: 'Error', light: '#EF4444', dark: '#F87171' },
-        { name: 'info', label: 'Info', light: '#3B82F6', dark: '#60A5FA' },
-      ]
-    },
-    {
-      category: 'neutral',
-      label: 'Neutral Colors',
-      description: 'Gray scale for backgrounds and text',
-      colors: [
-        { name: 'gray-50', label: 'Gray 50', light: '#F9FAFB', dark: '#1F2937' },
-        { name: 'gray-100', label: 'Gray 100', light: '#F3F4F6', dark: '#374151' },
-        { name: 'gray-200', label: 'Gray 200', light: '#E5E7EB', dark: '#4B5563' },
-        { name: 'gray-300', label: 'Gray 300', light: '#D1D5DB', dark: '#6B7280' },
-        { name: 'gray-400', label: 'Gray 400', light: '#9CA3AF', dark: '#9CA3AF' },
-        { name: 'gray-500', label: 'Gray 500', light: '#6B7280', dark: '#D1D5DB' },
-        { name: 'gray-600', label: 'Gray 600', light: '#4B5563', dark: '#E5E7EB' },
-        { name: 'gray-700', label: 'Gray 700', light: '#374151', dark: '#F3F4F6' },
-        { name: 'gray-800', label: 'Gray 800', light: '#1F2937', dark: '#F9FAFB' },
-        { name: 'gray-900', label: 'Gray 900', light: '#111827', dark: '#FFFFFF' },
       ]
     },
     {
       category: 'activity',
-      label: 'Activity Type Colors',
-      description: 'Colors for different training session types',
+      label: 'Training Session Types',
+      description: 'Colors for different training intensities',
       colors: [
         { name: 'recovery', label: 'Recovery', light: '#10B981', dark: '#34D399' },
         { name: 'endurance', label: 'Endurance', light: '#3B82F6', dark: '#60A5FA' },

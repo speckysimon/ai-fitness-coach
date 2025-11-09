@@ -25,20 +25,15 @@
     --ring: 211 100% 50%;
     --radius: 0.5rem;
 
-    /* Dynamic Theme Colors - Set by themeService.js */
-    /* Primary Colors */
+    /* Dynamic Theme Colors - Set by themeService.js (12 colors) */
+    /* Brand Colors */
     --color-primary: #2563EB;
-    --color-primary-hover: #1D4ED8;
-    
-    /* Secondary Colors */
-    --color-secondary: #06B6D4;
     --color-accent: #9333EA;
     
     /* Status Colors */
     --color-success: #10B981;
     --color-warning: #F59E0B;
     --color-error: #EF4444;
-    --color-info: #3B82F6;
     
     /* Activity Type Colors */
     --color-recovery: #10B981;

@@ -123,35 +123,18 @@ export function applyTheme(themeConfig) {
 export function getDefaultTheme() {
   return {
     name: 'Default',
-    description: 'Default RiderLabs theme',
+    description: 'Default RiderLabs theme - Consolidated 12 colors',
     config: {
-      // Primary colors
-      'primary': { light: '#2563EB', dark: '#3B82F6', label: 'Primary', category: 'primary' },
-      'primary-hover': { light: '#1D4ED8', dark: '#2563EB', label: 'Primary Hover', category: 'primary' },
+      // Brand colors (2)
+      'primary': { light: '#2563EB', dark: '#3B82F6', label: 'Primary', category: 'brand' },
+      'accent': { light: '#9333EA', dark: '#A855F7', label: 'Accent', category: 'brand' },
       
-      // Secondary colors
-      'secondary': { light: '#06B6D4', dark: '#22D3EE', label: 'Secondary', category: 'secondary' },
-      'accent': { light: '#9333EA', dark: '#A855F7', label: 'Accent', category: 'secondary' },
-      
-      // Status colors
+      // Status colors (3)
       'success': { light: '#10B981', dark: '#34D399', label: 'Success', category: 'status' },
       'warning': { light: '#F59E0B', dark: '#FBBF24', label: 'Warning', category: 'status' },
       'error': { light: '#EF4444', dark: '#F87171', label: 'Error', category: 'status' },
-      'info': { light: '#3B82F6', dark: '#60A5FA', label: 'Info', category: 'status' },
       
-      // Neutral colors
-      'gray-50': { light: '#F9FAFB', dark: '#1F2937', label: 'Gray 50', category: 'neutral' },
-      'gray-100': { light: '#F3F4F6', dark: '#374151', label: 'Gray 100', category: 'neutral' },
-      'gray-200': { light: '#E5E7EB', dark: '#4B5563', label: 'Gray 200', category: 'neutral' },
-      'gray-300': { light: '#D1D5DB', dark: '#6B7280', label: 'Gray 300', category: 'neutral' },
-      'gray-400': { light: '#9CA3AF', dark: '#9CA3AF', label: 'Gray 400', category: 'neutral' },
-      'gray-500': { light: '#6B7280', dark: '#D1D5DB', label: 'Gray 500', category: 'neutral' },
-      'gray-600': { light: '#4B5563', dark: '#E5E7EB', label: 'Gray 600', category: 'neutral' },
-      'gray-700': { light: '#374151', dark: '#F3F4F6', label: 'Gray 700', category: 'neutral' },
-      'gray-800': { light: '#1F2937', dark: '#F9FAFB', label: 'Gray 800', category: 'neutral' },
-      'gray-900': { light: '#111827', dark: '#FFFFFF', label: 'Gray 900', category: 'neutral' },
-      
-      // Activity colors
+      // Activity colors (6)
       'recovery': { light: '#10B981', dark: '#34D399', label: 'Recovery', category: 'activity' },
       'endurance': { light: '#3B82F6', dark: '#60A5FA', label: 'Endurance', category: 'activity' },
       'tempo': { light: '#F59E0B', dark: '#FBBF24', label: 'Tempo', category: 'activity' },

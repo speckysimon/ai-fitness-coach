@@ -39,6 +39,27 @@
   - File: `src/pages/Dashboard.jsx` line 867
   - Prevents text overflow and cramped layout on mobile
 
+- [ ] **Login Page Conflict / Subdomain Migration**: Login page shows when already logged in
+  - Issue: Login page accessible/visible even when user is authenticated
+  - Possible causes:
+    - Route protection not working correctly
+    - Session token validation issue
+    - Navigation redirect conflict
+  - **Solution Options**:
+    1. **Move app to app.riderlabs.io subdomain** (cleaner separation)
+       - Landing page stays on riderlabs.io
+       - App (dashboard, etc.) moves to app.riderlabs.io
+       - Requires DNS configuration, subdomain setup
+       - Better separation of concerns (marketing vs app)
+    2. **Fix route protection** (quicker fix)
+       - Add proper auth guards to login route
+       - Redirect to dashboard if already logged in
+       - Check session token validity on login page mount
+  - Files to investigate:
+    - `src/App.jsx` - Route configuration
+    - `src/pages/Login.jsx` - Login component (lines 1-118)
+    - Session token validation logic
+
 - [ ] **Rider Profile Confidence Calculation**: Shows "Insufficient Data" with 0% confidence even when user has activities
   - Location: `src/lib/riderAnalytics.js` (lines 26-41)
   - Current logic: Requires BOTH FTP AND at least 10 activities
