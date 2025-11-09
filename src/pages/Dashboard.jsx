@@ -864,7 +864,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <Card className={smartFTPContext?.confidence === 'high' ? 'border-green-200 dark:border-green-800' : smartFTPContext?.confidence === 'medium' ? 'border-yellow-200 dark:border-yellow-800' : smartFTPContext?.confidence === 'low' ? 'border-orange-200 dark:border-orange-800' : ''}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 md:p-6">
             <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
