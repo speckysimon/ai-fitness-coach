@@ -5,6 +5,35 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 const ChangelogPage = () => {
   const versions = [
     {
+      version: '2.10.0',
+      date: '2025-11-18',
+      type: 'minor',
+      changes: {
+        features: [
+          '📝 Feedback Management Admin Panel - Complete dashboard for viewing and managing user feedback',
+          '📊 Dashboard Stats - 5 stat cards showing total, new, in progress, resolved, and average rating',
+          '🔍 Advanced Filtering - Filter feedback by status, category, and rating',
+          '📋 Category Breakdown - Visual grid showing feedback distribution by category',
+          '👁️ Detail Modal - Full feedback view with status management and delete functionality',
+        ],
+        improvements: [
+          'Feedback list with star ratings and color-coded badges',
+          'One-click status updates (New, In Progress, Resolved)',
+          'Delete functionality with confirmation dialog',
+          'Refresh button with loading state',
+          'Real-time statistics calculation',
+          'Click anywhere on feedback card to view details',
+        ],
+        technical: [
+          'Created FeedbackManagement.jsx (535 lines)',
+          'Added DELETE endpoint to feedback API',
+          'Added feedback route to App.jsx',
+          'Added feedback navigation item to AdminLayout',
+          'Uses existing feedback table (no migration needed)',
+        ],
+      },
+    },
+    {
       version: '2.9.0',
       date: '2025-11-08',
       type: 'major',

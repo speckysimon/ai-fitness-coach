@@ -7,7 +7,7 @@ const router = express.Router();
  * POST /api/feedback
  * Submit user feedback
  */
-router.post('/', async (req, res) => {
+router.post('/', (req, res) => {
   try {
     const { rating, category, message, email, userEmail, timestamp, userAgent, url } = req.body;
 
@@ -16,8 +16,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Insert feedback into database
-    const result = await db.run(
+    // Insert feedback into database (better-sqlite3 is synchronous)
+    const stmt = db.prepare(
       `INSERT INTO feedback (
         rating, 
         category, 
@@ -28,18 +28,19 @@ router.post('/', async (req, res) => {
         user_agent, 
         url,
         status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        rating || null,
-        category || 'general',
-        message,
-        email || 'anonymous',
-        userEmail || null,
-        timestamp || new Date().toISOString(),
-        userAgent || null,
-        url || null,
-        'new'
-      ]
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+
+    const result = stmt.run(
+      rating || null,
+      category || 'general',
+      message,
+      email || 'anonymous',
+      userEmail || null,
+      timestamp || new Date().toISOString(),
+      userAgent || null,
+      url || null,
+      'new'
     );
 
     // TODO: Send notification email to admin
@@ -48,7 +49,7 @@ router.post('/', async (req, res) => {
     res.json({
       success: true,
       message: 'Feedback submitted successfully',
-      id: result.lastID
+      id: result.lastInsertRowid
     });
   } catch (error) {
     console.error('Error submitting feedback:', error);
@@ -60,7 +61,7 @@ router.post('/', async (req, res) => {
  * GET /api/feedback
  * Get all feedback (admin only - TODO: add auth)
  */
-router.get('/', async (req, res) => {
+router.get('/', (req, res) => {
   try {
     const { status, category, limit = 100 } = req.query;
 
@@ -80,7 +81,8 @@ router.get('/', async (req, res) => {
     query += ' ORDER BY timestamp DESC LIMIT ?';
     params.push(parseInt(limit));
 
-    const feedback = await db.all(query, params);
+    const stmt = db.prepare(query);
+    const feedback = stmt.all(...params);
 
     res.json({
       success: true,
@@ -97,15 +99,16 @@ router.get('/', async (req, res) => {
  * PATCH /api/feedback/:id
  * Update feedback status (admin only - TODO: add auth)
  */
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', (req, res) => {
   try {
     const { id } = req.params;
     const { status, notes } = req.body;
 
-    await db.run(
-      'UPDATE feedback SET status = ?, admin_notes = ?, updated_at = ? WHERE id = ?',
-      [status, notes, new Date().toISOString(), id]
+    const stmt = db.prepare(
+      'UPDATE feedback SET status = ?, admin_notes = ?, updated_at = ? WHERE id = ?'
     );
+    
+    stmt.run(status, notes, new Date().toISOString(), id);
 
     res.json({
       success: true,
@@ -114,6 +117,27 @@ router.patch('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating feedback:', error);
     res.status(500).json({ error: 'Failed to update feedback' });
+  }
+});
+
+/**
+ * DELETE /api/feedback/:id
+ * Delete feedback (admin only - TODO: add auth)
+ */
+router.delete('/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const stmt = db.prepare('DELETE FROM feedback WHERE id = ?');
+    stmt.run(id);
+
+    res.json({
+      success: true,
+      message: 'Feedback deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting feedback:', error);
+    res.status(500).json({ error: 'Failed to delete feedback' });
   }
 });
 

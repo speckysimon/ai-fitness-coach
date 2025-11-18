@@ -1,0 +1,72 @@
+{
+  "name": "Tango",
+  "description": "Energetic orange accent theme with deep blue foundation",
+  "config": {
+    "primary": {
+      "light": "#164880",
+      "dark": "#44759D",
+      "label": "Primary",
+      "category": "brand"
+    },
+    "accent": {
+      "light": "#F18F01",
+      "dark": "#FFA726",
+      "label": "Accent",
+      "category": "brand"
+    },
+    "success": {
+      "light": "#10B981",
+      "dark": "#34D399",
+      "label": "Success",
+      "category": "status"
+    },
+    "warning": {
+      "light": "#F18F01",
+      "dark": "#FFA726",
+      "label": "Warning",
+      "category": "status"
+    },
+    "error": {
+      "light": "#EF4444",
+      "dark": "#F87171",
+      "label": "Error",
+      "category": "status"
+    },
+    "recovery": {
+      "light": "#10B981",
+      "dark": "#34D399",
+      "label": "Recovery",
+      "category": "activity"
+    },
+    "endurance": {
+      "light": "#44759D",
+      "dark": "#5B8BB8",
+      "label": "Endurance",
+      "category": "activity"
+    },
+    "tempo": {
+      "light": "#F18F01",
+      "dark": "#FFA726",
+      "label": "Tempo",
+      "category": "activity"
+    },
+    "threshold": {
+      "light": "#F97316",
+      "dark": "#FB923C",
+      "label": "Threshold",
+      "category": "activity"
+    },
+    "vo2max": {
+      "light": "#EF4444",
+      "dark": "#F87171",
+      "label": "VO2 Max",
+      "category": "activity"
+    },
+    "sprint": {
+      "light": "#F18F01",
+      "dark": "#FFA726",
+      "label": "Sprint",
+      "category": "activity"
+    }
+  }
+}

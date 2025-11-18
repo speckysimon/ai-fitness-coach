@@ -7,8 +7,8 @@ import { initAnalytics } from './lib/analytics';
 // Initialize analytics
 initAnalytics();
 
-// Register service worker for notifications
-if ('serviceWorker' in navigator) {
+// Register service worker for notifications (production only)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')

@@ -1,0 +1,72 @@
+{
+  "name": "Sea",
+  "description": "Calming green accent theme with deep blue foundation",
+  "config": {
+    "primary": {
+      "light": "#164880",
+      "dark": "#44759D",
+      "label": "Primary",
+      "category": "brand"
+    },
+    "accent": {
+      "light": "#72A276",
+      "dark": "#8BC490",
+      "label": "Accent",
+      "category": "brand"
+    },
+    "success": {
+      "light": "#72A276",
+      "dark": "#8BC490",
+      "label": "Success",
+      "category": "status"
+    },
+    "warning": {
+      "light": "#F59E0B",
+      "dark": "#FBBF24",
+      "label": "Warning",
+      "category": "status"
+    },
+    "error": {
+      "light": "#EF4444",
+      "dark": "#F87171",
+      "label": "Error",
+      "category": "status"
+    },
+    "recovery": {
+      "light": "#72A276",
+      "dark": "#8BC490",
+      "label": "Recovery",
+      "category": "activity"
+    },
+    "endurance": {
+      "light": "#44759D",
+      "dark": "#5B8BB8",
+      "label": "Endurance",
+      "category": "activity"
+    },
+    "tempo": {
+      "light": "#F59E0B",
+      "dark": "#FBBF24",
+      "label": "Tempo",
+      "category": "activity"
+    },
+    "threshold": {
+      "light": "#F97316",
+      "dark": "#FB923C",
+      "label": "Threshold",
+      "category": "activity"
+    },
+    "vo2max": {
+      "light": "#EF4444",
+      "dark": "#F87171",
+      "label": "VO2 Max",
+      "category": "activity"
+    },
+    "sprint": {
+      "light": "#72A276",
+      "dark": "#8BC490",
+      "label": "Sprint",
+      "category": "activity"
+    }
+  }
+}

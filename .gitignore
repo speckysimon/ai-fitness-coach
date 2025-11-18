@@ -37,6 +37,9 @@ logs/
 # Database
 *.db
 *.sqlite
+*.db-shm
+*.db-wal
+*.db-journal
 
 # Tokens
 tokens/

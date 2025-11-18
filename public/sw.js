@@ -43,10 +43,40 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache when offline
 self.addEventListener('fetch', (event) => {
+  // Skip Vite dev server requests and localhost:3000
+  const url = new URL(event.request.url);
+  if (url.hostname === 'localhost' && url.port === '3000') {
+    return; // Don't intercept dev server requests
+  }
+  
+  // Skip Vite-specific paths
+  if (url.pathname.startsWith('/@vite/') || 
+      url.pathname.startsWith('/@react-refresh') ||
+      url.pathname === '/src/main.jsx') {
+    return; // Don't intercept Vite HMR
+  }
+
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    caches.match(event.request)
+      .then((response) => {
+        // Return cached response if available
+        if (response) {
+          return response;
+        }
+        
+        // Otherwise fetch from network
+        return fetch(event.request).catch((error) => {
+          console.log('Service Worker: Fetch failed for', event.request.url, error);
+          // Return a fallback or just fail silently
+          return new Response('Offline - resource not available', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers({
+              'Content-Type': 'text/plain'
+            })
+          });
+        });
+      })
   );
 });
 

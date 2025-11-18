@@ -96,7 +96,59 @@
 - [ ] Test plan adjustments on production
 - [ ] Add better error messages to frontend if issues found
 
-### 6. Comprehensive Site Testing
+### 6. AI Coach Enhancements - Post-Training Chat Experience
+**Goal:** Replicate the post-training conversation experience with GPT (where user shares Strava screenshots and discusses workout) but integrated seamlessly into RiderLabs with coach persona consistency.
+
+- [ ] **Make "Talk to AI Coach" more general purpose**
+  - [ ] **Current State:** Only for "Analyze and Adjust Plan" - too narrow
+  - [ ] **New Vision:** Post-training debrief chat like conversations with GPT
+  - [ ] **Key Features:**
+    - [ ] General Q&A about recent activities, issues, concerns
+    - [ ] Post-workout debriefs and discussions
+    - [ ] Ask questions about training decisions
+    - [ ] Get feedback on how you're feeling
+    - [ ] Discuss concerns, fatigue, motivation issues
+    - [ ] More conversational and helpful beyond just plan adjustments
+  - [ ] **Coach Persona Integration:**
+    - [ ] Maintain consistent coach personality throughout conversation
+    - [ ] Coach responds in their characteristic style (motivational, analytical, supportive, etc.)
+    - [ ] Reference athlete's chosen coach persona in all responses
+  - [ ] **Context-Aware Conversations:**
+    - [ ] AI has access to recent activities (already implemented)
+    - [ ] Current training plan context
+    - [ ] Long-term goal (to be added)
+    - [ ] Fitness metrics (FTP, CTL, ATL, TSB)
+    - [ ] Past conversations/analyses
+  - [ ] **Implementation:**
+    - [ ] Update UI/UX to reflect broader coaching purpose
+    - [ ] Rename from "Analyze and Adjust" to "Talk to Coach" or "Coach Chat"
+    - [ ] Update AI prompt to handle general coaching questions
+    - [ ] Add conversation history/context
+    - [ ] Consider adding image upload for Strava screenshots (future)
+
+- [ ] **Add "Analyze Activity" button to individual activity modals**
+  - [ ] **Purpose:** Quick one-time analysis of specific workout
+  - [ ] Add button to each activity detail modal
+  - [ ] "Run once" analysis against training plan
+  - [ ] Compare activity to planned session
+  - [ ] Analyze against past history and goals
+  - [ ] Output meaningful comment on performance
+  - [ ] Show how activity fits into overall training
+  - [ ] Identify deviations or improvements
+  - [ ] Store analysis with activity for future reference
+  - [ ] Coach persona provides feedback in their characteristic style
+
+### 7. User Settings Enhancements
+- [ ] **Add "Long-term Goal" field to user settings**
+  - [ ] Add to Settings page (Profile/Goals section)
+  - [ ] Text field for long-term cycling goal (e.g., "Complete Gran Fondo in under 5 hours")
+  - [ ] Store in database (user_preferences table)
+  - [ ] Use in AI context for plan generation
+  - [ ] Display in profile/dashboard
+  - [ ] Help AI understand athlete's ultimate objective
+  - [ ] Inform training plan recommendations
+
+### 8. Comprehensive Site Testing
 - [ ] Test Dashboard - metrics, charts, activity feed
 - [ ] Test Training Plan Generation - all event types
 - [ ] Test Race Day Predictor - predictions and analysis
@@ -283,7 +335,7 @@
 
 ---
 
-## 🐛 Known Bugs
+## 🐛 Known Bugs & Fixes Needed
 
 ### Critical
 - Manual activity edit not saving (Oct 29, 2025) - needs investigation
@@ -292,6 +344,26 @@
 - Dark mode has some inconsistencies (quick fix applied, needs proper audit)
 - Mobile responsiveness issues on various pages
 - Navigation menu could be cleaner/more organized
+
+### Feature Improvements Needed (Nov 12, 2025)
+- **Talk to AI Coach - Post-Training Chat Experience** 
+  - Goal: Replicate post-training conversation with GPT (where user shares Strava screenshots and discusses workout)
+  - Currently too specific (analyze/adjust only), needs to be more general
+  - Should enable post-workout debriefs, Q&A about activities, issues, concerns
+  - Must maintain coach persona consistency throughout conversation
+  - Context-aware: access to activities, plan, goals, fitness metrics
+  - Consider future: image upload for Strava screenshots
+  
+- **Activity Analysis Button** 
+  - Missing "Analyze Activity" button on individual activity modals
+  - One-time analysis against plan/history/goals
+  - Coach persona provides feedback in their characteristic style
+  - Store analysis with activity for future reference
+  
+- **Long-term Goal Field** 
+  - User settings missing long-term goal field
+  - Helps AI understand athlete's ultimate objective (e.g., "Complete Gran Fondo in under 5 hours")
+  - Should be used in AI context for plan generation and coaching conversations
 
 ---
 

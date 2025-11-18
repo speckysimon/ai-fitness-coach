@@ -60,6 +60,19 @@
     - `src/pages/Login.jsx` - Login component (lines 1-118)
     - Session token validation logic
 
+- [ ] **Theme Creation Error in Admin Panel**: "Failed to create theme configuration" error
+  - Issue: Cannot create new themes via admin panel
+  - Suspected cause: Theme system may have been disconnected during database schema changes
+  - Related to: Lost all themes in database changes (Nov 8)
+  - Missing table: `theme_configs` table needs to be recreated
+  - Solution: Apply schema.sql to recreate theme_configs table
+  - Files to check:
+    - `server/schema.sql` - Verify theme_configs table definition
+    - `server/routes/themeConfig.cjs` - Theme API endpoints
+    - `src/pages/admin/ThemeConfigPage.jsx` - Admin UI
+  - **Status**: Cosmetic fix, marked as "for later"
+  - **Priority**: Medium (blocks theme customization but app works with default theme)
+
 - [ ] **Rider Profile Confidence Calculation**: Shows "Insufficient Data" with 0% confidence even when user has activities
   - Location: `src/lib/riderAnalytics.js` (lines 26-41)
   - Current logic: Requires BOTH FTP AND at least 10 activities

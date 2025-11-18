@@ -71,11 +71,26 @@ app.get('/api/health', (req, res) => {
 if (isProduction) {
   const distPath = path.join(__dirname, '../dist');
   
-  // Serve static files
-  app.use(express.static(distPath));
+  // Serve static files with proper headers
+  app.use(express.static(distPath, {
+    setHeaders: (res, filePath) => {
+      // Set correct MIME types for JS modules
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+      }
+    }
+  }));
   
   // Handle React routing - return all requests to React app
-  app.get('*', (req, res) => {
+  // EXCEPT requests for static assets (js, css, images, etc.)
+  app.get('*', (req, res, next) => {
+    // Don't intercept requests for static files
+    if (req.path.startsWith('/assets/') || 
+        req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
+      return next();
+    }
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
