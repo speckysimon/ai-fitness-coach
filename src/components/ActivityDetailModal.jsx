@@ -269,11 +269,11 @@ const ActivityDetailModal = ({ activity, onClose, showAICoach = false }) => {
         <div className="px-6 pb-6">
           <button
             onClick={() => setShowAI(!showAI)}
-            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg hover:from-purple-100 hover:to-blue-100 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 transition-all mb-4"
+            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg hover:from-purple-100 hover:to-blue-100 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all mb-4 border border-purple-200 dark:border-gray-600"
           >
             <div className="flex items-center gap-3">
               <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              <span className="font-semibold text-gray-900 dark:text-gray-100">AI Coach Analysis</span>
+              <span className="font-semibold text-gray-900 dark:text-white">AI Coach Analysis</span>
             </div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
               {showAI ? 'Hide' : 'Show'}
