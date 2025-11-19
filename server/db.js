@@ -7,8 +7,10 @@ import crypto from 'crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize database
-const db = new Database(path.join(__dirname, 'fitness-coach.db'));
+// Initialize database (configurable via environment variable)
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'fitness-coach.db');
+console.log(`📂 Database path: ${dbPath}`);
+const db = new Database(dbPath);
 
 // Enable foreign keys and WAL mode for better concurrency
 db.pragma('foreign_keys = ON');
