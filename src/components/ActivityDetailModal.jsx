@@ -1,10 +1,17 @@
-import React from 'react';
-import { X, Clock, TrendingUp, Mountain, Zap, Heart, Activity as ActivityIcon, Trophy } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Clock, TrendingUp, Mountain, Zap, Heart, Activity as ActivityIcon, Trophy, Brain, Send } from 'lucide-react';
 import { formatDuration, formatDistance } from '../lib/utils';
 import { getRaceTypeLabel } from '../lib/raceUtils';
 import RouteMap from './RouteMap';
+import { Button } from './ui/Button';
+import { Textarea } from './ui/Textarea';
 
-const ActivityDetailModal = ({ activity, onClose }) => {
+const ActivityDetailModal = ({ activity, onClose, showAICoach = false }) => {
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [showAI, setShowAI] = useState(showAICoach);
+
   if (!activity) return null;
 
   const getActivityIcon = (type) => {
@@ -256,6 +263,113 @@ const ActivityDetailModal = ({ activity, onClose }) => {
               </span>
             )}
           </div>
+        </div>
+
+        {/* AI Coach Analysis Section */}
+        <div className="px-6 pb-6">
+          <button
+            onClick={() => setShowAI(!showAI)}
+            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg hover:from-purple-100 hover:to-blue-100 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 transition-all mb-4"
+          >
+            <div className="flex items-center gap-3">
+              <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <span className="font-semibold text-gray-900 dark:text-gray-100">AI Coach Analysis</span>
+            </div>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {showAI ? 'Hide' : 'Show'}
+            </span>
+          </button>
+
+          {showAI && (
+            <div className="space-y-4">
+              {/* Pre-filled activity summary */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+                <p className="font-medium text-gray-700 dark:text-gray-300 mb-2">Activity Summary:</p>
+                <div className="text-gray-600 dark:text-gray-400 space-y-1">
+                  <p>📊 {activity.name}</p>
+                  <p>📅 {new Date(activity.date).toLocaleDateString()}</p>
+                  <p>⏱️ Duration: {formatDuration(activity.duration)}</p>
+                  <p>📏 Distance: {formatDistance(activity.distance)}</p>
+                  <p>⛰️ Elevation: {Math.round(activity.elevation)}m</p>
+                  {activity.tss > 0 && <p>💪 TSS: {activity.tss}</p>}
+                  {activity.avgPower > 0 && <p>⚡ Avg Power: {Math.round(activity.avgPower)}W</p>}
+                  {activity.normalizedPower > 0 && <p>⚡ Normalized Power: {Math.round(activity.normalizedPower)}W</p>}
+                  {activity.avgHeartRate > 0 && <p>❤️ Avg HR: {Math.round(activity.avgHeartRate)} bpm</p>}
+                  {activity.avgSpeed > 0 && <p>🚴 Avg Speed: {(activity.avgSpeed * 3.6).toFixed(1)} km/h</p>}
+                </div>
+              </div>
+
+              {/* AI Prompt Input */}
+              <div>
+                <Textarea
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder="Ask the AI coach about this activity... (e.g., 'How does this workout fit into my training?' or 'What should I focus on next?')"
+                  className="min-h-[100px] dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
+                />
+              </div>
+
+              {/* Send Button */}
+              <Button
+                onClick={async () => {
+                  if (!aiPrompt.trim()) return;
+                  setAiLoading(true);
+                  try {
+                    const sessionToken = localStorage.getItem('session_token');
+                    const response = await fetch('/api/coach/chat', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionToken}`
+                      },
+                      body: JSON.stringify({
+                        message: aiPrompt,
+                        context: {
+                          activity: {
+                            name: activity.name,
+                            type: activity.type,
+                            date: activity.date,
+                            duration: activity.duration,
+                            distance: activity.distance,
+                            elevation: activity.elevation,
+                            tss: activity.tss,
+                            avgPower: activity.avgPower,
+                            normalizedPower: activity.normalizedPower,
+                            avgHeartRate: activity.avgHeartRate,
+                            avgSpeed: activity.avgSpeed
+                          }
+                        }
+                      })
+                    });
+                    const data = await response.json();
+                    setAiResponse(data.response || 'No response from AI coach');
+                  } catch (error) {
+                    setAiResponse('Error: Unable to get AI coach response');
+                  } finally {
+                    setAiLoading(false);
+                  }
+                }}
+                disabled={!aiPrompt.trim() || aiLoading}
+                className="w-full"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {aiLoading ? 'Analyzing...' : 'Ask AI Coach'}
+              </Button>
+
+              {/* AI Response */}
+              {aiResponse && (
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <p className="font-medium text-purple-900 dark:text-purple-100 mb-2 flex items-center gap-2">
+                    <Brain className="w-4 h-4" />
+                    AI Coach Response:
+                  </p>
+                  <div className="text-sm text-purple-800 dark:text-purple-200 whitespace-pre-wrap">
+                    {aiResponse}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

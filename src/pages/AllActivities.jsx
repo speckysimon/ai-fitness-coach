@@ -650,16 +650,28 @@ const AllActivities = ({ stravaTokens }) => {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingActivity(activity);
-                        }}
-                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center flex-shrink-0"
-                        title="Tag as race"
-                      >
-                        <Trophy className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingActivity(activity);
+                          }}
+                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
+                          title="Edit activity"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingActivity(activity);
+                          }}
+                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
+                          title="Tag as race"
+                        >
+                          <Trophy className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
