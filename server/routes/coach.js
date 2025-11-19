@@ -3,15 +3,16 @@ import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 const apiKeyLoader = require('../services/apiKeyLoader.cjs');
+const coachPersonaService = require('../services/coachPersonaService.cjs');
 
 const router = express.Router();
 
 /**
  * AI Coach Chat Endpoint
- * Provides conversational AI coaching with activity context
+ * Provides conversational AI coaching with activity context and coach persona
  */
 router.post('/chat', async (req, res) => {
-  const { message, context } = req.body;
+  const { message, context, coachId } = req.body;
 
   if (!message) {
     return res.status(400).json({ error: 'Message is required' });
@@ -24,14 +25,39 @@ router.post('/chat', async (req, res) => {
       return res.status(500).json({ error: 'OpenAI API key not configured' });
     }
 
-    // Build context-aware prompt
-    let systemPrompt = `You are an expert cycling coach with deep knowledge of training physiology, power-based training, and performance optimization. You provide personalized, actionable advice to help athletes improve their performance.
+    // Get coach persona (default to first active if not specified)
+    let coach = null;
+    if (coachId) {
+      coach = await coachPersonaService.getById(coachId);
+    }
+    if (!coach) {
+      const allCoaches = await coachPersonaService.getAll(true);
+      coach = allCoaches[0]; // Use first active coach as default
+    }
 
-Your coaching style is:
-- Evidence-based and scientific
-- Encouraging and motivational
-- Specific and actionable
-- Focused on long-term development`;
+    // Build personalized system prompt with coach persona
+    let systemPrompt = `You are ${coach.name}, a ${coach.description}.
+
+YOUR PERSONALITY & COACHING STYLE:
+${coach.personality}
+
+YOUR TONE:
+${coach.tone}
+
+YOUR CATCHPHRASE (use occasionally to add personality):
+"${coach.catchphrase}"
+
+COACHING APPROACH:
+${coach.style}
+
+Remember to:
+- Address the athlete directly and personally
+- Use your unique personality and tone in every response
+- Be encouraging but honest
+- Provide specific, actionable advice
+- Reference the athlete's actual data when giving feedback
+- Keep responses conversational and engaging (not robotic)
+- Occasionally use your catchphrase when appropriate`;
 
     let userMessage = message;
 

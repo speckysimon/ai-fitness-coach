@@ -316,6 +316,7 @@ const ActivityDetailModal = ({ activity, onClose, showAICoach = false }) => {
                   setAiLoading(true);
                   try {
                     const sessionToken = localStorage.getItem('session_token');
+                    const selectedCoach = localStorage.getItem('selected_coach') || 'coach-alex';
                     const response = await fetch('/api/coach/chat', {
                       method: 'POST',
                       headers: {
@@ -324,6 +325,7 @@ const ActivityDetailModal = ({ activity, onClose, showAICoach = false }) => {
                       },
                       body: JSON.stringify({
                         message: aiPrompt,
+                        coachId: selectedCoach,
                         context: {
                           activity: {
                             name: activity.name,
