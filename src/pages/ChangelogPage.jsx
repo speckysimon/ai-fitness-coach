@@ -5,6 +5,43 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 const ChangelogPage = () => {
   const versions = [
     {
+      version: '2.11.0',
+      date: '2025-11-19',
+      type: 'minor',
+      changes: {
+        features: [
+          '💡 Ideas & Improvements Admin Panel - Complete system for tracking feature requests and improvements',
+          '🧠 AI Coach Activity Analysis - Analyze any ride with personalized AI coaching in activity detail modal',
+          '🔄 Training Plan Cross-Device Sync - Fixed backend-first loading for proper multi-device synchronization',
+          '✏️ Edit Button on All Activities - Added edit functionality to all activities page (not just dashboard)',
+        ],
+        improvements: [
+          'Ideas panel with 5 stat cards (Total, Backlog, Planned, In Progress, Critical)',
+          'Advanced filtering by status, priority, category',
+          'Collapsible descriptions and tag display on idea cards',
+          'AI coach uses selected coach persona for personalized responses',
+          'Activity analysis embedded in detail modal (not separate widget)',
+          'Dark mode fixes for AI coach response sections',
+          'Better training plan sync logging for debugging',
+        ],
+        technical: [
+          'Refactored ideasService.cjs from sqlite3 to better-sqlite3 (system parity)',
+          'Created /api/coach/chat endpoint with persona integration',
+          'Added coach.js route with GPT-4o-mini',
+          'Updated ActivityDetailModal with collapsible AI section',
+          'Enhanced planService.js with backend-first loading',
+          'Added comprehensive console logging for plan sync',
+          'Database: ideas table in admin database (database.sqlite)',
+        ],
+        fixes: [
+          '🐛 Fixed 404 error when clicking "Ask AI Coach" button',
+          '🐛 Fixed dark mode readability in AI response sections',
+          '🐛 Fixed training plans not syncing across devices',
+          '🐛 Fixed missing Edit button on All Activities page',
+        ],
+      },
+    },
+    {
       version: '2.10.0',
       date: '2025-11-18',
       type: 'minor',

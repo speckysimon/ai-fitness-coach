@@ -1,6 +1,6 @@
 {
   "name": "riderlabs",
-  "version": "2.9.0",
+  "version": "2.11.0",
   "description": "Data-driven cycling performance platform powered by AI. Integrates with Strava and Google Calendar.",
   "type": "module",
   "scripts": {
