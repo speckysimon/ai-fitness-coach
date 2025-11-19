@@ -15,6 +15,7 @@ import userRoutes from './routes/user.js';
 import feedbackRoutes from './routes/feedback.js';
 import manualActivityRoutes from './routes/manualActivities.js';
 import seasonRacesRoutes from './routes/seasonRaces.js';
+import coachRoutes from './routes/coach.js';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
@@ -54,6 +55,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/manual-activities', manualActivityRoutes);
 app.use('/api/season-races', seasonRacesRoutes);
+app.use('/api/coach', coachRoutes);
 app.use('/api/personas', personaRoutes);
 app.use('/api/image-generation', imageGenerationRoutes);
 app.use('/api/plan-templates', planTemplateRoutes);
