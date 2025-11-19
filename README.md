@@ -4,10 +4,19 @@
 
 Data-driven cycling performance platform powered by AI. Analyzes your training history from Strava, generates personalized training plans, and provides race-day strategies with post-race analysis — creating a complete learning loop that makes you faster.
 
-![RiderLabs](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![RiderLabs](https://img.shields.io/badge/version-2.10.2-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-## 🚀 What's New in v2.0
+## 🚀 What's New in v2.10
+
+### v2.10.2 - Production Deployment System (Nov 19, 2025)
+- **Bulletproof Deployment**: Automated deployment script with atomic backups
+- **Dual Migration System**: Separate migrations for main app and admin databases
+- **Zero Data Loss**: WAL-aware backups prevent database corruption
+- **3-5 Minute Deployments**: Down from 3+ hours manual process
+- **Comprehensive Documentation**: Complete deployment guides and SOPs
+
+### v2.0
 
 - **Race Day Form Predictor**: CTL/ATL/TSB analysis with readiness scoring
 - **"Working Towards" System**: Track progress towards target rider type
@@ -383,6 +392,37 @@ npm run build
 # Preview production build
 npm run preview
 ```
+
+### Production Deployment
+
+**Automated Deployment (Recommended):**
+```bash
+# SSH into production server
+ssh riderlabs@riderlabs.io
+
+# Navigate to app directory
+cd /home/riderlabs/ai-fitness-coach
+
+# Run automated deployment script
+./scripts/prod-deploy.sh
+```
+
+**What the script does:**
+- ✅ Atomic database backups (includes WAL files)
+- ✅ Pull latest code from GitHub
+- ✅ Install dependencies and build frontend
+- ✅ Run database migrations (both main app and admin)
+- ✅ Restart PM2 with verification
+- ✅ Post-deployment health checks
+
+**Time:** 3-5 minutes  
+**Risk:** Minimal (automatic backup + rollback capability)
+
+**Documentation:**
+- `DEPLOYMENT_GUIDE_V2.md` - Complete deployment guide
+- `DEPLOY_NOW.md` - Quick reference
+- `PRODUCTION_DEPLOY_SOP.md` - Standard operating procedures
+- `migrations/admin/README.md` - Admin database migrations
 
 ### Code Style
 
