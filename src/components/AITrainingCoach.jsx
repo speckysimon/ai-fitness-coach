@@ -5,16 +5,22 @@ import { Button } from './ui/Button';
 import { Textarea } from './ui/Textarea';
 import IllnessHistoryModal from './IllnessHistoryModal';
 
-const AITrainingCoach = ({ onLogIllness, onViewAdjustments }) => {
+const AITrainingCoach = ({ onLogIllness, onViewAdjustments, initialContext = '' }) => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pendingAdjustments, setPendingAdjustments] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [coachPrompt, setCoachPrompt] = useState('');
+  const [coachPrompt, setCoachPrompt] = useState(initialContext);
 
   useEffect(() => {
     loadStatus();
   }, []);
+
+  useEffect(() => {
+    if (initialContext) {
+      setCoachPrompt(initialContext);
+    }
+  }, [initialContext]);
 
   const loadStatus = async () => {
     try {

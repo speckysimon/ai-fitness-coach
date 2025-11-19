@@ -49,19 +49,36 @@ export const planService = {
 
   /**
    * Load training plan from backend (with localStorage fallback)
+   * PRIORITY: Always try backend first when userId is provided
    */
   async loadPlan(userId) {
+    if (!userId) {
+      console.warn('⚠️ No userId provided, loading from localStorage only');
+      const localPlan = localStorage.getItem('training_plan');
+      if (localPlan) {
+        return { 
+          plan: JSON.parse(localPlan), 
+          source: 'localStorage',
+          needsMigration: true 
+        };
+      }
+      return { plan: null, source: null };
+    }
+
     try {
+      console.log('📡 Loading training plan from backend for user:', userId);
       const response = await fetch(`${API_BASE}/api/training/plan/${userId}`);
       
       if (!response.ok) {
-        throw new Error('Failed to load plan from backend');
+        console.error('❌ Backend fetch failed:', response.status);
+        throw new Error(`Failed to load plan from backend: ${response.status}`);
       }
       
       const { plan } = await response.json();
       
       if (plan) {
-        // Save to localStorage as cache
+        console.log('✅ Plan loaded from backend, syncing to localStorage');
+        // Save to localStorage as cache for offline access
         localStorage.setItem('training_plan', JSON.stringify(plan.plan_data));
         localStorage.setItem('current_plan_id', plan.id);
         
@@ -72,9 +89,11 @@ export const planService = {
         };
       }
       
-      // No plan in backend, try localStorage
+      // No plan in backend, check localStorage for migration
+      console.log('ℹ️ No plan in backend, checking localStorage');
       const localPlan = localStorage.getItem('training_plan');
       if (localPlan) {
+        console.log('📤 Found local plan, needs migration to backend');
         return { 
           plan: JSON.parse(localPlan), 
           source: 'localStorage',
@@ -84,15 +103,17 @@ export const planService = {
       
       return { plan: null, source: null };
     } catch (error) {
-      console.error('Error loading plan from backend, using localStorage:', error);
+      console.error('❌ Error loading plan from backend:', error);
       
-      // Fallback to localStorage
+      // Only fallback to localStorage if backend is completely unreachable
+      console.warn('⚠️ Falling back to localStorage due to backend error');
       const localPlan = localStorage.getItem('training_plan');
       if (localPlan) {
         return { 
           plan: JSON.parse(localPlan), 
           source: 'localStorage',
-          error 
+          error,
+          needsBackendSync: true  // Flag that we should try to sync when backend is available
         };
       }
       

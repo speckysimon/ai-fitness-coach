@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Activity, Clock, Mountain, Zap, Calendar as CalendarIcon, ArrowRight, Home, RefreshCw, LogOut, Bell, Trophy, Edit2, AlertTriangle, X } from 'lucide-react';
+import { TrendingUp, Activity, Clock, Mountain, Zap, Calendar as CalendarIcon, ArrowRight, Home, RefreshCw, LogOut, Bell, Trophy, Edit2, AlertTriangle, X, Brain } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -66,6 +66,28 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     // Show alpha warning unless dismissed
     return !sessionStorage.getItem('alpha_warning_dismissed');
   });
+  const [aiCoachContext, setAiCoachContext] = useState('');
+
+  // Analyze activity with AI coach
+  const analyzeActivity = (activity) => {
+    const context = `Please analyze my recent ${activity.type} activity:
+
+📊 Activity: ${activity.name}
+📅 Date: ${new Date(activity.date).toLocaleDateString()}
+⏱️ Duration: ${formatDuration(activity.duration)}
+📏 Distance: ${formatDistance(activity.distance)}
+⛰️ Elevation: ${Math.round(activity.elevation)}m
+${activity.tss > 0 ? `💪 TSS: ${activity.tss}` : ''}
+${activity.avgPower > 0 ? `⚡ Avg Power: ${Math.round(activity.avgPower)}W` : ''}
+${activity.normalizedPower > 0 ? `⚡ Normalized Power: ${Math.round(activity.normalizedPower)}W` : ''}
+${activity.avgHeartRate > 0 ? `❤️ Avg HR: ${Math.round(activity.avgHeartRate)} bpm` : ''}
+${activity.avgSpeed > 0 ? `🚴 Avg Speed: ${(activity.avgSpeed * 3.6).toFixed(1)} km/h` : ''}
+
+What insights can you provide about this workout? How does it fit into my training? Any recommendations?`;
+    
+    setAiCoachContext(context);
+    setAiCoachKey(prev => prev + 1); // Force re-render of AI coach
+  };
 
   // Calculate TSS for a single activity
   const calculateTSS = (activity, ftp) => {
@@ -961,6 +983,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         {/* AI Training Coach Widget */}
         <AITrainingCoach
           key={aiCoachKey}
+          initialContext={aiCoachContext}
           onLogIllness={() => setShowLogIllness(true)}
           onViewAdjustments={async () => {
             // Load pending adjustment
@@ -1200,6 +1223,16 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
                         </div>
                       )}
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        analyzeActivity(activity);
+                      }}
+                      className="p-2 sm:p-2.5 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                      title="Analyze with AI Coach"
+                    >
+                      <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
