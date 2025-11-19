@@ -390,6 +390,34 @@ CREATE INDEX IF NOT EXISTS idx_feedback_user_email ON feedback(user_email);
 CREATE INDEX IF NOT EXISTS idx_feedback_timestamp ON feedback(timestamp DESC);
 
 -- ============================================================================
+-- IDEAS & IMPROVEMENTS
+-- ============================================================================
+
+-- Ideas and improvements tracking
+CREATE TABLE IF NOT EXISTS ideas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL, -- 'feature', 'improvement', 'bug_fix', 'enhancement', 'integration'
+  priority TEXT NOT NULL DEFAULT 'medium', -- 'low', 'medium', 'high', 'critical'
+  scale TEXT NOT NULL DEFAULT 'medium', -- 'small', 'medium', 'large', 'epic'
+  status TEXT NOT NULL DEFAULT 'backlog', -- 'backlog', 'planned', 'in_progress', 'completed', 'archived'
+  estimated_hours INTEGER,
+  tags TEXT, -- JSON array of tags
+  source TEXT, -- Where the idea came from: 'user_feedback', 'team', 'analytics', 'roadmap'
+  created_by TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  completed_at TEXT
+);
+
+-- Ideas indexes
+CREATE INDEX IF NOT EXISTS idx_ideas_status ON ideas(status);
+CREATE INDEX IF NOT EXISTS idx_ideas_priority ON ideas(priority);
+CREATE INDEX IF NOT EXISTS idx_ideas_category ON ideas(category);
+CREATE INDEX IF NOT EXISTS idx_ideas_created_at ON ideas(created_at DESC);
+
+-- ============================================================================
 -- SEED DATA - Default Coach Personas
 -- ============================================================================
 

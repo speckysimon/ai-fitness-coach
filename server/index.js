@@ -23,6 +23,7 @@ const personaRoutes = require('./routes/personas.cjs');
 const imageGenerationRoutes = require('./routes/imageGeneration.cjs');
 const planTemplateRoutes = require('./routes/planTemplates.cjs');
 const themeConfigRoutes = require('./routes/themeConfigs.cjs');
+const ideasRoutes = require('./routes/ideas.cjs');
 const modelPricingCron = require('./services/modelPricingCron.cjs');
 const apiKeyLoader = require('./services/apiKeyLoader.cjs');
 
@@ -57,6 +58,7 @@ app.use('/api/personas', personaRoutes);
 app.use('/api/image-generation', imageGenerationRoutes);
 app.use('/api/plan-templates', planTemplateRoutes);
 app.use('/api/admin/theme-configs', themeConfigRoutes);
+app.use('/api/admin/ideas', ideasRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Serve uploaded files

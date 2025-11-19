@@ -43,6 +43,7 @@ import ActivityLogPage from './pages/admin/ActivityLogPage';
 import GlobalSettings from './pages/admin/GlobalSettings';
 import AdminChangelog from './pages/admin/AdminChangelog';
 import FeedbackManagement from './pages/admin/FeedbackManagement';
+import IdeasManagement from './pages/admin/IdeasManagement';
 
 // Page view tracker component
 function PageViewTracker() {
@@ -289,6 +290,7 @@ function App() {
           <Route path="users" element={<UserManagement />} />
           <Route path="admins" element={<AdminUsers />} />
           <Route path="feedback" element={<FeedbackManagement />} />
+          <Route path="ideas" element={<IdeasManagement />} />
           <Route path="ai-config" element={<AIConfigPage />} />
           <Route path="ai-prompts" element={<AIPromptsPage />} />
           <Route path="plan-templates" element={<PlanTemplatesPage />} />

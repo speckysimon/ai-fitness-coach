@@ -18,6 +18,7 @@ import {
   Calendar,
   Palette,
   MessageSquare,
+  Lightbulb,
 } from 'lucide-react';
 
 const AdminLayout = ({ admin, onLogout }) => {
@@ -36,6 +37,7 @@ const AdminLayout = ({ admin, onLogout }) => {
     { path: '/admin/users', icon: Users, label: 'User Management' },
     { path: '/admin/admins', icon: UserCog, label: 'Admin Users' },
     { path: '/admin/feedback', icon: MessageSquare, label: 'Feedback' },
+    { path: '/admin/ideas', icon: Lightbulb, label: 'Ideas & Improvements' },
     { path: '/admin/ai-config', icon: Brain, label: 'AI Configuration' },
     { path: '/admin/ai-prompts', icon: FileText, label: 'AI Prompts' },
     { path: '/admin/plan-templates', icon: Calendar, label: 'Plan Templates' },
