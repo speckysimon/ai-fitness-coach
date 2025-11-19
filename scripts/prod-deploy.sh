@@ -81,13 +81,25 @@ log "${BLUE}🏗️  Step 5: Building frontend${NC}"
 npm run build | tee -a "$LOG_FILE"
 log "${GREEN}✅ Frontend built${NC}\n"
 
-# Step 6: Run database migrations (if migration system exists)
+# Step 6: Run database migrations
+log "${BLUE}🗄️  Step 6: Running database migrations${NC}"
+
+# Run main app database migrations
 if [ -f "$APP_DIR/scripts/migrate.js" ]; then
-    log "${BLUE}🗄️  Step 6: Running database migrations${NC}"
+    log "${BLUE}📊 Running main database migrations...${NC}"
     node "$APP_DIR/scripts/migrate.js" | tee -a "$LOG_FILE"
-    log "${GREEN}✅ Migrations complete${NC}\n"
+    log "${GREEN}✅ Main database migrations complete${NC}"
 else
-    log "${YELLOW}⚠️  No migration system found, skipping${NC}\n"
+    log "${YELLOW}⚠️  No main migration system found, skipping${NC}"
+fi
+
+# Run admin database migrations
+if [ -f "$APP_DIR/scripts/migrate-admin.js" ]; then
+    log "${BLUE}🔐 Running admin database migrations...${NC}"
+    node "$APP_DIR/scripts/migrate-admin.js" | tee -a "$LOG_FILE"
+    log "${GREEN}✅ Admin database migrations complete${NC}\n"
+else
+    log "${YELLOW}⚠️  No admin migration system found, skipping${NC}\n"
 fi
 
 # Step 7: Restart PM2
