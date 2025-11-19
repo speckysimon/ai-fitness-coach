@@ -358,12 +358,12 @@ const ActivityDetailModal = ({ activity, onClose, showAICoach = false }) => {
 
               {/* AI Response */}
               {aiResponse && (
-                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                  <p className="font-medium text-purple-900 dark:text-purple-100 mb-2 flex items-center gap-2">
-                    <Brain className="w-4 h-4" />
+                <div className="p-4 bg-purple-50 dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-gray-600">
+                  <p className="font-medium text-purple-900 dark:text-white mb-2 flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                     AI Coach Response:
                   </p>
-                  <div className="text-sm text-purple-800 dark:text-purple-200 whitespace-pre-wrap">
+                  <div className="text-sm text-purple-900 dark:text-gray-100 whitespace-pre-wrap">
                     {aiResponse}
                   </div>
                 </div>
