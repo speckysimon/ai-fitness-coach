@@ -1,14 +1,10 @@
 /**
  * Global Settings Service
  * Manages application-wide settings that affect all users
+ * Uses better-sqlite3 via adminDb helper (migrated from sqlite3)
  */
 
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-
-// Create database connection
-const dbPath = path.join(__dirname, '../database.sqlite');
-const db = new sqlite3.Database(dbPath);
+const adminDb = require('../adminDb.cjs');
 
 class GlobalSettingsService {
   /**
@@ -16,20 +12,23 @@ class GlobalSettingsService {
    */
   async getSetting(key) {
     return new Promise((resolve, reject) => {
-      db.get(
-        `SELECT * FROM global_settings WHERE setting_key = ?`,
-        [key],
-        (err, setting) => {
-          if (err) reject(err);
-          else if (!setting) reject(new Error(`Setting ${key} not found`));
-          else {
-            resolve({
-              ...setting,
-              value: this.parseValue(setting.setting_value, setting.setting_type),
-            });
-          }
+      try {
+        const setting = adminDb.get(
+          `SELECT * FROM global_settings WHERE setting_key = ?`,
+          [key]
+        );
+        
+        if (!setting) {
+          reject(new Error(`Setting ${key} not found`));
+        } else {
+          resolve({
+            ...setting,
+            value: this.parseValue(setting.setting_value, setting.setting_type),
+          });
         }
-      );
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -38,21 +37,20 @@ class GlobalSettingsService {
    */
   async getAllSettings() {
     return new Promise((resolve, reject) => {
-      db.all(
-        `SELECT * FROM global_settings ORDER BY category, setting_key`,
-        [],
-        (err, settings) => {
-          if (err) reject(err);
-          else {
-            resolve(
-              settings.map((setting) => ({
-                ...setting,
-                value: this.parseValue(setting.setting_value, setting.setting_type),
-              }))
-            );
-          }
-        }
-      );
+      try {
+        const settings = adminDb.all(
+          `SELECT * FROM global_settings ORDER BY category, setting_key`
+        );
+        
+        resolve(
+          settings.map((setting) => ({
+            ...setting,
+            value: this.parseValue(setting.setting_value, setting.setting_type),
+          }))
+        );
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -61,21 +59,21 @@ class GlobalSettingsService {
    */
   async getSettingsByCategory(category) {
     return new Promise((resolve, reject) => {
-      db.all(
-        `SELECT * FROM global_settings WHERE category = ? ORDER BY setting_key`,
-        [category],
-        (err, settings) => {
-          if (err) reject(err);
-          else {
-            resolve(
-              settings.map((setting) => ({
-                ...setting,
-                value: this.parseValue(setting.setting_value, setting.setting_type),
-              }))
-            );
-          }
-        }
-      );
+      try {
+        const settings = adminDb.all(
+          `SELECT * FROM global_settings WHERE category = ? ORDER BY setting_key`,
+          [category]
+        );
+        
+        resolve(
+          settings.map((setting) => ({
+            ...setting,
+            value: this.parseValue(setting.setting_value, setting.setting_type),
+          }))
+        );
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -84,32 +82,34 @@ class GlobalSettingsService {
    */
   async updateSetting(key, value, updatedBy) {
     return new Promise((resolve, reject) => {
-      // First get the setting to know its type
-      db.get(
-        `SELECT setting_type FROM global_settings WHERE setting_key = ?`,
-        [key],
-        (err, setting) => {
-          if (err) {
-            reject(err);
-          } else if (!setting) {
+      try {
+        // First get the setting to know its type
+        const setting = adminDb.get(
+          `SELECT setting_type FROM global_settings WHERE setting_key = ?`,
+          [key]
+        );
+        
+        if (!setting) {
+          reject(new Error(`Setting ${key} not found`));
+        } else {
+          const stringValue = this.stringifyValue(value, setting.setting_type);
+
+          const result = adminDb.run(
+            `UPDATE global_settings 
+             SET setting_value = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP 
+             WHERE setting_key = ?`,
+            [stringValue, updatedBy, key]
+          );
+          
+          if (result.changes === 0) {
             reject(new Error(`Setting ${key} not found`));
           } else {
-            const stringValue = this.stringifyValue(value, setting.setting_type);
-
-            db.run(
-              `UPDATE global_settings 
-               SET setting_value = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP 
-               WHERE setting_key = ?`,
-              [stringValue, updatedBy, key],
-              function (err) {
-                if (err) reject(err);
-                else if (this.changes === 0) reject(new Error(`Setting ${key} not found`));
-                else resolve({ key, value });
-              }
-            );
+            resolve({ key, value });
           }
         }
-      );
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -120,23 +120,22 @@ class GlobalSettingsService {
     const stringValue = this.stringifyValue(value, type);
 
     return new Promise((resolve, reject) => {
-      db.run(
-        `INSERT INTO global_settings 
-         (setting_key, setting_value, setting_type, category, description) 
-         VALUES (?, ?, ?, ?, ?)`,
-        [key, stringValue, type, category, description],
-        function (err) {
-          if (err) {
-            if (err.message.includes('UNIQUE constraint failed')) {
-              reject(new Error(`Setting ${key} already exists`));
-            } else {
-              reject(err);
-            }
-          } else {
-            resolve({ id: this.lastID, key, value });
-          }
+      try {
+        const result = adminDb.run(
+          `INSERT INTO global_settings 
+           (setting_key, setting_value, setting_type, category, description) 
+           VALUES (?, ?, ?, ?, ?)`,
+          [key, stringValue, type, category, description]
+        );
+        
+        resolve({ id: result.lastInsertRowid, key, value });
+      } catch (err) {
+        if (err.message.includes('UNIQUE constraint failed')) {
+          reject(new Error(`Setting ${key} already exists`));
+        } else {
+          reject(err);
         }
-      );
+      }
     });
   }
 
@@ -145,11 +144,20 @@ class GlobalSettingsService {
    */
   async deleteSetting(key) {
     return new Promise((resolve, reject) => {
-      db.run(`DELETE FROM global_settings WHERE setting_key = ?`, [key], function (err) {
-        if (err) reject(err);
-        else if (this.changes === 0) reject(new Error(`Setting ${key} not found`));
-        else resolve({ key });
-      });
+      try {
+        const result = adminDb.run(
+          `DELETE FROM global_settings WHERE setting_key = ?`,
+          [key]
+        );
+        
+        if (result.changes === 0) {
+          reject(new Error(`Setting ${key} not found`));
+        } else {
+          resolve({ key });
+        }
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -236,14 +244,15 @@ class GlobalSettingsService {
    */
   async getCategories() {
     return new Promise((resolve, reject) => {
-      db.all(
-        `SELECT DISTINCT category FROM global_settings WHERE category IS NOT NULL ORDER BY category`,
-        [],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows.map((row) => row.category));
-        }
-      );
+      try {
+        const rows = adminDb.all(
+          `SELECT DISTINCT category FROM global_settings WHERE category IS NOT NULL ORDER BY category`
+        );
+        
+        resolve(rows.map((row) => row.category));
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 }

@@ -14,9 +14,8 @@ const apiKeyLoader = require('../services/apiKeyLoader.cjs');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-// Create database connection for admin tables
-const adminDbPath = path.join(__dirname, '../database.sqlite');
-const adminDb = new sqlite3.Database(adminDbPath);
+// Admin database uses shared better-sqlite3 helper (migrated from direct sqlite3 connection)
+// Note: adminDb helper is not used directly in routes since services handle admin DB access
 
 // Create database connection for main app tables (users, training_plans, etc.)
 const appDbPath = path.join(__dirname, '../fitness-coach.db');

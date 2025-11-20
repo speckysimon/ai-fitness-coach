@@ -1,15 +1,10 @@
-const Database = require('better-sqlite3');
-const path = require('path');
-
-// Use admin database for ideas (database.sqlite)
-const adminDbPath = path.join(__dirname, '../database.sqlite');
-const db = new Database(adminDbPath);
+const adminDb = require('../adminDb.cjs');
 
 /**
  * Ideas Service
  * Handles CRUD operations for ideas and improvements
  * Uses admin database (database.sqlite) not main app database
- * Refactored to use better-sqlite3 for consistency with seed script
+ * Uses better-sqlite3 via adminDb helper (migrated from direct connection)
  */
 
 class IdeasService {
@@ -37,7 +32,7 @@ class IdeasService {
 
     query += ' ORDER BY created_at DESC';
 
-    const rows = db.prepare(query).all(...params);
+    const rows = adminDb.prepare(query).all(...params);
     
     // Parse tags JSON for each idea
     return rows.map(idea => ({
@@ -50,7 +45,7 @@ class IdeasService {
    * Get a single idea by ID
    */
   getIdeaById(id) {
-    const row = db.prepare('SELECT * FROM ideas WHERE id = ?').get(id);
+    const row = adminDb.prepare('SELECT * FROM ideas WHERE id = ?').get(id);
     
     if (!row) return null;
     
@@ -86,7 +81,7 @@ class IdeasService {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const result = db.prepare(query).run(
+    const result = adminDb.prepare(query).run(
       title, description, category, priority, scale, status, 
       estimated_hours, tagsJson, source, created_by
     );
@@ -129,7 +124,7 @@ class IdeasService {
       WHERE id = ?
     `;
 
-    const result = db.prepare(query).run(
+    const result = adminDb.prepare(query).run(
       title, description, category, priority, scale, status, 
       estimated_hours, tagsJson, source, completed_at, id
     );
@@ -141,7 +136,7 @@ class IdeasService {
    * Delete an idea
    */
   deleteIdea(id) {
-    const result = db.prepare('DELETE FROM ideas WHERE id = ?').run(id);
+    const result = adminDb.prepare('DELETE FROM ideas WHERE id = ?').run(id);
     return { changes: result.changes };
   }
 
@@ -163,16 +158,16 @@ class IdeasService {
       FROM ideas
     `;
 
-    return db.prepare(query).get();
+    return adminDb.prepare(query).get();
   }
 
   /**
    * Bulk update idea priorities
    */
   updatePriorities(updates) {
-    const stmt = db.prepare('UPDATE ideas SET priority = ?, updated_at = datetime(\'now\') WHERE id = ?');
+    const stmt = adminDb.prepare('UPDATE ideas SET priority = ?, updated_at = datetime(\'now\') WHERE id = ?');
     
-    const transaction = db.transaction((updates) => {
+    const transaction = adminDb.transaction((updates) => {
       for (const { id, priority } of updates) {
         stmt.run(priority, id);
       }

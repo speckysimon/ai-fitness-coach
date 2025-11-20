@@ -1,15 +1,11 @@
 /**
- * AI Configuration Service - FIXED for database.sqlite
+ * AI Configuration Service
  * Manages AI model configurations and API keys
+ * Uses better-sqlite3 via adminDb helper (migrated from sqlite3)
  */
 
 const crypto = require('crypto');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-
-// Connect to admin database (where API keys and AI configs are stored)
-const dbPath = path.join(__dirname, '../database.sqlite');
-const db = new sqlite3.Database(dbPath);
+const adminDb = require('../adminDb.cjs');
 
 // Simple encryption for API keys (use proper key management in production)
 const ENCRYPTION_SECRET = process.env.ENCRYPTION_KEY || 'riderlabs-default-encryption-secret-2025';
@@ -46,22 +42,23 @@ class AIConfigService {
    */
   getConfig(featureName) {
     return new Promise((resolve, reject) => {
-      db.get(
-        `SELECT * FROM ai_model_configs WHERE feature_name = ? AND is_active = 1`,
-        [featureName],
-        (err, config) => {
-          if (err) {
-            reject(err);
-          } else if (!config) {
-            reject(new Error(`No configuration found for ${featureName}`));
-          } else {
-            resolve({
-              ...config,
-              parameters: config.parameters ? JSON.parse(config.parameters) : {},
-            });
-          }
+      try {
+        const config = adminDb.get(
+          `SELECT * FROM ai_model_configs WHERE feature_name = ? AND is_active = 1`,
+          [featureName]
+        );
+        
+        if (!config) {
+          reject(new Error(`No configuration found for ${featureName}`));
+        } else {
+          resolve({
+            ...config,
+            parameters: config.parameters ? JSON.parse(config.parameters) : {},
+          });
         }
-      );
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -70,21 +67,19 @@ class AIConfigService {
    */
   listConfigs() {
     return new Promise((resolve, reject) => {
-      db.all(
-        `SELECT * FROM ai_model_configs ORDER BY feature_name`,
-        [],
-        (err, configs) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(configs.map((config) => ({
-              ...config,
-              parameters: config.parameters ? JSON.parse(config.parameters) : {},
-              isActive: config.is_active === 1,
-            })));
-          }
-        }
-      );
+      try {
+        const configs = adminDb.all(
+          `SELECT * FROM ai_model_configs ORDER BY feature_name`
+        );
+        
+        resolve(configs.map((config) => ({
+          ...config,
+          parameters: config.parameters ? JSON.parse(config.parameters) : {},
+          isActive: config.is_active === 1,
+        })));
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -129,19 +124,20 @@ class AIConfigService {
 
       values.push(featureName);
 
-      db.run(
-        `UPDATE ai_model_configs SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE feature_name = ?`,
-        values,
-        function(err) {
-          if (err) {
-            reject(err);
-          } else if (this.changes === 0) {
-            reject(new Error('Configuration not found'));
-          } else {
-            resolve({ featureName, ...updates });
-          }
+      try {
+        const result = adminDb.run(
+          `UPDATE ai_model_configs SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE feature_name = ?`,
+          values
+        );
+        
+        if (result.changes === 0) {
+          reject(new Error('Configuration not found'));
+        } else {
+          resolve({ featureName, ...updates });
         }
-      );
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -162,34 +158,33 @@ class AIConfigService {
         costPer1kTokens,
       } = config;
 
-      db.run(
-        `INSERT INTO ai_model_configs 
-         (feature_name, model_provider, model_name, api_key_name, system_prompt, 
-          temperature, max_tokens, parameters, cost_per_1k_tokens) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          featureName,
-          modelProvider,
-          modelName,
-          apiKeyName,
-          systemPrompt,
-          temperature,
-          maxTokens,
-          JSON.stringify(parameters),
-          costPer1kTokens
-        ],
-        function(err) {
-          if (err) {
-            if (err.message.includes('UNIQUE constraint failed')) {
-              reject(new Error('Configuration for this feature already exists'));
-            } else {
-              reject(err);
-            }
-          } else {
-            resolve({ id: this.lastID, featureName });
-          }
+      try {
+        const result = adminDb.run(
+          `INSERT INTO ai_model_configs 
+           (feature_name, model_provider, model_name, api_key_name, system_prompt, 
+            temperature, max_tokens, parameters, cost_per_1k_tokens) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            featureName,
+            modelProvider,
+            modelName,
+            apiKeyName,
+            systemPrompt,
+            temperature,
+            maxTokens,
+            JSON.stringify(parameters),
+            costPer1kTokens
+          ]
+        );
+        
+        resolve({ id: result.lastInsertRowid, featureName });
+      } catch (err) {
+        if (err.message.includes('UNIQUE constraint failed')) {
+          reject(new Error('Configuration for this feature already exists'));
+        } else {
+          reject(err);
         }
-      );
+      }
     });
   }
 
@@ -210,24 +205,23 @@ class AIConfigService {
       // Store encrypted value in api_key column (required NOT NULL)
       // For OAuth: store encrypted clientSecret in both api_key and client_secret
       // For simple keys: store encrypted apiKey in api_key column
-      db.run(
-        `INSERT OR REPLACE INTO api_keys (provider, api_key, client_id, client_secret, redirect_uri) 
-         VALUES (?, ?, ?, ?, ?)`,
-        [
-          provider, 
-          encryptedValue,  // Always store encrypted value here (NOT NULL requirement)
-          clientId || null, 
-          clientSecret ? encryptedValue : null,  // Duplicate for OAuth
-          redirectUri || null
-        ],
-        function(err) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve({ id: this.lastID, keyName, provider });
-          }
-        }
-      );
+      try {
+        const result = adminDb.run(
+          `INSERT OR REPLACE INTO api_keys (provider, api_key, client_id, client_secret, redirect_uri) 
+           VALUES (?, ?, ?, ?, ?)`,
+          [
+            provider, 
+            encryptedValue,  // Always store encrypted value here (NOT NULL requirement)
+            clientId || null, 
+            clientSecret ? encryptedValue : null,  // Duplicate for OAuth
+            redirectUri || null
+          ]
+        );
+        
+        resolve({ id: result.lastInsertRowid, keyName, provider });
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -236,33 +230,34 @@ class AIConfigService {
    */
   getApiKey(keyName) {
     return new Promise((resolve, reject) => {
-      db.get(
-        `SELECT * FROM api_keys WHERE provider = ? AND is_active = 1`,
-        [keyName],
-        (err, row) => {
-          if (err) {
-            reject(err);
-          } else if (!row) {
-            reject(new Error(`API key ${keyName} not found`));
-          } else {
-            try {
-              // api_key or client_secret contains the encrypted value
-              const encryptedValue = row.client_secret || row.api_key;
-              const decryptedKey = this.decryptKey(encryptedValue);
+      try {
+        const row = adminDb.get(
+          `SELECT * FROM api_keys WHERE provider = ? AND is_active = 1`,
+          [keyName]
+        );
+        
+        if (!row) {
+          reject(new Error(`API key ${keyName} not found`));
+        } else {
+          try {
+            // api_key or client_secret contains the encrypted value
+            const encryptedValue = row.client_secret || row.api_key;
+            const decryptedKey = this.decryptKey(encryptedValue);
 
-              resolve({
-                keyName: row.provider,
-                provider: row.provider,
-                apiKey: decryptedKey,
-                clientId: row.client_id,
-                redirectUri: row.redirect_uri
-              });
-            } catch (error) {
-              reject(new Error('Failed to decrypt API key'));
-            }
+            resolve({
+              keyName: row.provider,
+              provider: row.provider,
+              apiKey: decryptedKey,
+              clientId: row.client_id,
+              redirectUri: row.redirect_uri
+            });
+          } catch (error) {
+            reject(new Error('Failed to decrypt API key'));
           }
         }
-      );
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -272,29 +267,30 @@ class AIConfigService {
    */
   getOAuthConfig(provider) {
     return new Promise((resolve, reject) => {
-      db.get(
-        `SELECT * FROM api_keys WHERE provider = ? AND is_active = 1 LIMIT 1`,
-        [provider],
-        (err, row) => {
-          if (err) {
-            reject(err);
-          } else if (!row) {
-            reject(new Error(`OAuth config for ${provider} not found`));
-          } else {
-            try {
-              const decryptedSecret = this.decryptKey(row.client_secret);
-              resolve({
-                provider: row.provider,
-                clientId: row.client_id,
-                clientSecret: decryptedSecret,
-                redirectUri: row.redirect_uri,
-              });
-            } catch (error) {
-              reject(new Error('Failed to decrypt OAuth credentials'));
-            }
+      try {
+        const row = adminDb.get(
+          `SELECT * FROM api_keys WHERE provider = ? AND is_active = 1 LIMIT 1`,
+          [provider]
+        );
+        
+        if (!row) {
+          reject(new Error(`OAuth config for ${provider} not found`));
+        } else {
+          try {
+            const decryptedSecret = this.decryptKey(row.client_secret);
+            resolve({
+              provider: row.provider,
+              clientId: row.client_id,
+              clientSecret: decryptedSecret,
+              redirectUri: row.redirect_uri,
+            });
+          } catch (error) {
+            reject(new Error('Failed to decrypt OAuth credentials'));
           }
         }
-      );
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -303,21 +299,19 @@ class AIConfigService {
    */
   listApiKeys() {
     return new Promise((resolve, reject) => {
-      db.all(
-        `SELECT id, provider, is_active, created_at, updated_at 
-         FROM api_keys ORDER BY provider`,
-        [],
-        (err, keys) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(keys.map((key) => ({
-              ...key,
-              isActive: key.is_active === 1,
-            })));
-          }
-        }
-      );
+      try {
+        const keys = adminDb.all(
+          `SELECT id, provider, is_active, created_at, updated_at 
+           FROM api_keys ORDER BY provider`
+        );
+        
+        resolve(keys.map((key) => ({
+          ...key,
+          isActive: key.is_active === 1,
+        })));
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -326,19 +320,20 @@ class AIConfigService {
    */
   deleteApiKey(keyName) {
     return new Promise((resolve, reject) => {
-      db.run(
-        `DELETE FROM api_keys WHERE provider = ?`,
-        [keyName],
-        function(err) {
-          if (err) {
-            reject(err);
-          } else if (this.changes === 0) {
-            reject(new Error('API key not found'));
-          } else {
-            resolve({ keyName });
-          }
+      try {
+        const result = adminDb.run(
+          `DELETE FROM api_keys WHERE provider = ?`,
+          [keyName]
+        );
+        
+        if (result.changes === 0) {
+          reject(new Error('API key not found'));
+        } else {
+          resolve({ keyName });
         }
-      );
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -347,19 +342,20 @@ class AIConfigService {
    */
   toggleApiKey(keyName, isActive) {
     return new Promise((resolve, reject) => {
-      db.run(
-        `UPDATE api_keys SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE provider = ?`,
-        [isActive ? 1 : 0, keyName],
-        function(err) {
-          if (err) {
-            reject(err);
-          } else if (this.changes === 0) {
-            reject(new Error('API key not found'));
-          } else {
-            resolve({ keyName, isActive });
-          }
+      try {
+        const result = adminDb.run(
+          `UPDATE api_keys SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE provider = ?`,
+          [isActive ? 1 : 0, keyName]
+        );
+        
+        if (result.changes === 0) {
+          reject(new Error('API key not found'));
+        } else {
+          resolve({ keyName, isActive });
         }
-      );
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
