@@ -208,9 +208,9 @@ class AIConfigService {
       }
 
       db.run(
-        `INSERT OR REPLACE INTO api_keys (key_name, provider, encrypted_key, client_id, redirect_uri) 
+        `INSERT OR REPLACE INTO api_keys (provider, api_key, client_id, client_secret, redirect_uri) 
          VALUES (?, ?, ?, ?, ?)`,
-        [keyName, provider, encryptedKey, clientId || null, redirectUri || null],
+        [provider, apiKey || null, clientId || null, clientSecret || null, redirectUri || null],
         function(err) {
           if (err) {
             reject(err);
@@ -228,7 +228,7 @@ class AIConfigService {
   getApiKey(keyName) {
     return new Promise((resolve, reject) => {
       db.get(
-        `SELECT * FROM api_keys WHERE key_name = ? AND is_active = 1`,
+        `SELECT * FROM api_keys WHERE provider = ? AND is_active = 1`,
         [keyName],
         (err, row) => {
           if (err) {
@@ -237,19 +237,16 @@ class AIConfigService {
             reject(new Error(`API key ${keyName} not found`));
           } else {
             try {
-              const decryptedKey = this.decryptKey(row.encrypted_key);
-              
-              // Update last used timestamp
-              db.run(
-                `UPDATE api_keys SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?`,
-                [row.id],
-                () => {} // Ignore errors on timestamp update
-              );
+              // api_key or client_secret contains the encrypted value
+              const encryptedValue = row.client_secret || row.api_key;
+              const decryptedKey = this.decryptKey(encryptedValue);
 
               resolve({
-                keyName: row.key_name,
+                keyName: row.provider,
                 provider: row.provider,
                 apiKey: decryptedKey,
+                clientId: row.client_id,
+                redirectUri: row.redirect_uri
               });
             } catch (error) {
               reject(new Error('Failed to decrypt API key'));
@@ -276,15 +273,7 @@ class AIConfigService {
             reject(new Error(`OAuth config for ${provider} not found`));
           } else {
             try {
-              const decryptedSecret = this.decryptKey(row.encrypted_key);
-              
-              // Update last used timestamp
-              db.run(
-                `UPDATE api_keys SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?`,
-                [row.id],
-                () => {} // Ignore errors on timestamp update
-              );
-
+              const decryptedSecret = this.decryptKey(row.client_secret);
               resolve({
                 provider: row.provider,
                 clientId: row.client_id,
@@ -329,7 +318,7 @@ class AIConfigService {
   deleteApiKey(keyName) {
     return new Promise((resolve, reject) => {
       db.run(
-        `DELETE FROM api_keys WHERE key_name = ?`,
+        `DELETE FROM api_keys WHERE provider = ?`,
         [keyName],
         function(err) {
           if (err) {
@@ -350,7 +339,7 @@ class AIConfigService {
   toggleApiKey(keyName, isActive) {
     return new Promise((resolve, reject) => {
       db.run(
-        `UPDATE api_keys SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE key_name = ?`,
+        `UPDATE api_keys SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE provider = ?`,
         [isActive ? 1 : 0, keyName],
         function(err) {
           if (err) {
