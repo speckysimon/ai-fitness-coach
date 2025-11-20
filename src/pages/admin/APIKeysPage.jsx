@@ -94,14 +94,14 @@ const APIKeysPage = () => {
     }
   };
 
-  const handleDeleteKey = async (keyName) => {
-    if (!confirm(`Are you sure you want to delete the API key "${keyName}"?`)) {
+  const handleDeleteKey = async (provider) => {
+    if (!confirm(`Are you sure you want to delete the API key for "${provider}"?`)) {
       return;
     }
 
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`/api/admin/api-keys/${keyName}`, {
+      const response = await fetch(`/api/admin/api-keys/${provider}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -229,7 +229,7 @@ const APIKeysPage = () => {
             <div className="space-y-4">
               {apiKeys.map((key) => (
                 <div
-                  key={key.key_name}
+                  key={key.provider}
                   className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center justify-between">
@@ -239,8 +239,8 @@ const APIKeysPage = () => {
                           <Key className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                          <h3 className="font-medium text-gray-900">{key.key_name}</h3>
-                          <p className="text-sm text-gray-600 capitalize">{key.provider}</p>
+                          <h3 className="font-medium text-gray-900 capitalize">{key.provider}</h3>
+                          <p className="text-sm text-gray-600">Provider: {key.provider}</p>
                         </div>
                         {key.is_active ? (
                           <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">
@@ -254,14 +254,14 @@ const APIKeysPage = () => {
                       </div>
                       <div className="flex items-center gap-2 ml-11">
                         <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
-                          {visibleKeys[key.key_name] ? key.encrypted_key : maskApiKey(key.encrypted_key)}
+                          {visibleKeys[key.provider] ? key.api_key : maskApiKey(key.api_key)}
                         </code>
                         <button
-                          onClick={() => toggleKeyVisibility(key.key_name)}
+                          onClick={() => toggleKeyVisibility(key.provider)}
                           className="p-1 hover:bg-gray-200 rounded transition-colors"
-                          title={visibleKeys[key.key_name] ? 'Hide key' : 'Show key'}
+                          title={visibleKeys[key.provider] ? 'Hide key' : 'Show key'}
                         >
-                          {visibleKeys[key.key_name] ? (
+                          {visibleKeys[key.provider] ? (
                             <EyeOff className="w-4 h-4 text-gray-600" />
                           ) : (
                             <Eye className="w-4 h-4 text-gray-600" />
@@ -275,7 +275,7 @@ const APIKeysPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteKey(key.key_name)}
+                      onClick={() => handleDeleteKey(key.provider)}
                       className="text-red-600 hover:bg-red-50"
                     >
                       <Trash2 className="w-4 h-4" />
