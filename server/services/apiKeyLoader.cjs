@@ -47,9 +47,15 @@ async function loadApiKeys() {
     // Decrypt each key
     for (const key of keys) {
       try {
-        const decryptedKey = aiConfigService.decryptKey(key.encrypted_key);
+        // For OAuth providers, decrypt client_secret; for simple keys, decrypt api_key
+        const encryptedValue = key.client_secret || key.api_key;
+        if (!encryptedValue) {
+          console.error(`  ✗ No encrypted value found for ${key.provider}`);
+          continue;
+        }
+        const decryptedKey = aiConfigService.decryptKey(encryptedValue);
         cachedKeys[key.provider] = decryptedKey;
-        console.log(`  ✓ Loaded ${key.provider} key: ${key.key_name}`);
+        console.log(`  ✓ Loaded ${key.provider} key`);
       } catch (error) {
         console.error(`  ✗ Failed to decrypt ${key.provider} key:`, error.message);
       }
