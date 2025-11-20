@@ -304,7 +304,10 @@ CREATE TABLE IF NOT EXISTS coach_personas (
 CREATE TABLE IF NOT EXISTS theme_configs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   theme_name TEXT UNIQUE NOT NULL,
+  name TEXT,
+  description TEXT,
   colors TEXT NOT NULL,
+  config TEXT,
   is_active INTEGER DEFAULT 0,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
