@@ -306,8 +306,8 @@ class AIConfigService {
   listApiKeys() {
     return new Promise((resolve, reject) => {
       db.all(
-        `SELECT id, key_name, provider, is_active, last_used_at, created_at, updated_at 
-         FROM api_keys ORDER BY provider, key_name`,
+        `SELECT id, provider, is_active, created_at, updated_at 
+         FROM api_keys ORDER BY provider`,
         [],
         (err, keys) => {
           if (err) {

@@ -30,9 +30,9 @@ router.get('/', verifyAdmin, (req, res) => {
   
   try {
     const themes = db.prepare(`
-      SELECT id, name, description, is_active, config, created_at, updated_at
+      SELECT id, theme_name as name, is_active, colors as config, created_at, updated_at
       FROM theme_configs
-      ORDER BY is_active DESC, name ASC
+      ORDER BY is_active DESC, theme_name ASC
     `).all();
 
     // Parse config JSON for each theme
@@ -63,9 +63,9 @@ router.get('/all', (req, res) => {
   
   try {
     const themes = db.prepare(`
-      SELECT id, name, description, config, created_at, updated_at
+      SELECT id, theme_name as name, colors as config, created_at, updated_at
       FROM theme_configs
-      ORDER BY name ASC
+      ORDER BY theme_name ASC
     `).all();
 
     // Parse config JSON for each theme
@@ -95,7 +95,7 @@ router.get('/active', (req, res) => {
   
   try {
     const theme = db.prepare(`
-      SELECT id, name, description, config, created_at, updated_at
+      SELECT id, theme_name as name, colors as config, created_at, updated_at
       FROM theme_configs
       WHERE is_active = 1
       LIMIT 1
@@ -146,11 +146,10 @@ router.post('/', verifyAdmin, (req, res) => {
     }
 
     const result = db.prepare(`
-      INSERT INTO theme_configs (name, description, config, is_active)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO theme_configs (theme_name, colors, is_active)
+      VALUES (?, ?, ?)
     `).run(
       name,
-      description || null,
       JSON.stringify(config),
       is_active ? 1 : 0
     );
@@ -201,16 +200,14 @@ router.put('/:id', verifyAdmin, (req, res) => {
     // Update theme
     db.prepare(`
       UPDATE theme_configs
-      SET name = ?,
-          description = ?,
-          config = ?,
+      SET theme_name = ?,
+          colors = ?,
           is_active = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
-      name || existingTheme.name,
-      description !== undefined ? description : existingTheme.description,
-      config ? JSON.stringify(config) : existingTheme.config,
+      name || existingTheme.theme_name,
+      config ? JSON.stringify(config) : existingTheme.colors,
       is_active !== undefined ? (is_active ? 1 : 0) : existingTheme.is_active,
       id
     );
