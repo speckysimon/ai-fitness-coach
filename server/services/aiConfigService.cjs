@@ -201,16 +201,25 @@ class AIConfigService {
     return new Promise((resolve, reject) => {
       // For OAuth providers, encrypt the client secret
       // For simple API keys, encrypt the API key
-      const encryptedKey = clientSecret ? this.encryptKey(clientSecret) : (apiKey ? this.encryptKey(apiKey) : null);
+      const encryptedValue = clientSecret ? this.encryptKey(clientSecret) : (apiKey ? this.encryptKey(apiKey) : null);
 
-      if (!encryptedKey) {
+      if (!encryptedValue) {
         return reject(new Error('Either apiKey or clientSecret must be provided'));
       }
 
+      // Store encrypted value in api_key column (required NOT NULL)
+      // For OAuth: store encrypted clientSecret in both api_key and client_secret
+      // For simple keys: store encrypted apiKey in api_key column
       db.run(
         `INSERT OR REPLACE INTO api_keys (provider, api_key, client_id, client_secret, redirect_uri) 
          VALUES (?, ?, ?, ?, ?)`,
-        [provider, apiKey || null, clientId || null, clientSecret || null, redirectUri || null],
+        [
+          provider, 
+          encryptedValue,  // Always store encrypted value here (NOT NULL requirement)
+          clientId || null, 
+          clientSecret ? encryptedValue : null,  // Duplicate for OAuth
+          redirectUri || null
+        ],
         function(err) {
           if (err) {
             reject(err);
