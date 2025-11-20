@@ -13,9 +13,12 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
   if (!isOpen || !session) return null;
 
   // Filter activities for the same date
-  const sessionDate = session.date;
+  const sessionDate = session.date; // Already in YYYY-MM-DD format
   const dayActivities = activities.filter(activity => {
-    const activityDate = new Date(activity.date).toISOString().split('T')[0];
+    // Handle different date field names from Strava API
+    const dateStr = activity.start_date_local || activity.start_date || activity.date;
+    if (!dateStr) return false;
+    const activityDate = new Date(dateStr).toISOString().split('T')[0];
     return activityDate === sessionDate;
   });
 
@@ -106,7 +109,12 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-1">Activity Matching</h2>
-              <p className="text-gray-600">{session.title} - {session.day}, {new Date(sessionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+              <p className="text-gray-600">{session.title} - {session.day}, {(() => {
+                // Parse date as UTC to avoid timezone shifts
+                const [year, month, day] = sessionDate.split('-');
+                const date = new Date(Date.UTC(year, month - 1, day));
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+              })()}</p>
               <div className="flex items-center gap-2 mt-2">
                 <span className={`px-2 py-0.5 text-xs rounded font-medium ${
                   session.type === 'Recovery' ? 'bg-green-100 text-green-700' :
@@ -149,7 +157,11 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
           )}
 
           <h3 className="font-semibold text-gray-900 mb-3">
-            {dayActivities.length > 0 ? `Activities on ${new Date(sessionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'No Activities Found'}
+            {dayActivities.length > 0 ? `Activities on ${(() => {
+              const [year, month, day] = sessionDate.split('-');
+              const date = new Date(Date.UTC(year, month - 1, day));
+              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+            })()}` : 'No Activities Found'}
           </h3>
 
           {dayActivities.length === 0 ? (

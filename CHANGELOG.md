@@ -9,6 +9,80 @@ All notable changes to AI Fitness Coach will be documented in this file.
 - Consolidate databases (merge database.sqlite into fitness-coach.db)
 - Automated testing for migrations
 
+## [2.11.1] - 2025-11-20
+
+### 🐛 Bug Fixes
+
+#### **Activity Match Modal Timezone Fix** ⭐ CRITICAL FIX
+- **Fixed timezone display bug in Activity Match Modal**
+  - Modal was showing wrong date (Friday instead of Thursday) due to timezone conversion
+  - Session dates stored as `YYYY-MM-DD` but displayed with local timezone offset
+  - Activities were being matched correctly but modal showed "No Activities Found"
+  - **Root Cause:** JavaScript `new Date()` interprets date strings as UTC midnight, causing timezone shifts
+  
+- **Solution Implemented:**
+  - Parse dates explicitly as UTC to prevent timezone shifts
+  - Match Strava date field handling with `activityMatching.js` logic
+  - Handle `start_date_local`, `start_date`, and `date` fields properly
+  - Display dates with `timeZone: 'UTC'` option to prevent conversion
+  
+- **Files Modified:**
+  - `src/components/ActivityMatchModal.jsx` - Fixed date parsing and display (3 locations)
+  
+- **Impact:**
+  - ✅ Modal now shows correct date matching the session
+  - ✅ Activities display properly in the modal
+  - ✅ Users can see their automatically matched activities
+  - ✅ Works correctly across all timezones
+
+## [2.11.0] - 2025-11-19
+
+### ✨ New Features
+
+#### **Ideas & Improvements Admin Panel** ⭐
+- Complete CRUD system for tracking feature requests and improvements
+- 5 stat cards: Total, Backlog, Planned, In Progress, Critical
+- Advanced filtering by status, priority, category
+- Collapsible descriptions and tag display on idea cards
+- **Database:** `ideas` table in `database.sqlite` (admin DB)
+- **Service:** Refactored from `sqlite3` to `better-sqlite3` for system parity
+
+#### **AI Coach Activity Analysis** ⭐
+- Brain icon on activity cards opens detail modal with AI section
+- Collapsible AI Coach Analysis section in activity detail modal
+- Pre-filled activity summary with all metrics
+- Textarea for custom questions about the activity
+- AI responses use selected coach persona for personalized feedback
+- **Endpoint:** `POST /api/coach/chat`
+- **Model:** GPT-4o-mini for fast, cost-effective responses
+
+#### **Training Plan Cross-Device Sync** ⭐
+- Fixed backend-first loading priority for proper multi-device synchronization
+- Added comprehensive console logging for debugging sync issues
+- Plans now properly sync across devices (desktop, mobile, tablet)
+- **Service:** Enhanced `planService.js` with backend-first approach
+
+### 🎨 UI/UX Improvements
+
+- **Edit Button on All Activities** - Added edit functionality to all activities page (not just dashboard)
+- **Dark Mode Fixes** - Fixed AI response section readability and contrast
+- **Coach Persona Integration** - AI uses coach's personality, tone, style, and catchphrases
+
+### 🔧 Technical Improvements
+
+- Refactored `ideasService.cjs` from `sqlite3` to `better-sqlite3` (system parity)
+- Created `/api/coach/chat` endpoint with persona integration
+- Added `coach.js` route with GPT-4o-mini
+- Updated `ActivityDetailModal.jsx` with collapsible AI section
+- Enhanced `planService.js` with backend-first loading and logging
+
+### 🐛 Bug Fixes
+
+- 🐛 Fixed 404 error when clicking "Ask AI Coach" button
+- 🐛 Fixed dark mode readability in AI response sections
+- 🐛 Fixed training plans not syncing across devices
+- 🐛 Fixed missing Edit button on All Activities page
+
 ## [2.10.2] - 2025-11-19
 
 ### ✨ New Features
