@@ -5,7 +5,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { readdir, readFile } from 'fs/promises';
+import { readdir, readFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -15,6 +15,7 @@ const __dirname = path.dirname(__filename);
 // Admin database path
 const ADMIN_DB_PATH = path.join(__dirname, '../server/database.sqlite');
 const MIGRATIONS_DIR = path.join(__dirname, '../migrations/admin');
+const BACKUP_DIR = path.join(__dirname, '../backups');
 
 console.log('🗄️  Admin Database Migration Runner');
 console.log('=====================================\n');
@@ -55,7 +56,7 @@ try {
 } catch (error) {
   if (error.code === 'ENOENT') {
     console.log('📁 No admin migrations directory found. Creating it...');
-    await import('fs/promises').then(fs => fs.mkdir(MIGRATIONS_DIR, { recursive: true }));
+    await mkdir(MIGRATIONS_DIR, { recursive: true });
     console.log('✅ Admin migrations directory created\n');
     console.log('ℹ️  No migrations to apply\n');
     process.exit(0);
@@ -71,6 +72,23 @@ const pending = files
 if (pending.length === 0) {
   console.log('✅ No pending admin migrations\n');
   process.exit(0);
+}
+
+// Ensure backups directory exists
+await mkdir(BACKUP_DIR, { recursive: true });
+
+// Create a timestamped backup before applying migrations
+const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '_').split('.')[0];
+const backupPath = path.join(BACKUP_DIR, `database_admin_${timestamp}.sqlite`);
+
+try {
+  console.log(`🛡️  Creating admin DB backup: ${backupPath}`);
+  await db.backup(backupPath);
+  console.log('✅ Admin database backup complete\n');
+} catch (error) {
+  console.error('❌ Failed to create admin database backup');
+  console.error(`   Error: ${error.message}\n`);
+  process.exit(1);
 }
 
 console.log(`📦 Pending migrations: ${pending.length}`);
