@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save } from 'lucide-react';
-import { AdminCard as Card, AdminCardContent as CardContent, AdminCardHeader as CardHeader, AdminCardTitle as CardTitle } from '../../components/ui/AdminCard';
+import { Settings, Save, Shield, AlertCircle } from 'lucide-react';
+import { AdminCard as Card, AdminCardContent as CardContent, AdminCardHeader as CardHeader, AdminCardTitle as CardTitle, AdminCardDescription as CardDescription } from '../../components/ui/AdminCard';
 import { AdminButton as Button } from '../../components/ui/AdminButton';
 
 const GlobalSettings = () => {
@@ -21,6 +21,8 @@ const GlobalSettings = () => {
       });
 
       const data = await response.json();
+      console.log('📊 Loaded settings:', data.settings);
+      console.log('📊 Limits settings:', data.settings?.filter(s => s.category === 'limits'));
       if (data.success) {
         setSettings(data.settings);
       }
@@ -63,6 +65,38 @@ const GlobalSettings = () => {
     return acc;
   }, {});
 
+  // Helper to get validation rules for specific settings
+  const getValidationRules = (key) => {
+    const rules = {
+      max_ai_chats_per_day: { min: 1, max: 100, step: 1 },
+      max_plan_generations_per_day: { min: 1, max: 50, step: 1 },
+      max_users: { min: 1, max: 100000, step: 1 },
+      notification_frequency_hours: { min: 1, max: 24, step: 1 },
+    };
+    return rules[key] || { min: 0, step: 1 };
+  };
+
+  // Helper to get category descriptions
+  const getCategoryDescription = (category) => {
+    const descriptions = {
+      limits: 'Control usage limits and rate limiting for users',
+      notifications: 'Configure notification behavior and frequency',
+      system: 'System-wide configuration options',
+    };
+    return descriptions[category] || '';
+  };
+
+  // Helper to get category icon
+  const getCategoryIcon = (category) => {
+    const icons = {
+      limits: Shield,
+      notifications: AlertCircle,
+      system: Settings,
+    };
+    const Icon = icons[category] || Settings;
+    return <Icon className="w-5 h-5 text-gray-500" />;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -90,7 +124,17 @@ const GlobalSettings = () => {
       {Object.entries(groupedSettings).map(([category, categorySettings]) => (
         <Card key={category}>
           <CardHeader>
-            <CardTitle className="capitalize">{category} Settings</CardTitle>
+            <div className="flex items-center gap-2">
+              {getCategoryIcon(category)}
+              <div>
+                <CardTitle className="capitalize">{category} Settings</CardTitle>
+                {getCategoryDescription(category) && (
+                  <CardDescription className="mt-1">
+                    {getCategoryDescription(category)}
+                  </CardDescription>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -122,6 +166,7 @@ const GlobalSettings = () => {
                       <input
                         type="number"
                         value={setting.setting_value}
+                        {...getValidationRules(setting.setting_key)}
                         onChange={(e) => {
                           const newSettings = settings.map((s) =>
                             s.setting_key === setting.setting_key
@@ -133,7 +178,7 @@ const GlobalSettings = () => {
                         onBlur={(e) =>
                           handleUpdateSetting(setting.setting_key, e.target.value)
                         }
-                        className="w-32 px-4 py-2 border border-gray-300 rounded-lg"
+                        className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     ) : (
                       <input

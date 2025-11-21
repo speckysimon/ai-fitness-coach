@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Settings API</title>
+</head>
+<body>
+    <h1>Test Global Settings API</h1>
+    <button onclick="testAPI()">Test API</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function testAPI() {
+            const output = document.getElementById('output');
+            const token = localStorage.getItem('admin_token');
+            
+            output.textContent = 'Loading...\n';
+            output.textContent += `Token: ${token ? 'Found' : 'Not found'}\n\n`;
+            
+            try {
+                const response = await fetch('http://localhost:5001/api/admin/settings', {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                output.textContent += `Status: ${response.status}\n\n`;
+                output.textContent += `Response:\n${JSON.stringify(data, null, 2)}`;
+                
+                // Filter limits
+                if (data.settings) {
+                    const limits = data.settings.filter(s => s.category === 'limits');
+                    output.textContent += `\n\nLimits Settings:\n${JSON.stringify(limits, null, 2)}`;
+                }
+            } catch (error) {
+                output.textContent += `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
