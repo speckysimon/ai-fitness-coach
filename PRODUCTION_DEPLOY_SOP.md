@@ -22,63 +22,44 @@ Before deploying, ensure:
 
 ## 🎯 Deployment Process
 
-### Option 1: Automated Deployment (Recommended)
+### Standard Deployment (Manual, Backup-Aware)
+
+We now deploy with explicit steps so every rollout creates an admin DB backup before migrations.
 
 ```bash
-# SSH into production server
+# 1. SSH into production server
 ssh riderlabs@riderlabs.io
 
-# Navigate to app directory
+# 2. Navigate to app directory
 cd /home/riderlabs/ai-fitness-coach
 
-# Run deployment script
-./scripts/prod-deploy.sh
-```
-
-The script will:
-1. ✅ Check prerequisites
-2. 📦 Backup databases (with WAL files)
-3. 🔄 Pull latest code
-4. 📦 Install dependencies
-5. 🏗️  Build frontend
-6. 🗄️  Run migrations
-7. 🔄 Restart PM2
-8. ✅ Verify deployment
-
-**Estimated Time:** 3-5 minutes
-
-### Option 2: Manual Deployment (Not Recommended)
-
-Only use if automated script fails.
-
-```bash
-# 1. SSH into server
-ssh riderlabs@riderlabs.io
-cd /home/riderlabs/ai-fitness-coach
-
-# 2. Backup databases
+# 3. (Optional) Capture manual backup snapshot
 ./scripts/backup-db.sh
 
-# 3. Pull code
-git fetch origin
-git reset --hard origin/main
+# 4. Pull latest code
+git pull origin main
 
-# 4. Install dependencies
-npm install --production
+# 5. Install dependencies
+npm install
 
-# 5. Build frontend
+# 6. Build frontend
 npm run build
 
-# 6. Run migrations (if any)
+# 7. Run main DB migrations (if any)
 node scripts/migrate.js
 
-# 7. Restart PM2
+# 8. Run admin DB migrations (creates backup automatically)
+node scripts/migrate-admin.js
+
+# 9. Restart PM2
 pm2 restart riderlabs
 
-# 8. Verify
+# 10. Verify logs & status
 pm2 status riderlabs
 pm2 logs riderlabs --lines 50
 ```
+
+**Estimated Time:** 5-7 minutes (includes automatic admin DB backup).
 
 ---
 

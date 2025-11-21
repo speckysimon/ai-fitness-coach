@@ -9,6 +9,28 @@ All notable changes to AI Fitness Coach will be documented in this file.
 - Consolidate databases (merge database.sqlite into fitness-coach.db)
 - Automated testing for migrations
 
+## [2.11.2] - 2025-11-21
+
+### ✨ Improvements
+
+- **Admin API Keys & Ideas UX polish**
+  - Added password visibility toggle to the Admin Login form for fewer lockouts
+  - Ideas & Improvements page now supports card/list toggle plus sortable table headers
+  - Refined list-view styles for dense reviews without losing the rich card layout
+
+- **Zero-downtime lint + code hygiene**
+  - Squashed lingering ESLint errors (service worker `clients`, AI planner logging) and warnings
+  - Removed unused imports/params across services to keep CI signal clean
+
+### 🛡️ Deployment Safety Upgrades
+
+- `scripts/migrate-admin.js` now creates a timestamped backup of `server/database.sqlite` before any migration runs (locals + prod)
+- Deployment SOP updated to explicitly run `node scripts/migrate-admin.js` after the main migrate step so prod always snapshots + applies schema changes safely
+
+### ✅ Impact
+
+- Admins can recover passwords faster, review ideas in whichever view suits the task, and deploy confidently knowing every rollout auto-backups the admin DB before applying migrations.
+
 ## [2.11.1] - 2025-11-20
 
 ### 🐛 Bug Fixes
