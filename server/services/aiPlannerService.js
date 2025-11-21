@@ -144,7 +144,7 @@ class AIPlannerService {
     return responseText;
   }
 
-  async generateTrainingPlan({ activities, goals, constraints, currentMetrics, userProfile, raceHistory, trainingPriorities }) {
+  async generateTrainingPlan({ activities, goals, constraints, currentMetrics, userProfile, raceHistory }) {
     // Prepare context for AI
     const ftp = currentMetrics?.ftp || analyticsService.calculateFTP(activities);
     const loadMetrics = analyticsService.calculateTrainingLoad(activities, ftp);
@@ -159,13 +159,13 @@ class AIPlannerService {
       trends,
       userProfile,
       raceHistory,
-      trainingPriorities,
     });
 
+    let responseText;
     try {
       const systemPrompt = `You are an expert cycling and running coach with deep knowledge of training periodization, physiology, and adaptive planning. You create structured training plans based on athlete data, goals, and constraints. Always respond with valid JSON.`;
       
-      const responseText = await this.callAI(prompt, systemPrompt, { jsonMode: true });
+      responseText = await this.callAI(prompt, systemPrompt, { jsonMode: true });
       
       // Clean up markdown-wrapped JSON (remove ```json and ``` if present)
       let cleanedResponse = responseText.trim();
@@ -179,13 +179,15 @@ class AIPlannerService {
       return this.formatPlan(planData, goals);
     } catch (error) {
       console.error('OpenAI API error:', error.message);
-      console.error('Response text preview:', responseText?.substring(0, 200));
+      if (responseText) {
+        console.error('Response text preview:', responseText.substring(0, 200));
+      }
       // Fallback to rule-based plan
-      return this.generateRuleBasedPlan({ activities, goals, constraints, ftp, loadMetrics });
+      return this.generateRuleBasedPlan({ goals, constraints, ftp });
     }
   }
 
-  buildPlanPrompt({ activities, goals, constraints, ftp, loadMetrics, trends, userProfile, raceHistory, trainingPriorities }) {
+  buildPlanPrompt({ activities, goals, constraints, ftp, loadMetrics, trends, userProfile, raceHistory }) {
     const recentActivities = activities.slice(0, 10).map(a => ({
       date: a.date,
       type: a.type,
@@ -420,7 +422,7 @@ Return as JSON with structure:
     
     // Add dates to sessions
     const weeksWithDates = planData.weeks.map((week, weekIndex) => {
-      const sessionsWithDates = week.sessions.map((session, sessionIndex) => {
+      const sessionsWithDates = week.sessions.map((session) => {
         const dayOffset = this.getDayOffset(session.day);
         const sessionDate = addDays(startDate, weekIndex * 7 + dayOffset);
         
@@ -459,10 +461,9 @@ Return as JSON with structure:
   }
 
   // Fallback rule-based plan generator
-  generateRuleBasedPlan({ activities, goals, constraints, ftp, loadMetrics }) {
+  generateRuleBasedPlan({ goals, constraints, ftp }) {
     const weeks = goals.duration || 4;
     const daysPerWeek = constraints?.daysPerWeek || 4;
-    const maxHours = constraints?.maxHoursPerWeek || 8;
 
     const sessionTypes = [
       { type: 'Endurance', duration: 90, description: 'Long steady ride in Zone 2' },

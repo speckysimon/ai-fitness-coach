@@ -186,7 +186,7 @@ function extractSection(text, startMarker, endMarker) {
 // Submit post-race feedback
 router.post('/analysis/feedback', async (req, res) => {
   try {
-    const { stravaActivityId, feedback, racePlanId } = req.body;
+    const { stravaActivityId, feedback } = req.body;
     
     if (!stravaActivityId || !feedback) {
       return res.status(400).json({ error: 'Activity ID and feedback are required' });
@@ -342,7 +342,7 @@ function buildAnalysisPrompt(raceActivity, racePlan, riderProfile, feedback, pre
     prompt += `- Taper Ratio: ${secondWeekTSS > 0 ? (lastWeekTSS / secondWeekTSS * 100).toFixed(0) : 'N/A'}%\n`;
     
     prompt += `\nPre-Race Activities:\n`;
-    preRaceActivities.slice(-7).forEach((activity, i) => {
+    preRaceActivities.slice(-7).forEach((activity) => {
       const daysBeforeRace = Math.floor((new Date(raceActivity.date) - new Date(activity.date)) / (1000 * 60 * 60 * 24));
       prompt += `  ${daysBeforeRace} days before: ${activity.name} - ${Math.round(activity.duration / 60)}min, TSS: ${activity.tss || 'N/A'}\n`;
     });

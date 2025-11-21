@@ -267,7 +267,6 @@ export const shouldShowReminderNow = (session) => {
   }
 
   const now = new Date();
-  const sessionDate = new Date(session.date);
   
   // Get session time (default to 9 AM if not specified)
   const sessionTime = session.time || '09:00';

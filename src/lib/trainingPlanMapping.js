@@ -135,7 +135,7 @@ export const calculateTrainingFocus = (plan, completedSessions) => {
   let totalSessions = 0;
   let completedCount = 0;
 
-  plan.weeks.forEach((week, weekIdx) => {
+  plan.weeks.forEach((week) => {
     week.sessions.forEach((session, sessionIdx) => {
       totalSessions++;
       const sessionType = session.type || 'Endurance';
@@ -234,7 +234,7 @@ export const calculateRiderTypeProgress = (eventType, trainingFocus) => {
     progress: Math.round(overallProgress),
     completionRate,
     alignmentScore: Math.round(normalizedAlignment),
-    focusAreas: targetInfo.focusAreas,
+    focusAreas,
     plannedPercentages // Include for display
   };
 };

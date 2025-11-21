@@ -1,5 +1,5 @@
 import express from 'express';
-import { sessionDb, adaptationEventDb, planAdjustmentDb, wellnessLogDb, workoutComparisonDb } from '../db.js';
+import { sessionDb, adaptationEventDb, planAdjustmentDb, wellnessLogDb } from '../db.js';
 import adaptiveTrainingService from '../services/adaptiveTrainingService.js';
 import planModificationService from '../services/planModificationService.js';
 import logger from '../utils/logger.js';

@@ -135,7 +135,7 @@ class AdaptiveTrainingService {
     }
     
     // 2. Check for chronic underperformance
-    const underperformance = this.detectUnderperformance(data.activities, data.plan);
+    const underperformance = this.detectUnderperformance(data.activities);
     if (underperformance.isSignificant) {
       issues.push({
         type: 'underperformance',
@@ -156,7 +156,7 @@ class AdaptiveTrainingService {
     }
     
     // 4. Check for opportunity (performing well + fresh)
-    const overperformance = this.detectOverperformance(data.activities, data.plan);
+    const overperformance = this.detectOverperformance(data.activities);
     if (overperformance.isSignificant && data.fitness.tsb > 0) {
       issues.push({
         type: 'opportunity',
@@ -183,7 +183,7 @@ class AdaptiveTrainingService {
   /**
    * Detect chronic underperformance
    */
-  detectUnderperformance(activities, plan) {
+  detectUnderperformance(activities) {
     if (!activities || activities.length < 5) {
       return { isSignificant: false };
     }
@@ -217,7 +217,7 @@ class AdaptiveTrainingService {
   /**
    * Detect consistent overperformance
    */
-  detectOverperformance(activities, plan) {
+  detectOverperformance(activities) {
     if (!activities || activities.length < 5) {
       return { isSignificant: false };
     }

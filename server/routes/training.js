@@ -1,6 +1,5 @@
 import express from 'express';
 import { aiPlannerService } from '../services/aiPlannerService.js';
-import { analyticsService } from '../services/analyticsService.js';
 import { getDb } from '../db.js';
 
 const router = express.Router();

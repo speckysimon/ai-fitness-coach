@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Lightbulb, Plus, Edit2, Trash2, Save, X, RefreshCw,
   TrendingUp, Clock, CheckCircle, Archive, AlertCircle
@@ -16,6 +16,8 @@ const IdeasManagement = () => {
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
   const [expandedIdeas, setExpandedIdeas] = useState({});
+  const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -200,6 +202,51 @@ const IdeasManagement = () => {
     return st ? st.color : 'gray';
   };
 
+  const sortedIdeas = useMemo(() => {
+    if (!ideas) return [];
+    const sortable = [...ideas];
+    if (sortConfig?.key) {
+      sortable.sort((a, b) => {
+        const { key, direction } = sortConfig;
+        const dir = direction === 'asc' ? 1 : -1;
+        const valA = a[key];
+        const valB = b[key];
+
+        if (valA === valB) return 0;
+        if (valA === undefined || valA === null) return 1 * dir;
+        if (valB === undefined || valB === null) return -1 * dir;
+
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return valA > valB ? dir : -dir;
+        }
+
+        const strA = String(valA).toLowerCase();
+        const strB = String(valB).toLowerCase();
+        if (strA > strB) return dir;
+        if (strA < strB) return -dir;
+        return 0;
+      });
+    }
+    return sortable;
+  }, [ideas, sortConfig]);
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev?.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const renderSortIndicator = (key) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'asc' ? '↑' : '↓';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -211,12 +258,34 @@ const IdeasManagement = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <Lightbulb className="w-8 h-8 text-blue-600" />
           <h1 className="text-3xl font-bold text-gray-900">Ideas & Improvements</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {/* View Toggle */}
+          <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setViewMode('card')}
+              className={`px-3 py-2 text-sm font-medium flex items-center gap-2 ${
+                viewMode === 'card' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Card View
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 text-sm font-medium flex items-center gap-2 ${
+                viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              List View
+            </button>
+          </div>
+
           <AdminButton
             variant="outline"
             onClick={() => {
@@ -464,49 +533,50 @@ const IdeasManagement = () => {
         </AdminCard>
       )}
 
-      {/* Ideas Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {ideas.map(idea => (
-          <AdminCard key={idea.id} className="hover:shadow-lg transition-shadow">
-            <AdminCardContent className="pt-6">
-              <div className="space-y-3">
-                {/* Header with edit/delete buttons */}
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-gray-900 flex-1">{idea.title}</h3>
-                  <div className="flex gap-1">
-                    <AdminButton
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEdit(idea)}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </AdminButton>
-                    <AdminButton
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(idea.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600" />
-                    </AdminButton>
-                  </div>
-                </div>
-
-                {/* Collapsible Description */}
-                {idea.description && (
-                  <div>
-                    <p className={`text-sm text-gray-600 ${expandedIdeas[idea.id] ? '' : 'line-clamp-2'}`}>
-                      {idea.description}
-                    </p>
-                    {idea.description.length > 100 && (
-                      <button
-                        onClick={() => setExpandedIdeas(prev => ({ ...prev, [idea.id]: !prev[idea.id] }))}
-                        className="text-xs text-blue-600 hover:text-blue-700 mt-1"
+      {/* Ideas Display */}
+      {viewMode === 'card' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sortedIdeas.map(idea => (
+            <AdminCard key={idea.id} className="hover:shadow-lg transition-shadow">
+              <AdminCardContent className="pt-6">
+                <div className="space-y-3">
+                  {/* Header with edit/delete buttons */}
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-gray-900 flex-1">{idea.title}</h3>
+                    <div className="flex gap-1">
+                      <AdminButton
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleEdit(idea)}
                       >
-                        {expandedIdeas[idea.id] ? 'Show less' : 'Show more'}
-                      </button>
-                    )}
+                        <Edit2 className="w-4 h-4" />
+                      </AdminButton>
+                      <AdminButton
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(idea.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </AdminButton>
+                    </div>
                   </div>
-                )}
+
+                  {/* Collapsible Description */}
+                  {idea.description && (
+                    <div>
+                      <p className={`text-sm text-gray-600 ${expandedIdeas[idea.id] ? '' : 'line-clamp-2'}`}>
+                        {idea.description}
+                      </p>
+                      {idea.description.length > 100 && (
+                        <button
+                          onClick={() => setExpandedIdeas(prev => ({ ...prev, [idea.id]: !prev[idea.id] }))}
+                          className="text-xs text-blue-600 hover:text-blue-700 mt-1"
+                        >
+                          {expandedIdeas[idea.id] ? 'Show less' : 'Show more'}
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {/* Status Badges */}
                   <div className="flex flex-wrap gap-2">
@@ -549,8 +619,108 @@ const IdeasManagement = () => {
                 </div>
               </AdminCardContent>
             </AdminCard>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    onClick={() => handleSort('title')}
+                  >
+                    Title {renderSortIndicator('title')}
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    onClick={() => handleSort('category')}
+                  >
+                    Category {renderSortIndicator('category')}
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    onClick={() => handleSort('priority')}
+                  >
+                    Priority {renderSortIndicator('priority')}
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    onClick={() => handleSort('status')}
+                  >
+                    Status {renderSortIndicator('status')}
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    onClick={() => handleSort('estimated_hours')}
+                  >
+                    Est. Hours {renderSortIndicator('estimated_hours')}
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    Created {renderSortIndicator('created_at')}
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sortedIdeas.map((idea) => (
+                  <tr key={idea.id}>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900">{idea.title}</div>
+                      {idea.description && (
+                        <p className="text-sm text-gray-500 line-clamp-2">{idea.description}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-medium bg-${getCategoryColor(idea.category)}-100 text-${getCategoryColor(idea.category)}-700`}>
+                        {categories.find(c => c.value === idea.category)?.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-medium bg-${getPriorityColor(idea.priority)}-100 text-${getPriorityColor(idea.priority)}-700`}>
+                        {priorities.find(p => p.value === idea.priority)?.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-medium bg-${getStatusColor(idea.status)}-100 text-${getStatusColor(idea.status)}-700`}>
+                        {statuses.find(s => s.value === idea.status)?.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">
+                      {idea.estimated_hours ? `${idea.estimated_hours}h` : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {new Date(idea.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex gap-1">
+                        <AdminButton
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(idea)}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </AdminButton>
+                        <AdminButton
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(idea.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </AdminButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {ideas.length === 0 && (
         <div className="text-center py-12">

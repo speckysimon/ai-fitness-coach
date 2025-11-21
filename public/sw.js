@@ -128,7 +128,7 @@ self.addEventListener('notificationclick', (event) => {
   const urlToOpen = data.url || '/workout/today';
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       // Check if there's already a window open
       for (const client of clientList) {
         if (client.url.includes(urlToOpen) && 'focus' in client) {
@@ -136,8 +136,8 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
       // If no window is open, open a new one
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(urlToOpen);
       }
     })
   );
