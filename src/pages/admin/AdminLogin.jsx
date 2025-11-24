@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Shield, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { AdminCard as Card, AdminCardContent as CardContent, AdminCardDescription as CardDescription, AdminCardHeader as CardHeader, AdminCardTitle as CardTitle } from '../../components/ui/AdminCard';
 import { AdminButton as Button } from '../../components/ui/AdminButton';
@@ -50,12 +50,12 @@ const AdminLogin = ({ onLogin }) => {
         // Save admin token
         localStorage.setItem('admin_token', data.token);
         localStorage.setItem('admin_user', JSON.stringify(data.admin));
-        
+
         // Call parent handler
         if (onLogin) {
           onLogin(data.admin, data.token);
         }
-        
+
         // Navigate to admin dashboard
         navigate('/admin/dashboard');
       }
@@ -139,6 +139,14 @@ const AdminLogin = ({ onLogin }) => {
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
+                </div>
+                <div className="text-right">
+                  <Link
+                    to="/admin/forgot-password"
+                    className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                  >
+                    Forgot password?
+                  </Link>
                 </div>
               </div>
 

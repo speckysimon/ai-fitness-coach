@@ -6,6 +6,8 @@ import { initializeTheme } from './lib/themeService';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import ProfileSetup from './pages/ProfileSetup';
 import UserProfile from './pages/UserProfile';
 import PlanGenerator from './pages/PlanGenerator';
@@ -28,6 +30,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Layout from './components/Layout';
 import AdminLogin from './pages/admin/AdminLogin';
+import AdminForgotPassword from './pages/admin/AdminForgotPassword';
+import AdminResetPassword from './pages/admin/AdminResetPassword';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -116,7 +120,7 @@ function App() {
           avatar_url: data.user.avatar_url,
           createdAt: data.user.createdAt,
         };
-        
+
         setUserProfile(userProfile);
         setIsAuthenticated(true);
         localStorage.setItem('current_user', JSON.stringify(userProfile));
@@ -131,7 +135,7 @@ function App() {
           setStravaTokens(null);
           localStorage.removeItem('strava_tokens');
         }
-        
+
         if (data.user.googleTokens) {
           setGoogleTokens(data.user.googleTokens);
           localStorage.setItem('google_tokens', JSON.stringify(data.user.googleTokens));
@@ -147,10 +151,10 @@ function App() {
 
   const handleStravaAuth = async (tokens) => {
     setStravaTokens(tokens);
-    
+
     if (tokens) {
       localStorage.setItem('strava_tokens', JSON.stringify(tokens));
-      
+
       // Save tokens to backend
       const sessionToken = localStorage.getItem('session_token');
       if (sessionToken) {
@@ -176,10 +180,10 @@ function App() {
 
   const handleGoogleAuth = async (tokens) => {
     setGoogleTokens(tokens);
-    
+
     if (tokens) {
       localStorage.setItem('google_tokens', JSON.stringify(tokens));
-      
+
       // Save tokens to backend
       const sessionToken = localStorage.getItem('session_token');
       if (sessionToken) {
@@ -206,13 +210,13 @@ function App() {
   const handleLogin = (profile, tokens = {}) => {
     setUserProfile(profile);
     setIsAuthenticated(true);
-    
+
     // Set tokens if provided
     if (tokens.stravaTokens) {
       setStravaTokens(tokens.stravaTokens);
       localStorage.setItem('strava_tokens', JSON.stringify(tokens.stravaTokens));
     }
-    
+
     if (tokens.googleTokens) {
       setGoogleTokens(tokens.googleTokens);
       localStorage.setItem('google_tokens', JSON.stringify(tokens.googleTokens));
@@ -225,7 +229,7 @@ function App() {
 
   const handleLogout = async () => {
     const sessionToken = localStorage.getItem('session_token');
-    
+
     // Logout on backend
     if (sessionToken) {
       try {
@@ -238,13 +242,13 @@ function App() {
         console.error('Logout error:', err);
       }
     }
-    
+
     // Clear local storage
     localStorage.removeItem('strava_tokens');
     localStorage.removeItem('google_tokens');
     localStorage.removeItem('current_user');
     localStorage.removeItem('session_token');
-    
+
     // Clear state
     setStravaTokens(null);
     setGoogleTokens(null);
@@ -257,279 +261,294 @@ function App() {
       <Router>
         <PageViewTracker />
         <Routes>
-        {/* Admin Routes */}
-        <Route
-          path="/admin/login"
-          element={
-            <AdminLogin
-              onLogin={(admin, token) => {
-                setAdminUser(admin);
-                setIsAdminAuthenticated(true);
-              }}
-            />
-          }
-        />
-
-        <Route
-          path="/admin"
-          element={
-            isAdminAuthenticated ? (
-              <AdminLayout
-                admin={adminUser}
-                onLogout={() => {
-                  setAdminUser(null);
-                  setIsAdminAuthenticated(false);
+          {/* Admin Routes */}
+          <Route
+            path="/admin/login"
+            element={
+              <AdminLogin
+                onLogin={(admin, token) => {
+                  setAdminUser(admin);
+                  setIsAdminAuthenticated(true);
                 }}
               />
-            ) : (
-              <Navigate to="/admin/login" />
-            )
-          }
-        >
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="users" element={<UserManagement />} />
-          <Route path="admins" element={<AdminUsers />} />
-          <Route path="feedback" element={<FeedbackManagement />} />
-          <Route path="ideas" element={<IdeasManagement />} />
-          <Route path="ai-config" element={<AIConfigPage />} />
-          <Route path="ai-prompts" element={<AIPromptsPage />} />
-          <Route path="plan-templates" element={<PlanTemplatesPage />} />
-          <Route path="coach-personas" element={<CoachPersonasPage />} />
-          <Route path="theme-config" element={<ThemeConfigPage />} />
-          <Route path="api-keys" element={<APIKeysPage />} />
-          <Route path="services" element={<ServicesPage />} />
-          <Route path="activity" element={<ActivityLogPage />} />
-          <Route path="settings" element={<GlobalSettings />} />
-          <Route path="changelog" element={<AdminChangelog />} />
-        </Route>
+            }
+          />
 
-        {/* Landing Page */}
-        <Route
-          path="/"
-          element={
-            !isAuthenticated ? (
-              <Landing />
-            ) : (
-              <Navigate to="/dashboard" replace />
-            )
-          }
-        />
+          {/* Admin Password Reset Routes - Public Access */}
+          <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
+          <Route path="/admin/reset-password" element={<AdminResetPassword />} />
 
-        {/* Login Route */}
-        <Route
-          path="/login"
-          element={
-            !isAuthenticated ? (
-              <Login onLogin={handleLogin} />
-            ) : (
-              <Navigate to="/dashboard" replace />
-            )
-          }
-        />
+          <Route
+            path="/admin"
+            element={
+              isAdminAuthenticated ? (
+                <AdminLayout
+                  admin={adminUser}
+                  onLogout={() => {
+                    setAdminUser(null);
+                    setIsAdminAuthenticated(false);
+                  }}
+                />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          >
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="admins" element={<AdminUsers />} />
+            <Route path="feedback" element={<FeedbackManagement />} />
+            <Route path="ideas" element={<IdeasManagement />} />
+            <Route path="ai-config" element={<AIConfigPage />} />
+            <Route path="ai-prompts" element={<AIPromptsPage />} />
+            <Route path="plan-templates" element={<PlanTemplatesPage />} />
+            <Route path="coach-personas" element={<CoachPersonasPage />} />
+            <Route path="theme-config" element={<ThemeConfigPage />} />
+            <Route path="api-keys" element={<APIKeysPage />} />
+            <Route path="services" element={<ServicesPage />} />
+            <Route path="activity" element={<ActivityLogPage />} />
+            <Route path="settings" element={<GlobalSettings />} />
+            <Route path="changelog" element={<AdminChangelog />} />
+          </Route>
 
-        {/* Profile Setup Route */}
-        <Route
-          path="/profile-setup"
-          element={
-            isAuthenticated ? (
-              <ProfileSetup 
-                userProfile={userProfile}
-                onProfileUpdate={handleProfileUpdate}
-              />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
+          {/* Landing Page */}
+          <Route
+            path="/"
+            element={
+              !isAuthenticated ? (
+                <Landing />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+
+          {/* Login Route */}
+          <Route
+            path="/login"
+            element={
+              !isAuthenticated ? (
+                <Login onLogin={handleLogin} />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+
+          {/* Password Reset Routes - Public Access */}
+          <Route
+            path="/forgot-password"
+            element={<ForgotPassword />}
+          />
+
+          <Route
+            path="/reset-password"
+            element={<ResetPassword />}
+          />
+
+          {/* Profile Setup Route */}
+          <Route
+            path="/profile-setup"
+            element={
+              isAuthenticated ? (
+                <ProfileSetup
+                  userProfile={userProfile}
+                  onProfileUpdate={handleProfileUpdate}
+                />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
 
 
-        {/* Protected Routes */}
-        <Route
-          path="/*"
-          element={
-            isAuthenticated ? (
-              <Layout onLogout={handleLogout} userProfile={userProfile}>
-                <Routes>
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <Dashboard
-                        stravaTokens={stravaTokens}
-                        googleTokens={googleTokens}
-                        userProfile={userProfile}
-                        onLogout={handleLogout}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/profile"
-                    element={
-                      <UserProfile
-                        userProfile={userProfile}
-                        onProfileUpdate={handleProfileUpdate}
-                      />
-                    }
-                  />
-                  {/* Legacy FTP route - redirect to new location */}
-                  <Route
-                    path="/ftp"
-                    element={
-                      <Navigate to="/rider-intelligence/metrics" replace />
-                    }
-                  />
-                  <Route
-                    path="/activities"
-                    element={
-                      <AllActivities
-                        stravaTokens={stravaTokens}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/race-analytics"
-                    element={
-                      <RaceAnalytics
-                        stravaTokens={stravaTokens}
-                      />
-                    }
-                  />
-                  {/* Rider Intelligence Routes */}
-                  <Route
-                    path="/rider-intelligence/profile"
-                    element={
-                      <RiderProfile
-                        stravaTokens={stravaTokens}
-                      />
-                    }
-                  />
-                  {/* Legacy route redirect */}
-                  <Route
-                    path="/rider-profile"
-                    element={
-                      <Navigate to="/rider-intelligence/profile" replace />
-                    }
-                  />
-                  <Route
-                    path="/rider-intelligence/weekly-report"
-                    element={
-                      <WeeklyReport
-                        stravaTokens={stravaTokens}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/rider-intelligence/metrics"
-                    element={
-                      <PerformanceMetrics
-                        stravaTokens={stravaTokens}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/rider-intelligence/form"
-                    element={
-                      <Form
-                        stravaTokens={stravaTokens}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/race-day-predictor"
-                    element={
-                      <RaceDayPredictor
-                        stravaTokens={stravaTokens}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/race-analysis"
-                    element={
-                      <PostRaceAnalysis
-                        stravaTokens={stravaTokens}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/season-planner"
-                    element={<SeasonPlanner />}
-                  />
-                  <Route
-                    path="/rider-intelligence/plan"
-                    element={
-                      <PlanGenerator
-                        stravaTokens={stravaTokens}
-                        googleTokens={googleTokens}
-                        userProfile={userProfile}
-                      />
-                    }
-                  />
-                  {/* Legacy route redirect */}
-                  <Route
-                    path="/plan"
-                    element={
-                      <Navigate to="/rider-intelligence/plan" replace />
-                    }
-                  />
-                  <Route
-                    path="/workout/today"
-                    element={<TodaysWorkout />}
-                  />
-                  <Route
-                    path="/calendar"
-                    element={
-                      <Calendar
-                        stravaTokens={stravaTokens}
-                        googleTokens={googleTokens}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/methodology"
-                    element={<Methodology />}
-                  />
-                  {/* Legacy Form route - redirect to new location */}
-                  <Route
-                    path="/form"
-                    element={
-                      <Navigate to="/rider-intelligence/form" replace />
-                    }
-                  />
-                  <Route
-                    path="/changelog"
-                    element={<ChangelogPage />}
-                  />
-                  <Route
-                    path="/known-issues"
-                    element={<KnownIssuesPage />}
-                  />
-                  <Route
-                    path="/privacy"
-                    element={<PrivacyPolicy />}
-                  />
-                  <Route
-                    path="/terms"
-                    element={<TermsOfService />}
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <Settings
-                        stravaTokens={stravaTokens}
-                        googleTokens={googleTokens}
-                        onLogout={handleLogout}
-                        onStravaAuth={handleStravaAuth}
-                        onGoogleAuth={handleGoogleAuth}
-                      />
-                    }
-                  />
-                </Routes>
-              </Layout>
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-      </Routes>
+          {/* Protected Routes */}
+          <Route
+            path="/*"
+            element={
+              isAuthenticated ? (
+                <Layout onLogout={handleLogout} userProfile={userProfile}>
+                  <Routes>
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <Dashboard
+                          stravaTokens={stravaTokens}
+                          googleTokens={googleTokens}
+                          userProfile={userProfile}
+                          onLogout={handleLogout}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/profile"
+                      element={
+                        <UserProfile
+                          userProfile={userProfile}
+                          onProfileUpdate={handleProfileUpdate}
+                        />
+                      }
+                    />
+                    {/* Legacy FTP route - redirect to new location */}
+                    <Route
+                      path="/ftp"
+                      element={
+                        <Navigate to="/rider-intelligence/metrics" replace />
+                      }
+                    />
+                    <Route
+                      path="/activities"
+                      element={
+                        <AllActivities
+                          stravaTokens={stravaTokens}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/race-analytics"
+                      element={
+                        <RaceAnalytics
+                          stravaTokens={stravaTokens}
+                        />
+                      }
+                    />
+                    {/* Rider Intelligence Routes */}
+                    <Route
+                      path="/rider-intelligence/profile"
+                      element={
+                        <RiderProfile
+                          stravaTokens={stravaTokens}
+                        />
+                      }
+                    />
+                    {/* Legacy route redirect */}
+                    <Route
+                      path="/rider-profile"
+                      element={
+                        <Navigate to="/rider-intelligence/profile" replace />
+                      }
+                    />
+                    <Route
+                      path="/rider-intelligence/weekly-report"
+                      element={
+                        <WeeklyReport
+                          stravaTokens={stravaTokens}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/rider-intelligence/metrics"
+                      element={
+                        <PerformanceMetrics
+                          stravaTokens={stravaTokens}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/rider-intelligence/form"
+                      element={
+                        <Form
+                          stravaTokens={stravaTokens}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/race-day-predictor"
+                      element={
+                        <RaceDayPredictor
+                          stravaTokens={stravaTokens}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/race-analysis"
+                      element={
+                        <PostRaceAnalysis
+                          stravaTokens={stravaTokens}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/season-planner"
+                      element={<SeasonPlanner />}
+                    />
+                    <Route
+                      path="/rider-intelligence/plan"
+                      element={
+                        <PlanGenerator
+                          stravaTokens={stravaTokens}
+                          googleTokens={googleTokens}
+                          userProfile={userProfile}
+                        />
+                      }
+                    />
+                    {/* Legacy route redirect */}
+                    <Route
+                      path="/plan"
+                      element={
+                        <Navigate to="/rider-intelligence/plan" replace />
+                      }
+                    />
+                    <Route
+                      path="/workout/today"
+                      element={<TodaysWorkout />}
+                    />
+                    <Route
+                      path="/calendar"
+                      element={
+                        <Calendar
+                          stravaTokens={stravaTokens}
+                          googleTokens={googleTokens}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/methodology"
+                      element={<Methodology />}
+                    />
+                    {/* Legacy Form route - redirect to new location */}
+                    <Route
+                      path="/form"
+                      element={
+                        <Navigate to="/rider-intelligence/form" replace />
+                      }
+                    />
+                    <Route
+                      path="/changelog"
+                      element={<ChangelogPage />}
+                    />
+                    <Route
+                      path="/known-issues"
+                      element={<KnownIssuesPage />}
+                    />
+                    <Route
+                      path="/privacy"
+                      element={<PrivacyPolicy />}
+                    />
+                    <Route
+                      path="/terms"
+                      element={<TermsOfService />}
+                    />
+                    <Route
+                      path="/settings"
+                      element={
+                        <Settings
+                          stravaTokens={stravaTokens}
+                          googleTokens={googleTokens}
+                          onLogout={handleLogout}
+                          onStravaAuth={handleStravaAuth}
+                          onGoogleAuth={handleGoogleAuth}
+                        />
+                      }
+                    />
+                  </Routes>
+                </Layout>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+        </Routes>
       </Router>
     </ThemeProvider>
   );

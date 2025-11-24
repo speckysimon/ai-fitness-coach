@@ -207,6 +207,20 @@ CREATE TABLE IF NOT EXISTS workout_comparisons (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Password resets - Password reset tokens for user authentication
+CREATE TABLE IF NOT EXISTS password_resets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  used_at TEXT,
+  request_ip TEXT,
+  user_agent TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
 -- ============================================================================
 -- USER PREFERENCES
 -- ============================================================================
@@ -373,6 +387,12 @@ CREATE INDEX IF NOT EXISTS idx_adaptation_events_user_id ON adaptation_events(us
 CREATE INDEX IF NOT EXISTS idx_plan_adjustments_user_id ON plan_adjustments(user_id);
 CREATE INDEX IF NOT EXISTS idx_wellness_log_user_date ON wellness_log(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_workout_comparisons_user_date ON workout_comparisons(user_id, date);
+
+-- Password reset indexes
+CREATE INDEX IF NOT EXISTS idx_password_resets_user_id ON password_resets(user_id);
+CREATE INDEX IF NOT EXISTS idx_password_resets_token_hash ON password_resets(token_hash);
+CREATE INDEX IF NOT EXISTS idx_password_resets_expires_at ON password_resets(expires_at);
+
 
 -- Preferences indexes
 CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);

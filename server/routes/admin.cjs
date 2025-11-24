@@ -440,13 +440,13 @@ router.post('/api-keys', verifyAdminToken, verifySuperAdmin, async (req, res) =>
       }
     }
 
-    const result = await aiConfigService.storeApiKey({ 
-      keyName, 
-      provider, 
-      apiKey, 
-      clientId, 
-      clientSecret, 
-      redirectUri 
+    const result = await aiConfigService.storeApiKey({
+      keyName,
+      provider,
+      apiKey,
+      clientId,
+      clientSecret,
+      redirectUri
     });
 
     // Log activity (don't log the actual key)
@@ -732,7 +732,7 @@ router.get('/token-usage', verifyAdminToken, async (req, res) => {
   try {
     const stats = await tokenTrackingService.getTokenUsageStats();
     const monthlyCost = await tokenTrackingService.getMonthlyCost();
-    
+
     res.json({
       success: true,
       usage: stats,
@@ -751,13 +751,13 @@ router.get('/token-usage', verifyAdminToken, async (req, res) => {
 router.get('/available-models', verifyAdminToken, async (req, res) => {
   try {
     const models = await tokenTrackingService.getAvailableModels();
-    
+
     // Group by provider
     const grouped = {
       openai: models.filter(m => m.model_provider === 'openai'),
       gemini: models.filter(m => m.model_provider === 'gemini')
     };
-    
+
     res.json({
       success: true,
       models: grouped
@@ -776,7 +776,7 @@ router.get('/available-models', verifyAdminToken, async (req, res) => {
 router.post('/update-model-pricing', verifyAdminToken, verifySuperAdmin, async (req, res) => {
   try {
     await modelPricingCron.triggerManualUpdate();
-    
+
     // Log activity
     await adminService.logActivity({
       adminId: req.admin.id,
@@ -784,7 +784,7 @@ router.post('/update-model-pricing', verifyAdminToken, verifySuperAdmin, async (
       resourceType: 'system',
       ipAddress: req.ip,
     });
-    
+
     res.json({
       success: true,
       message: 'Model pricing updated successfully'
@@ -803,7 +803,7 @@ router.post('/update-model-pricing', verifyAdminToken, verifySuperAdmin, async (
 router.post('/refresh-api-keys', verifyAdminToken, verifySuperAdmin, async (req, res) => {
   try {
     await apiKeyLoader.refreshKeys();
-    
+
     // Log activity
     await adminService.logActivity({
       adminId: req.admin.id,
@@ -811,7 +811,7 @@ router.post('/refresh-api-keys', verifyAdminToken, verifySuperAdmin, async (req,
       resourceType: 'system',
       ipAddress: req.ip,
     });
-    
+
     res.json({
       success: true,
       message: 'API keys refreshed successfully',
@@ -1063,4 +1063,113 @@ Return JSON with analysis and recommendations.`,
   }
 });
 
+// ============================================================================
+// ADMIN PASSWORD RESET
+// ============================================================================
+
+const rateLimit = require('express-rate-limit');
+const adminPasswordResetService = require('../services/adminPasswordResetService.cjs');
+
+// Rate limiter: 3 requests per 15 minutes per IP
+const adminForgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // 3 requests per window
+  message: 'Too many password reset requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * POST /api/admin/forgot-password
+ * Request admin password reset email
+ */
+router.post('/forgot-password', adminForgotPasswordLimiter, async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  try {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'] || '';
+
+    await adminPasswordResetService.requestPasswordReset(email, ipAddress, userAgent, frontendUrl);
+
+    // IMPORTANT: Always return success to prevent email enumeration
+    res.json({
+      success: true,
+      message: 'If an admin account exists with that email, a password reset link has been sent.',
+    });
+  } catch (error) {
+    console.error('Admin forgot password error:', error);
+    // Still return success to prevent email enumeration
+    res.json({
+      success: true,
+      message: 'If an admin account exists with that email, a password reset link has been sent.',
+    });
+  }
+});
+
+/**
+ * GET /api/admin/validate-reset-token/:token
+ * Validate admin password reset token
+ */
+router.get('/validate-reset-token/:token', async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const tokenData = await adminPasswordResetService.validateResetToken(token);
+
+    if (tokenData) {
+      res.json({ success: true, valid: true });
+    } else {
+      res.status(400).json({ success: false, valid: false, error: 'Invalid or expired token' });
+    }
+  } catch (error) {
+    console.error('Validate admin reset token error:', error);
+    res.status(500).json({ error: 'Failed to validate token' });
+  }
+});
+
+/**
+ * POST /api/admin/reset-password
+ * Reset admin password with token
+ */
+router.post('/reset-password', async (req, res) => {
+  const { token, password, confirmPassword } = req.body;
+
+  if (!token || !password || !confirmPassword) {
+    return res.status(400).json({ error: 'Token, password, and confirmation are required' });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ error: 'Passwords do not match' });
+  }
+
+  // Password validation
+  if (password.length < 10) {
+    return res.status(400).json({ error: 'Password must be at least 10 characters long' });
+  }
+
+  try {
+    await adminPasswordResetService.resetPassword(token, password);
+
+    res.json({
+      success: true,
+      message: 'Admin password reset successful. You can now log in with your new password.',
+    });
+  } catch (error) {
+    console.error('Admin reset password error:', error);
+
+    if (error.message === 'Invalid or expired token') {
+      res.status(400).json({ error: 'Invalid or expired token' });
+    } else {
+      res.status(500).json({ error: 'Failed to reset password' });
+    }
+  }
+});
+
 module.exports = router;
+

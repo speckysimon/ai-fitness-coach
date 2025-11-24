@@ -10,7 +10,7 @@ const Login = ({ onLogin }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isRegister, setIsRegister] = useState(false);
-  
+
   // Check if we should show register form from URL parameter
   useEffect(() => {
     if (searchParams.get('register') === 'true') {
@@ -56,7 +56,7 @@ const Login = ({ onLogin }) => {
 
     try {
       const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
-      const body = isRegister 
+      const body = isRegister
         ? { email: formData.email, password: formData.password, name: formData.name }
         : { email: formData.email, password: formData.password };
 
@@ -78,10 +78,10 @@ const Login = ({ onLogin }) => {
         if (isRegister) {
           trackFunnel.signupStarted();
         }
-        
+
         // Save session token
         localStorage.setItem('session_token', data.sessionToken);
-        
+
         // Save user data
         const userProfile = {
           email: data.user.email,
@@ -92,17 +92,17 @@ const Login = ({ onLogin }) => {
           gender: data.user.profile?.gender || null,
           createdAt: data.user.createdAt,
         };
-        
+
         localStorage.setItem('current_user', JSON.stringify(userProfile));
-        
+
         // Pass tokens to parent
         const tokens = {
           stravaTokens: data.user.stravaTokens,
           googleTokens: data.user.googleTokens
         };
-        
+
         onLogin(userProfile, tokens);
-        
+
         // Navigate based on registration or login
         if (isRegister) {
           navigate('/profile-setup');
@@ -208,6 +208,14 @@ const Login = ({ onLogin }) => {
                       <Eye className="w-5 h-5" />
                     )}
                   </button>
+                </div>
+                <div className="text-right">
+                  <a
+                    href="/forgot-password"
+                    className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                  >
+                    Forgot password?
+                  </a>
                 </div>
               </div>
 

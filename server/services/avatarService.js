@@ -38,7 +38,7 @@ class AvatarService {
   }
 
   // Process and save avatar
-  async saveAvatar(file, userId) {
+  async saveAvatar(file) {
     this.validateFile(file);
 
     try {

@@ -26,7 +26,7 @@ class AdminService {
            VALUES (?, ?, ?, ?)`,
           [email, passwordHash, name, isSuperAdmin ? 1 : 0]
         );
-        
+
         resolve({ id: result.lastInsertRowid, email, name });
       } catch (err) {
         if (err.message.includes('UNIQUE constraint failed')) {
@@ -48,18 +48,18 @@ class AdminService {
           `SELECT * FROM admin_users WHERE email = ?`,
           [email]
         );
-        
+
         if (!admin) {
           reject(new Error('Invalid credentials'));
           return;
         }
-        
+
         const isValid = await bcrypt.compare(password, admin.password_hash);
         if (!isValid) {
           reject(new Error('Invalid credentials'));
           return;
         }
-        
+
         // Update last login
         adminDb.run(
           `UPDATE admin_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?`,
@@ -116,7 +116,7 @@ class AdminService {
            FROM admin_users WHERE id = ?`,
           [id]
         );
-        
+
         if (!admin) {
           reject(new Error('Admin not found'));
         } else {
@@ -132,6 +132,33 @@ class AdminService {
   }
 
   /**
+   * Get admin by email
+   */
+  async getAdminByEmail(email) {
+    return new Promise((resolve, reject) => {
+      try {
+        const admin = adminDb.get(
+          `SELECT id, email, name, role, is_super_admin, last_login_at, created_at 
+           FROM admin_users WHERE email = ?`,
+          [email]
+        );
+
+        if (!admin) {
+          resolve(null); // Return null instead of rejecting for password reset flow
+        } else {
+          resolve({
+            ...admin,
+            isSuperAdmin: admin.is_super_admin === 1,
+          });
+        }
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+
+  /**
    * List all admins
    */
   async listAdmins() {
@@ -141,7 +168,7 @@ class AdminService {
           `SELECT id, email, name, role, is_super_admin, last_login_at, created_at 
            FROM admin_users ORDER BY created_at DESC`
         );
-        
+
         resolve(
           admins.map((admin) => ({
             ...admin,
@@ -182,7 +209,7 @@ class AdminService {
            WHERE id = ?`,
           values
         );
-        
+
         if (result.changes === 0) {
           reject(new Error('Admin not found'));
         } else {
@@ -204,7 +231,7 @@ class AdminService {
           `DELETE FROM admin_users WHERE id = ?`,
           [id]
         );
-        
+
         if (result.changes === 0) {
           reject(new Error('Admin not found'));
         } else {
@@ -228,7 +255,7 @@ class AdminService {
            VALUES (?, ?, ?, ?, ?, ?)`,
           [adminId, action, resourceType, resourceId, JSON.stringify(details), ipAddress]
         );
-        
+
         resolve({ id: result.lastInsertRowid });
       } catch (err) {
         reject(err);
@@ -258,7 +285,7 @@ class AdminService {
     return new Promise((resolve, reject) => {
       try {
         const logs = adminDb.all(query, params);
-        
+
         resolve(
           logs.map((log) => ({
             ...log,

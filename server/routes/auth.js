@@ -370,7 +370,7 @@ router.post('/avatar', upload.single('avatar'), async (req, res) => {
     });
   } catch (error) {
     logger.error('Avatar upload error:', error);
-    
+
     // Clean up temp file on error
     if (req.file && req.file.path) {
       try {
@@ -379,7 +379,7 @@ router.post('/avatar', upload.single('avatar'), async (req, res) => {
         console.error('Error cleaning up temp file:', cleanupError);
       }
     }
-    
+
     res.status(500).json({ error: error.message || 'Failed to upload avatar' });
   }
 });
@@ -421,4 +421,114 @@ router.delete('/avatar', (req, res) => {
   }
 });
 
+// ============================================================================
+// PASSWORD RESET
+// ============================================================================
+
+import rateLimit from 'express-rate-limit';
+import passwordResetService from '../services/passwordResetService.js';
+import emailService from '../services/emailService.js';
+
+// Rate limiter: 3 requests per 15 minutes per IP
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // 3 requests per window
+  message: 'Too many password reset requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Request password reset email
+ */
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  try {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'] || '';
+
+    await passwordResetService.requestPasswordReset(email, ipAddress, userAgent, frontendUrl);
+
+    // IMPORTANT: Always return success to prevent email enumeration
+    res.json({
+      success: true,
+      message: 'If an account exists with that email, a password reset link has been sent.',
+    });
+  } catch (error) {
+    logger.error('Forgot password error:', error);
+    // Still return success to prevent email enumeration
+    res.json({
+      success: true,
+      message: 'If an account exists with that email, a password reset link has been sent.',
+    });
+  }
+});
+
+/**
+ * GET /api/auth/validate-reset-token/:token
+ * Validate password reset token
+ */
+router.get('/validate-reset-token/:token', async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const tokenData = await passwordResetService.validateResetToken(token);
+
+    if (tokenData) {
+      res.json({ success: true, valid: true });
+    } else {
+      res.status(400).json({ success: false, valid: false, error: 'Invalid or expired token' });
+    }
+  } catch (error) {
+    logger.error('Validate reset token error:', error);
+    res.status(500).json({ error: 'Failed to validate token' });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password with token
+ */
+router.post('/reset-password', async (req, res) => {
+  const { token, password, confirmPassword } = req.body;
+
+  if (!token || !password || !confirmPassword) {
+    return res.status(400).json({ error: 'Token, password, and confirmation are required' });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ error: 'Passwords do not match' });
+  }
+
+  // Password validation
+  if (password.length < 10) {
+    return res.status(400).json({ error: 'Password must be at least 10 characters long' });
+  }
+
+  try {
+    await passwordResetService.resetPassword(token, password);
+
+    res.json({
+      success: true,
+      message: 'Password reset successful. You can now log in with your new password.',
+    });
+  } catch (error) {
+    logger.error('Reset password error:', error);
+
+    if (error.message === 'Invalid or expired token') {
+      res.status(400).json({ error: 'Invalid or expired token' });
+    } else {
+      res.status(500).json({ error: 'Failed to reset password' });
+    }
+  }
+});
+
 export default router;
+
