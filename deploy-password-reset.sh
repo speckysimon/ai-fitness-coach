@@ -17,7 +17,7 @@ git pull origin main
 
 # Step 3: Install dependencies
 echo "📦 Installing dependencies..."
-npm install --production
+npm install
 
 # Step 4: Verify existing data (pre-migration check)
 echo "🔍 Verifying existing data..."
