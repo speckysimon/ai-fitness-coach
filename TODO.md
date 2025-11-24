@@ -2,6 +2,22 @@
 
 ## 🔴 HIGH PRIORITY - Current Sprint
 
+### 0. Password Reset Feature ✅ COMPLETED (Nov 24, 2025)
+- [x] **Implemented email-based password recovery for user and admin portals**
+  - [x] Created email service with Nodemailer and HTML templates
+  - [x] Built password reset services for user and admin
+  - [x] Added secure token generation (hashed, 1hr expiration, single-use)
+  - [x] Implemented API endpoints with rate limiting (3/15min)
+  - [x] Created ForgotPassword and ResetPassword pages for user app
+  - [x] Created AdminForgotPassword and AdminResetPassword pages
+  - [x] Added forgot password links to Login and AdminLogin
+  - [x] Created database migrations for password_resets tables
+  - [x] Added email configuration to .env.example
+  - [x] Implemented session revocation on password reset
+  - [x] Built password strength indicators and requirement checkers
+  - [x] Created safe deployment script with data integrity checks
+  - [x] Deployed to production successfully
+
 ### 0. Production Deployment Recovery ✅ COMPLETED (Nov 19, 2025)
 - [x] **Fixed critical deployment issues from Nov 18 failure**
   - [x] Fixed API Keys service (`db.run is not a function` error)

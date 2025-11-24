@@ -4,6 +4,49 @@ All notable changes to AI Fitness Coach will be documented in this file.
 
 ## [Unreleased]
 
+### ✨ New Features
+
+#### **Email-Based Password Reset** ⭐ (Nov 24, 2025)
+- **Complete password recovery system for user and admin portals**
+  - Forgot password functionality on both Login and AdminLogin pages
+  - Beautiful email templates with HTML/plain text versions
+  - Secure reset flow with token validation
+  - Password strength indicators and requirements checklist
+  - Mobile responsive and dark mode compatible
+- **Security Features**:
+  - 48-character cryptographically secure tokens (bcrypt hashed)
+  - 1-hour token expiration with single-use enforcement
+  - Rate limiting: 3 requests per 15 minutes per IP
+  - Anti-enumeration protection (generic success messages)
+  - Session revocation on password reset
+  - Audit trail (IP address and user agent logging)
+- **Email Service** (`emailService.js`):
+  - Nodemailer SMTP integration with connection pooling
+  - Professional HTML/text email templates
+  - Separate templates for user and admin resets
+  - Gmail SMTP configuration (support@riderlabs.io)
+- **Backend API Endpoints**:
+  - User: POST `/api/auth/forgot-password`, GET `/api/auth/validate-reset-token/:token`, POST `/api/auth/reset-password`
+  - Admin: POST `/api/admin/forgot-password`, GET `/api/admin/validate-reset-token/:token`, POST `/api/admin/reset-password`
+- **Database Tables**:
+  - `password_resets` - User password reset tokens
+  - `admin_password_resets` - Admin password reset tokens
+  - Both in `server/fitness-coach.db` with indexes for performance
+- **Frontend Pages**:
+  - `ForgotPassword.jsx` - User email submission
+  - `ResetPassword.jsx` - User password reset with strength indicator
+  - `AdminForgotPassword.jsx` - Admin email submission with security notice
+  - `AdminResetPassword.jsx` - Admin password reset
+- **Deployment**:
+  - Created `deploy-password-reset.sh` - Safe deployment script
+  - Automatic database backups before migrations
+  - Data integrity verification (user/admin counts)
+  - Migration execution with rollback protection
+- **Configuration**:
+  - Added email settings to `.env.example`
+  - `FRONTEND_URL` for reset link generation
+  - Gmail SMTP credentials (app password required)
+
 ### 🎯 Next Steps
 - Health check endpoint for deployment verification
 - Consolidate databases (merge database.sqlite into fitness-coach.db)
