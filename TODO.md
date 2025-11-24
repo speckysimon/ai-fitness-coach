@@ -56,6 +56,15 @@
   - [ ] Test on mobile devices (touch interactions)
   - [ ] Check console for any errors during flow
 
+### 2. Branding - Light/Dark Mode Support
+- [ ] **Create dark mode variants of logo and favicon**
+  - [ ] Design logo-dark.svg (optimized for dark backgrounds)
+  - [ ] Design favicon-dark.svg (optimized for dark mode browser tabs)
+  - [ ] Implement theme-aware logo switching (detect dark mode)
+  - [ ] Update Layout.jsx to swap logo based on theme
+  - [ ] Test logo visibility in both light and dark modes
+  - [ ] Ensure favicon changes with system dark mode preference
+
 ### 1. Theme System Integration ✅ COMPLETED (Nov 5, 2025)
 - [x] **Connect main site themes to admin backend**
   - [x] Create theme service (`src/lib/themeService.js`)
