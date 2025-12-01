@@ -36,16 +36,16 @@ function generateSessionToken() {
 // User operations
 export const userDb = {
   // Create new user
-  create: (email, password, name) => {
+  create: (email, password, name, isDemo = false) => {
     const hashedPassword = hashPassword(password);
     const now = new Date().toISOString();
-    
+
     const stmt = db.prepare(`
-      INSERT INTO users (email, password, name, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO users (email, password, name, is_demo, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
-    
-    const result = stmt.run(email, hashedPassword, name, now, now);
+
+    const result = stmt.run(email, hashedPassword, name, isDemo ? 1 : 0, now, now);
     return result.lastInsertRowid;
   },
 
@@ -65,7 +65,7 @@ export const userDb = {
   updateProfile: (userId, updates) => {
     const fields = [];
     const values = [];
-    
+
     if (updates.name !== undefined) {
       fields.push('name = ?');
       values.push(updates.name);
@@ -86,15 +86,15 @@ export const userDb = {
       fields.push('gender = ?');
       values.push(updates.gender);
     }
-    
+
     fields.push('updated_at = ?');
     values.push(new Date().toISOString());
     values.push(userId);
-    
+
     const stmt = db.prepare(`
       UPDATE users SET ${fields.join(', ')} WHERE id = ?
     `);
-    
+
     return stmt.run(...values);
   },
 
@@ -102,10 +102,10 @@ export const userDb = {
   verifyPassword: (email, password) => {
     const user = userDb.findByEmail(email);
     if (!user) return null;
-    
+
     const hashedPassword = hashPassword(password);
     if (user.password !== hashedPassword) return null;
-    
+
     return user;
   },
 
@@ -114,7 +114,7 @@ export const userDb = {
     const stmt = db.prepare(`
       UPDATE users SET avatar_url = ?, updated_at = ? WHERE id = ?
     `);
-    
+
     return stmt.run(avatarUrl, new Date().toISOString(), userId);
   }
 };
@@ -126,12 +126,12 @@ export const sessionDb = {
     const token = generateSessionToken();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
-    
+
     const stmt = db.prepare(`
       INSERT INTO sessions (user_id, token, created_at, expires_at)
       VALUES (?, ?, ?, ?)
     `);
-    
+
     stmt.run(userId, token, now.toISOString(), expiresAt.toISOString());
     return token;
   },
@@ -166,7 +166,7 @@ export const stravaTokenDb = {
   upsert: (userId, tokens) => {
     const now = new Date().toISOString();
     const athleteData = tokens.athlete ? JSON.stringify(tokens.athlete) : null;
-    
+
     const stmt = db.prepare(`
       INSERT INTO strava_tokens (user_id, access_token, refresh_token, expires_at, athlete_id, athlete_data, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -178,7 +178,7 @@ export const stravaTokenDb = {
         athlete_data = excluded.athlete_data,
         updated_at = excluded.updated_at
     `);
-    
+
     return stmt.run(
       userId,
       tokens.access_token,
@@ -194,11 +194,11 @@ export const stravaTokenDb = {
   findByUserId: (userId) => {
     const stmt = db.prepare('SELECT * FROM strava_tokens WHERE user_id = ?');
     const row = stmt.get(userId);
-    
+
     if (row && row.athlete_data) {
       row.athlete = JSON.parse(row.athlete_data);
     }
-    
+
     return row;
   },
 
@@ -214,7 +214,7 @@ export const googleTokenDb = {
   // Save or update Google tokens
   upsert: (userId, tokens) => {
     const now = new Date().toISOString();
-    
+
     const stmt = db.prepare(`
       INSERT INTO google_tokens (user_id, access_token, refresh_token, expires_at, updated_at)
       VALUES (?, ?, ?, ?, ?)
@@ -224,7 +224,7 @@ export const googleTokenDb = {
         expires_at = excluded.expires_at,
         updated_at = excluded.updated_at
     `);
-    
+
     return stmt.run(
       userId,
       tokens.access_token,
@@ -252,7 +252,7 @@ export const raceTagDb = {
   // Set race tag for an activity
   setRaceTag: (userId, activityId, isRace, raceType = null) => {
     const now = new Date().toISOString();
-    
+
     if (isRace) {
       const stmt = db.prepare(`
         INSERT INTO race_tags (user_id, activity_id, is_race, race_type, created_at)
@@ -272,7 +272,7 @@ export const raceTagDb = {
   getAllForUser: (userId) => {
     const stmt = db.prepare('SELECT activity_id, race_type FROM race_tags WHERE user_id = ? AND is_race = 1');
     const rows = stmt.all(userId);
-    
+
     // Return as object with activity_id as keys and race_type as values
     const raceTags = {};
     rows.forEach(row => {
@@ -313,7 +313,7 @@ export const adaptationEventDb = {
       INSERT INTO adaptation_events (user_id, event_type, severity, start_date, end_date, category, notes, data_json, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    
+
     const result = stmt.run(
       userId,
       eventData.type,
@@ -325,7 +325,7 @@ export const adaptationEventDb = {
       eventData.data ? JSON.stringify(eventData.data) : null,
       now
     );
-    
+
     return result.lastInsertRowid;
   },
 
@@ -356,7 +356,7 @@ export const adaptationEventDb = {
   update: (eventId, updates) => {
     const fields = [];
     const values = [];
-    
+
     if (updates.endDate !== undefined) {
       fields.push('end_date = ?');
       values.push(updates.endDate);
@@ -369,18 +369,18 @@ export const adaptationEventDb = {
       fields.push('severity = ?');
       values.push(updates.severity);
     }
-    
+
     if (fields.length === 0) {
       console.log('No fields to update');
       return { changes: 0 };
     }
-    
+
     values.push(eventId);
-    
+
     const stmt = db.prepare(`
       UPDATE adaptation_events SET ${fields.join(', ')} WHERE id = ?
     `);
-    
+
     return stmt.run(...values);
   },
 
@@ -400,7 +400,7 @@ export const planAdjustmentDb = {
       INSERT INTO plan_adjustments (user_id, adaptation_event_id, adjustment_type, changes_json, ai_reasoning, created_at)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
-    
+
     const result = stmt.run(
       userId,
       adjustmentData.eventId || null,
@@ -409,7 +409,7 @@ export const planAdjustmentDb = {
       adjustmentData.reasoning || null,
       now
     );
-    
+
     return result.lastInsertRowid;
   },
 
@@ -424,7 +424,7 @@ export const planAdjustmentDb = {
       LIMIT ?
     `);
     const rows = stmt.all(userId, limit);
-    
+
     return rows.map(row => ({
       ...row,
       changes: JSON.parse(row.changes_json)
@@ -439,7 +439,7 @@ export const planAdjustmentDb = {
       ORDER BY created_at DESC
     `);
     const rows = stmt.all(userId);
-    
+
     return rows.map(row => ({
       ...row,
       changes: JSON.parse(row.changes_json)
@@ -484,7 +484,7 @@ export const wellnessLogDb = {
         motivation = excluded.motivation,
         notes = excluded.notes
     `);
-    
+
     return stmt.run(
       userId,
       wellnessData.date,
@@ -529,7 +529,7 @@ export const workoutComparisonDb = {
       (user_id, date, planned_tss, actual_tss, planned_duration, actual_duration, planned_power, actual_power, deviation_severity, strava_activity_id, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    
+
     return stmt.run(
       userId,
       comparisonData.date,

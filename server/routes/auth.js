@@ -99,6 +99,7 @@ router.post('/login', (req, res) => {
       user: {
         email: user.email,
         name: user.name,
+        is_demo: !!user.is_demo,
         profile: {
           age: user.age,
           height: user.height,
@@ -163,6 +164,7 @@ router.get('/me', (req, res) => {
       user: {
         email: user.email,
         name: user.name,
+        is_demo: !!user.is_demo,
         avatar_url: user.avatar_url,
         profile: {
           age: user.age,

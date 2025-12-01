@@ -114,6 +114,7 @@ function App() {
           id: data.user.id, // Add user ID
           email: data.user.email,
           name: data.user.name,
+          is_demo: data.user.is_demo || false,
           age: data.user.profile?.age,
           height: data.user.profile?.height,
           weight: data.user.profile?.weight,
@@ -536,6 +537,7 @@ function App() {
                         <Settings
                           stravaTokens={stravaTokens}
                           googleTokens={googleTokens}
+                          userProfile={userProfile}
                           onLogout={handleLogout}
                           onStravaAuth={handleStravaAuth}
                           onGoogleAuth={handleGoogleAuth}

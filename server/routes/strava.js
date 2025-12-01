@@ -107,6 +107,34 @@ router.get('/callback', async (req, res) => {
 router.get('/activities', async (req, res) => {
   const { access_token, before, after, page = 1, per_page = 200, user_id } = req.query;
 
+  // CHECK FOR DEMO USER
+  if (user_id) {
+    try {
+      const user = db.users.findById(user_id);
+      if (user && user.is_demo) {
+        console.log(`🎨 Serving mock activities for demo user ${user_id}`);
+        const mockStravaService = require('../services/mockStravaData');
+
+        // Get user profile for better mock data
+        const userPrefs = db.userPreferences.findByUserId(user_id) || {};
+
+        const mockActivities = mockStravaService.generateMockActivities({
+          ftp: userPrefs.ftp || 250,
+          weight: user.weight || 75
+        });
+
+        // Filter by page/per_page if needed (simplified for demo)
+        const start = (page - 1) * per_page;
+        const end = start + parseInt(per_page);
+        const paginatedActivities = mockActivities.slice(start, end);
+
+        return res.json(paginatedActivities);
+      }
+    } catch (err) {
+      console.error('Error checking demo user:', err);
+    }
+  }
+
   if (!access_token) {
     return res.status(401).json({ error: 'Access token required' });
   }
@@ -166,7 +194,23 @@ router.get('/activities/:id', async (req, res) => {
 
 // Get athlete stats
 router.get('/athlete/stats', async (req, res) => {
-  const { access_token, athlete_id } = req.query;
+  const { access_token, athlete_id, user_id } = req.query;
+
+  // CHECK FOR DEMO USER
+  if (user_id) {
+    try {
+      const user = db.users.findById(user_id);
+      if (user && user.is_demo) {
+        console.log(`🎨 Serving mock stats for demo user ${user_id}`);
+        const mockStravaService = require('../services/mockStravaData');
+        const mockActivities = mockStravaService.generateMockActivities();
+        const stats = mockStravaService.getMockAthleteStats(mockActivities);
+        return res.json(stats);
+      }
+    } catch (err) {
+      console.error('Error checking demo user:', err);
+    }
+  }
 
   if (!access_token || !athlete_id) {
     return res.status(401).json({ error: 'Access token and athlete ID required' });

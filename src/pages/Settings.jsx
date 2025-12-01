@@ -11,7 +11,7 @@ import StravaWelcomeModal from '../components/StravaWelcomeModal';
 import { getUserTimezone, setUserTimezone, getCommonTimezones, getCurrentDateTime } from '../lib/timezone';
 import { preferencesService } from '../services/preferencesService';
 
-const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogleAuth }) => {
+const Settings = ({ stravaTokens, googleTokens, userProfile, onLogout, onStravaAuth, onGoogleAuth }) => {
   const [connecting, setConnecting] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -313,14 +313,30 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Strava</h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Activity tracking and history</p>
-                {stravaTokens && (
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Strava</h3>
+                  {userProfile?.is_demo && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                      Demo Mode
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                  {userProfile?.is_demo
+                    ? "Using simulated activity data for testing"
+                    : "Activity tracking and history"}
+                </p>
+                {stravaTokens && !userProfile?.is_demo && (
                   <StravaAttribution className="mt-1" />
                 )}
               </div>
             </div>
-            {stravaTokens ? (
+            {userProfile?.is_demo ? (
+              <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                <CheckCircle2 className="w-5 h-5" />
+                <span className="text-sm font-medium">Mock Data Active</span>
+              </div>
+            ) : stravaTokens ? (
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle2 className="w-5 h-5" />
@@ -518,8 +534,8 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                 onClick={saveLongTermGoal}
                 disabled={!goalChanged || savingGoal}
                 className={`ml-4 min-h-[44px] ${goalChanged
-                    ? 'bg-blue-600 hover:bg-blue-700'
-                    : 'bg-gray-300 cursor-not-allowed'
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : 'bg-gray-300 cursor-not-allowed'
                   }`}
               >
                 {savingGoal ? 'Saving...' : goalChanged ? 'Save Goal' : 'Saved'}

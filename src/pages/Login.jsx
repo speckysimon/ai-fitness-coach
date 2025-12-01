@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/Button';
 import logger from '../lib/logger';
 import { trackFunnel } from '../lib/analytics';
+import DemoUserCreator from '../components/DemoUserCreator';
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -299,6 +300,23 @@ const Login = ({ onLogin }) => {
             Connect with Strava and Google Calendar after signing in
           </p>
         </div>
+
+        {/* Demo User Creator (Dev/Demo only) */}
+        {(process.env.NODE_ENV === 'development' || searchParams.get('demo') === 'true') && (
+          <div className="mt-8">
+            <DemoUserCreator
+              onUserCreated={(user) => {
+                setFormData(prev => ({
+                  ...prev,
+                  email: user.email,
+                  password: 'password123'
+                }));
+                setError('Demo user created! Click Sign In to continue.');
+                setIsRegister(false);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

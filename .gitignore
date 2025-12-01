@@ -44,3 +44,4 @@ logs/
 # Tokens
 tokens/
 *.json.credentials
+server/fitness-coach.db.backup

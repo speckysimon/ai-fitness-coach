@@ -16,6 +16,7 @@ import feedbackRoutes from './routes/feedback.js';
 import manualActivityRoutes from './routes/manualActivities.js';
 import seasonRacesRoutes from './routes/seasonRaces.js';
 import coachRoutes from './routes/coach.js';
+import demoRoutes from './routes/demo.js';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
@@ -62,6 +63,7 @@ app.use('/api/plan-templates', planTemplateRoutes);
 app.use('/api/admin/theme-configs', themeConfigRoutes);
 app.use('/api/admin/ideas', ideasRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/demo', demoRoutes);
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -74,7 +76,7 @@ app.get('/api/health', (req, res) => {
 // Serve static files in production
 if (isProduction) {
   const distPath = path.join(__dirname, '../dist');
-  
+
   // Serve static files with proper headers
   app.use(express.static(distPath, {
     setHeaders: (res, filePath) => {
@@ -86,13 +88,13 @@ if (isProduction) {
       }
     }
   }));
-  
+
   // Handle React routing - return all requests to React app
   // EXCEPT requests for static assets (js, css, images, etc.)
   app.get('*', (req, res, next) => {
     // Don't intercept requests for static files
-    if (req.path.startsWith('/assets/') || 
-        req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
+    if (req.path.startsWith('/assets/') ||
+      req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
       return next();
     }
     res.sendFile(path.join(distPath, 'index.html'));
@@ -105,10 +107,10 @@ app.listen(PORT, async () => {
   if (isProduction) {
     console.log(`🌐 Serving static files from dist/`);
   }
-  
+
   // Load API keys from database
   await apiKeyLoader.loadApiKeys();
-  
+
   // Initialize model pricing cron job
   modelPricingCron.initializeModelPricingCron();
 });

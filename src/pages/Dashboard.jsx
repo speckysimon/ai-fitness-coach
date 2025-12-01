@@ -333,6 +333,37 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     }
     setError(null);
 
+    // CHECK FOR DEMO USER - Skip Strava and use mock data
+    if (userProfile?.is_demo) {
+      console.log('🎨 [Dashboard] Demo user detected - loading mock data');
+      try {
+        const userId = userProfile.id;
+
+        // Fetch mock activities from demo endpoint
+        const activitiesResponse = await fetch(`/api/strava/activities?user_id=${userId}`);
+
+        if (!activitiesResponse.ok) {
+          throw new Error('Failed to fetch demo activities');
+        }
+
+        const activitiesData = await activitiesResponse.json();
+        console.log('✅ [Dashboard] Fetched', activitiesData.length, 'demo activities');
+
+        // Process the mock data (same as regular Strava data)
+        await processActivitiesData(activitiesData, null);
+
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      } catch (error) {
+        console.error('Error loading demo data:', error);
+        setError(error.message || 'Failed to load demo data');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+    }
+
     // Try to load from cache first (unless force refresh)
     if (!forceRefresh) {
       const cachedActivities = localStorage.getItem('cached_activities_recent');
