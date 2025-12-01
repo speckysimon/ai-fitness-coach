@@ -23,7 +23,7 @@ export const eventTypeToRiderType = {
   'Gran Fondo': {
     targetType: 'All Rounder',
     icon: '🏆',
-    color: 'from-purple-400 to-purple-600',
+    color: 'from-indigo-400 to-indigo-600',
     description: 'Developing balanced abilities across all terrains',
     characteristics: [
       'Versatile across all terrains',
@@ -61,7 +61,7 @@ export const eventTypeToRiderType = {
   'Time Trial': {
     targetType: 'Time Trialist',
     icon: '⏱️',
-    color: 'from-purple-400 to-purple-600',
+    color: 'from-indigo-400 to-indigo-600',
     description: 'Building sustained threshold power and aerodynamic efficiency',
     characteristics: [
       'High sustained power at threshold',
@@ -146,7 +146,7 @@ export const calculateTrainingFocus = (plan, completedSessions) => {
       // Handle both old boolean format and new object format
       if (completion && (completion === true || completion.completed)) {
         completedCount++;
-        
+
         // Apply weighting based on completion type
         let weight = 1.0;
         if (completion.manualOverride) {
@@ -155,7 +155,7 @@ export const calculateTrainingFocus = (plan, completedSessions) => {
           weight = completion.alignmentScore / 100; // Auto-matches use their score
         }
         // Manual marks without override count as 100%
-        
+
         completedFocus[sessionType] = (completedFocus[sessionType] || 0) + weight;
       }
     });
@@ -166,11 +166,11 @@ export const calculateTrainingFocus = (plan, completedSessions) => {
   const completedPercentages = {};
 
   Object.keys(focusDistribution).forEach(type => {
-    plannedPercentages[type] = totalSessions > 0 
-      ? Math.round((plannedFocus[type] / totalSessions) * 100) 
+    plannedPercentages[type] = totalSessions > 0
+      ? Math.round((plannedFocus[type] / totalSessions) * 100)
       : 0;
-    completedPercentages[type] = totalSessions > 0 
-      ? Math.round((completedFocus[type] / totalSessions) * 100) 
+    completedPercentages[type] = totalSessions > 0
+      ? Math.round((completedFocus[type] / totalSessions) * 100)
       : 0;
   });
 
@@ -209,7 +209,7 @@ export const calculateRiderTypeProgress = (eventType, trainingFocus) => {
   Object.keys(typeMapping).forEach(sessionType => {
     const plannedPercentage = plannedPercentages[sessionType] || 0;
     const completedPercentage = completedPercentages[sessionType] || 0;
-    
+
     if (plannedPercentage > 0) {
       // Calculate how much of this session type has been completed
       const completionRatio = Math.min(completedPercentage / plannedPercentage, 1);

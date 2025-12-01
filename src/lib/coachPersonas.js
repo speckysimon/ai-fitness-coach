@@ -47,7 +47,7 @@ const FALLBACK_PERSONAS = [
     description: 'Tactical coach who plans every detail for race success',
     tone: 'strategic',
     catchphrase: 'Every session has a purpose',
-    color: 'from-purple-400 to-pink-500',
+    color: 'from-indigo-400 to-pink-500',
     personality: 'Focused, goal-oriented, and strategic. Emphasizes race preparation, pacing strategies, and long-term planning.'
   },
   {
@@ -74,7 +74,7 @@ export const fetchCoachPersonas = async () => {
     // Check cache first
     const cached = localStorage.getItem('coach_personas_cache');
     const cacheTime = localStorage.getItem('coach_personas_cache_time');
-    
+
     if (cached && cacheTime) {
       const age = Date.now() - parseInt(cacheTime);
       if (age < CACHE_DURATION) {
@@ -85,14 +85,14 @@ export const fetchCoachPersonas = async () => {
     // Fetch from API
     const response = await fetch('/api/personas');
     const data = await response.json();
-    
+
     if (data.success && data.personas) {
       // Cache the result
       localStorage.setItem('coach_personas_cache', JSON.stringify(data.personas));
       localStorage.setItem('coach_personas_cache_time', Date.now().toString());
       return data.personas;
     }
-    
+
     // Fallback to default personas
     return FALLBACK_PERSONAS;
   } catch (error) {
@@ -145,7 +145,7 @@ export const setUserCoach = (coachId) => {
 // Get coach-specific message formatting
 export const formatCoachMessage = (message, coachId) => {
   const coach = getCoachPersona(coachId);
-  
+
   // Add coach-specific flair to messages
   switch (coach.tone) {
     case 'enthusiastic':

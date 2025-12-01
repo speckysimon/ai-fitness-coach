@@ -67,7 +67,7 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
     try {
       const activity = dayActivities.find(a => a.id === selectedActivity);
       const sessionToken = localStorage.getItem('session_token');
-      
+
       const response = await fetch('/api/training/workout/analyze', {
         method: 'POST',
         headers: {
@@ -96,16 +96,16 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-1">Activity Matching</h2>
@@ -116,14 +116,13 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
               })()}</p>
               <div className="flex items-center gap-2 mt-2">
-                <span className={`px-2 py-0.5 text-xs rounded font-medium ${
-                  session.type === 'Recovery' ? 'bg-green-100 text-green-700' :
-                  session.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
-                  session.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
-                  session.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
-                  session.type === 'VO2Max' ? 'bg-red-100 text-red-700' :
-                  'bg-purple-100 text-purple-700'
-                }`}>
+                <span className={`px-2 py-0.5 text-xs rounded font-medium ${session.type === 'Recovery' ? 'bg-green-100 text-green-700' :
+                    session.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
+                      session.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
+                        session.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
+                          session.type === 'VO2Max' ? 'bg-red-100 text-red-700' :
+                            'bg-indigo-100 text-indigo-700'
+                  }`}>
                   {session.type}
                 </span>
                 <span className="text-sm text-gray-600">
@@ -173,20 +172,18 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
             <div className="space-y-3">
               {/* Option to clear selection */}
               <div
-                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  selectedActivity === null
-                    ? 'border-purple-500 bg-purple-50'
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedActivity === null
+                    ? 'border-indigo-500 bg-indigo-50'
                     : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
+                  }`}
                 onClick={() => setSelectedActivity(null)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full border-2 ${
-                      selectedActivity === null
-                        ? 'border-purple-500 bg-purple-500'
+                    <div className={`w-5 h-5 rounded-full border-2 ${selectedActivity === null
+                        ? 'border-indigo-500 bg-indigo-500'
                         : 'border-gray-300'
-                    } flex items-center justify-center`}>
+                      } flex items-center justify-center`}>
                       {selectedActivity === null && <CheckCircle className="w-4 h-4 text-white" />}
                     </div>
                     <span className="font-medium text-gray-900">No Match (Mark as incomplete)</span>
@@ -198,26 +195,24 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
               {dayActivities.map((activity) => {
                 const isSelected = selectedActivity === activity.id;
                 const isCurrentMatch = currentMatch?.activity?.id === activity.id;
-                
+
                 return (
                   <div
                     key={activity.id}
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      isSelected
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${isSelected
                         ? 'border-blue-500 bg-blue-50'
                         : isCurrentMatch
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
                     onClick={() => setSelectedActivity(activity.id)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3 flex-1">
-                        <div className={`w-5 h-5 rounded-full border-2 mt-1 ${
-                          isSelected
+                        <div className={`w-5 h-5 rounded-full border-2 mt-1 ${isSelected
                             ? 'border-blue-500 bg-blue-500'
                             : 'border-gray-300'
-                        } flex items-center justify-center`}>
+                          } flex items-center justify-center`}>
                           {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
                         </div>
                         <div className="flex-1">
@@ -230,9 +225,9 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
                             )}
                           </div>
                           <div className="text-xs text-gray-500 mb-2">
-                            {new Date(activity.date).toLocaleDateString('en-US', { 
-                              weekday: 'long', 
-                              month: 'short', 
+                            {new Date(activity.date).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'short',
                               day: 'numeric',
                               year: 'numeric'
                             })}
@@ -278,7 +273,7 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
                 <div className="text-sm text-yellow-800">
-                  <strong>Manual Override:</strong> Selecting an activity manually will override the automatic match. 
+                  <strong>Manual Override:</strong> Selecting an activity manually will override the automatic match.
                   Manual selections have a lower weight (70%) in training alignment calculations compared to auto-matches (100%).
                 </div>
               </div>
@@ -292,7 +287,7 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
                 <MessageSquare className="w-5 h-5 text-blue-600" />
                 Workout Notes & AI Analysis
               </h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -310,7 +305,7 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
                 <Button
                   onClick={handleAIAnalysis}
                   disabled={!selectedActivity || analyzingWorkout}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white flex items-center justify-center gap-2"
                 >
                   {analyzingWorkout ? (
                     <>
@@ -335,19 +330,18 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
                 )}
 
                 {aiAnalysis && (
-                  <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg">
+                  <div className="p-4 bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-lg">
                     <div className="flex items-start gap-3 mb-3">
-                      <Brain className="w-5 h-5 text-purple-600 mt-0.5" />
+                      <Brain className="w-5 h-5 text-indigo-600 mt-0.5" />
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="font-semibold text-gray-900">AI Coach Analysis</h4>
                           {aiAnalysis.workoutQuality && (
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                              aiAnalysis.workoutQuality === 'excellent' ? 'bg-green-100 text-green-800 border border-green-300' :
-                              aiAnalysis.workoutQuality === 'good' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
-                              aiAnalysis.workoutQuality === 'fair' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
-                              'bg-red-100 text-red-800 border border-red-300'
-                            }`}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${aiAnalysis.workoutQuality === 'excellent' ? 'bg-green-100 text-green-800 border border-green-300' :
+                                aiAnalysis.workoutQuality === 'good' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                                  aiAnalysis.workoutQuality === 'fair' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                                    'bg-red-100 text-red-800 border border-red-300'
+                              }`}>
                               {aiAnalysis.workoutQuality === 'excellent' && '🌟 Excellent Workout'}
                               {aiAnalysis.workoutQuality === 'good' && '💪 Good Workout'}
                               {aiAnalysis.workoutQuality === 'fair' && '👍 Fair Workout'}
@@ -360,16 +354,14 @@ const ActivityMatchModal = ({ isOpen, onClose, session, sessionKey, activities, 
                     </div>
 
                     {aiAnalysis.deviationLevel && (
-                      <div className={`mt-3 p-3 rounded-lg ${
-                        aiAnalysis.deviationLevel === 'high' ? 'bg-red-100 border border-red-300' :
-                        aiAnalysis.deviationLevel === 'medium' ? 'bg-yellow-100 border border-yellow-300' :
-                        'bg-green-100 border border-green-300'
-                      }`}>
-                        <p className={`text-sm font-medium ${
-                          aiAnalysis.deviationLevel === 'high' ? 'text-red-800' :
-                          aiAnalysis.deviationLevel === 'medium' ? 'text-yellow-800' :
-                          'text-green-800'
+                      <div className={`mt-3 p-3 rounded-lg ${aiAnalysis.deviationLevel === 'high' ? 'bg-red-100 border border-red-300' :
+                          aiAnalysis.deviationLevel === 'medium' ? 'bg-yellow-100 border border-yellow-300' :
+                            'bg-green-100 border border-green-300'
                         }`}>
+                        <p className={`text-sm font-medium ${aiAnalysis.deviationLevel === 'high' ? 'text-red-800' :
+                            aiAnalysis.deviationLevel === 'medium' ? 'text-yellow-800' :
+                              'text-green-800'
+                          }`}>
                           {aiAnalysis.deviationLevel === 'high' && '⚠️ Significant deviation from plan'}
                           {aiAnalysis.deviationLevel === 'medium' && '⚡ Moderate deviation from plan'}
                           {aiAnalysis.deviationLevel === 'low' && '✓ Good alignment with plan'}

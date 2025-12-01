@@ -1,32 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, TrendingUp, AlertCircle, CheckCircle, Calendar, Zap, Brain, History } from 'lucide-react';
+import { Activity, TrendingUp, AlertCircle, CheckCircle, Calendar, Zap, Brain, History, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
-import { Textarea } from './ui/Textarea';
+import { useNavigate } from 'react-router-dom';
 import IllnessHistoryModal from './IllnessHistoryModal';
 
 const AITrainingCoach = ({ onLogIllness, onViewAdjustments, initialContext = '' }) => {
+  const navigate = useNavigate();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pendingAdjustments, setPendingAdjustments] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [coachPrompt, setCoachPrompt] = useState(initialContext);
 
   useEffect(() => {
     loadStatus();
   }, []);
 
-  useEffect(() => {
-    if (initialContext) {
-      setCoachPrompt(initialContext);
-    }
-  }, [initialContext]);
-
   const loadStatus = async () => {
     try {
       console.log('🔄 AI Coach: Loading status...');
       const sessionToken = localStorage.getItem('session_token');
-      
+
       // Get pending adjustments
       const response = await fetch('/api/adaptation/adjustments/pending', {
         headers: {
@@ -53,22 +47,22 @@ const AITrainingCoach = ({ onLogIllness, onViewAdjustments, initialContext = '' 
       if (activeResponse.ok) {
         const activeData = await activeResponse.json();
         const hasActiveIllness = activeData.events && activeData.events.length > 0;
-        
+
         console.log('🩺 Active illnesses:', activeData.events);
-        
+
         setStatus({
           hasActiveIllness,
           activeEvent: hasActiveIllness ? activeData.events[0] : null
         });
       }
-      
+
       // Also get recent history to show completed illnesses
       const historyResponse = await fetch('/api/adaptation/history', {
         headers: {
           'Authorization': `Bearer ${sessionToken}`
         }
       });
-      
+
       if (historyResponse.ok) {
         const historyData = await historyResponse.json();
         console.log('📜 History:', historyData);
@@ -116,13 +110,13 @@ const AITrainingCoach = ({ onLogIllness, onViewAdjustments, initialContext = '' 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-blue-600" />
+            <Brain className="w-5 h-5 text-indigo-600" />
             AI Training Coach
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
           </div>
         </CardContent>
       </Card>
@@ -133,7 +127,7 @@ const AITrainingCoach = ({ onLogIllness, onViewAdjustments, initialContext = '' 
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Brain className="w-5 h-5 text-blue-600" />
+          <Brain className="w-5 h-5 text-indigo-600" />
           AI Training Coach
         </CardTitle>
       </CardHeader>
@@ -182,7 +176,7 @@ const AITrainingCoach = ({ onLogIllness, onViewAdjustments, initialContext = '' 
                 try {
                   const sessionToken = localStorage.getItem('session_token');
                   const endDate = new Date().toISOString().split('T')[0];
-                  
+
                   // Mark illness as ended
                   await fetch(`/api/adaptation/illness/${status.activeEvent.id}`, {
                     method: 'PUT',
@@ -192,15 +186,15 @@ const AITrainingCoach = ({ onLogIllness, onViewAdjustments, initialContext = '' 
                     },
                     body: JSON.stringify({ endDate })
                   });
-                  
+
                   // Trigger AI analysis
                   const cachedActivities = localStorage.getItem('cached_activities');
                   const trainingPlan = localStorage.getItem('training_plan');
-                  
+
                   if (cachedActivities && trainingPlan) {
                     const activities = JSON.parse(cachedActivities);
                     const plan = JSON.parse(trainingPlan);
-                    
+
                     const response = await fetch('/api/adaptation/analyze', {
                       method: 'POST',
                       headers: {
@@ -232,17 +226,17 @@ const AITrainingCoach = ({ onLogIllness, onViewAdjustments, initialContext = '' 
                         upcomingRaces: []
                       })
                     });
-                    
+
                     if (response.ok) {
                       const data = await response.json();
                       console.log('✅ Analysis triggered:', data);
-                      
+
                       if (data.needsAdjustment && onViewAdjustments) {
                         onViewAdjustments();
                       }
                     }
                   }
-                  
+
                   // Reload status
                   loadStatus();
                 } catch (error) {
@@ -281,7 +275,7 @@ const AITrainingCoach = ({ onLogIllness, onViewAdjustments, initialContext = '' 
             <AlertCircle className="w-4 h-4 mr-2" />
             Log Illness/Injury
           </Button>
-          
+
           <Button
             onClick={() => setShowHistory(true)}
             variant="outline"
@@ -290,89 +284,20 @@ const AITrainingCoach = ({ onLogIllness, onViewAdjustments, initialContext = '' 
             <History className="w-4 h-4 mr-2" />
             View History
           </Button>
-          
-          {/* Coach Prompt Input */}
-          <div className="space-y-2">
-            <label htmlFor="coach-prompt" className="text-xs text-gray-600 font-medium">
-              Talk to your AI Coach
-            </label>
-            <Textarea
-              id="coach-prompt"
-              placeholder="e.g., I've had to work late and only have 45 mins today for training, can you please adjust my plan accordingly and give me a good workout for today."
-              value={coachPrompt}
-              onChange={(e) => setCoachPrompt(e.target.value)}
-              className="text-sm resize-none"
-              rows={3}
-            />
-          </div>
-          
-          {/* Analyze Plan Button */}
+
+          {/* Go to Training Plan Button */}
           <Button
-            onClick={async () => {
-              try {
-                const sessionToken = localStorage.getItem('session_token');
-                const trainingPlan = localStorage.getItem('training_plan');
-                
-                if (!trainingPlan) {
-                  alert('No training plan found. Please create a training plan first.');
-                  return;
-                }
-                
-                const plan = JSON.parse(trainingPlan);
-                
-                // Trigger analysis with minimal data and user prompt
-                const response = await fetch('/api/adaptation/analyze', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${sessionToken}`
-                  },
-                  body: JSON.stringify({
-                    recentActivities: [],
-                    currentPlan: plan,
-                    currentFitness: { ctl: 0, atl: 0, tsb: 0 },
-                    upcomingRaces: [],
-                    userPrompt: coachPrompt || undefined // Include user prompt if provided
-                  })
-                });
-                
-                if (response.ok) {
-                  const data = await response.json();
-                  console.log('✅ Analysis result:', data);
-                  
-                  // Clear the prompt after successful submission
-                  setCoachPrompt('');
-                  
-                  // Reload status to show pending adjustments
-                  loadStatus();
-                  
-                  if (data.needsAdjustment) {
-                    // Show the adjustment notification
-                    if (onViewAdjustments) {
-                      onViewAdjustments();
-                    }
-                  } else {
-                    alert('Analysis complete! No adjustments needed.');
-                  }
-                } else {
-                  const errorData = await response.json();
-                  console.error('Analysis error:', errorData);
-                  alert('Analysis failed: ' + (errorData.error || 'Unknown error'));
-                }
-              } catch (error) {
-                console.error('Error analyzing plan:', error);
-                alert('Error analyzing plan: ' + error.message);
-              }
-            }}
+            onClick={() => navigate('/plan')}
             variant="default"
-            className="w-full text-sm bg-blue-600 hover:bg-blue-700"
+            className="w-full text-sm bg-indigo-600 hover:bg-indigo-700 mt-2"
           >
-            <Brain className="w-4 h-4 mr-2" />
-            Analyze & Adjust Plan
+            <Calendar className="w-4 h-4 mr-2" />
+            Go to Training Plan
+            <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
       </CardContent>
-      
+
       {/* Illness History Modal */}
       {showHistory && (
         <IllnessHistoryModal

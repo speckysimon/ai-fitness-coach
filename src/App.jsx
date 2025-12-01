@@ -111,6 +111,7 @@ function App() {
       const data = await response.json();
       if (data.success && data.user) {
         const userProfile = {
+          id: data.user.id, // Add user ID
           email: data.user.email,
           name: data.user.name,
           age: data.user.profile?.age,

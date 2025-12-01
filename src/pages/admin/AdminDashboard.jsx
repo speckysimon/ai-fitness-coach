@@ -73,9 +73,9 @@ const AdminDashboard = () => {
       title: 'New Users (7d)',
       value: stats?.recentUsers || 0,
       icon: TrendingUp,
-      color: 'from-purple-500 to-purple-600',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-600',
+      color: 'from-indigo-500 to-indigo-600',
+      bgColor: 'bg-indigo-50',
+      textColor: 'text-indigo-600',
     },
     {
       title: 'Active Today',
@@ -168,8 +168,8 @@ const AdminDashboard = () => {
               <p className="font-medium text-gray-900">Manage Users</p>
               <p className="text-sm text-gray-600">View and manage user accounts</p>
             </button>
-            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left">
-              <Activity className="w-6 h-6 text-purple-600 mb-2" />
+            <button className="p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left">
+              <Activity className="w-6 h-6 text-indigo-600 mb-2" />
               <p className="font-medium text-gray-900">AI Configuration</p>
               <p className="text-sm text-gray-600">Configure AI models and settings</p>
             </button>

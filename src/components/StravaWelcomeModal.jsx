@@ -16,7 +16,7 @@ const StravaWelcomeModal = ({ isOpen, onClose }) => {
     if (pedalClicks >= REQUIRED_CLICKS && !showSuccess) {
       setShowSuccess(true);
       trackEngagement.welcomeModalCompleted(pedalClicks);
-      
+
       // Auto-close after 2 seconds
       setTimeout(() => {
         onClose();
@@ -29,13 +29,13 @@ const StravaWelcomeModal = ({ isOpen, onClose }) => {
 
     setPedalClicks(prev => prev + 1);
     setIsAnimating(true);
-    
+
     // Rotate the bike wheel
     setRotation(prev => prev + 30);
-    
+
     // Increase speed effect
     setSpeed(prev => Math.min(prev + 5, 100));
-    
+
     setTimeout(() => {
       setIsAnimating(false);
       setSpeed(prev => Math.max(prev - 3, 0));
@@ -186,10 +186,10 @@ const StravaWelcomeModal = ({ isOpen, onClose }) => {
                       <line x1="100" y1="30" x2="160" y2="60" stroke="currentColor" strokeWidth="4" className="text-gray-700 dark:text-gray-300" />
                       <line x1="40" y1="60" x2="100" y2="60" stroke="currentColor" strokeWidth="4" className="text-gray-700 dark:text-gray-300" />
                       <line x1="100" y1="30" x2="100" y2="60" stroke="currentColor" strokeWidth="4" className="text-gray-700 dark:text-gray-300" />
-                      
+
                       {/* Seat */}
                       <ellipse cx="100" cy="25" rx="15" ry="5" fill="currentColor" className="text-gray-700 dark:text-gray-300" />
-                      
+
                       {/* Handlebars */}
                       <line x1="160" y1="60" x2="160" y2="40" stroke="currentColor" strokeWidth="3" className="text-gray-700 dark:text-gray-300" />
                       <line x1="150" y1="40" x2="170" y2="40" stroke="currentColor" strokeWidth="3" className="text-gray-700 dark:text-gray-300" />
@@ -216,7 +216,7 @@ const StravaWelcomeModal = ({ isOpen, onClose }) => {
                     PEDAL!
                     <Zap className="w-6 h-6" />
                   </span>
-                  
+
                   {/* Click counter badge */}
                   <div className="absolute -top-3 -right-3 bg-white text-orange-500 rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg shadow-lg border-4 border-orange-500">
                     {pedalClicks}
@@ -278,7 +278,7 @@ const StravaWelcomeModal = ({ isOpen, onClose }) => {
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
                 You're all set to start training!
               </p>
-              
+
               {/* Features preview */}
               <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
                 <div className="text-center">
@@ -288,8 +288,8 @@ const StravaWelcomeModal = ({ isOpen, onClose }) => {
                   <p className="text-xs text-gray-600 dark:text-gray-400">AI Plans</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Activity className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Activity className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400">Track Progress</p>
                 </div>

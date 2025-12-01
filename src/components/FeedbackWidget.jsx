@@ -26,7 +26,7 @@ const FeedbackWidget = () => {
 
     try {
       const userProfile = JSON.parse(localStorage.getItem('current_user') || '{}');
-      
+
       const feedbackData = {
         rating,
         category,
@@ -50,9 +50,9 @@ const FeedbackWidget = () => {
       if (response.ok) {
         // Track feedback submission
         trackEngagement.feedbackSubmitted(rating, category);
-        
+
         setSubmitted(true);
-        
+
         // Reset form after 3 seconds
         setTimeout(() => {
           setIsOpen(false);
@@ -78,7 +78,7 @@ const FeedbackWidget = () => {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 group"
+        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 group"
         aria-label="Send Feedback"
       >
         <MessageSquare className="w-6 h-6" />
@@ -92,7 +92,7 @@ const FeedbackWidget = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-t-2xl">
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-t-2xl">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">Send Feedback</h2>
@@ -139,11 +139,10 @@ const FeedbackWidget = () => {
                           className="transition-transform hover:scale-110"
                         >
                           <Star
-                            className={`w-8 h-8 ${
-                              star <= rating
-                                ? 'fill-yellow-400 text-yellow-400'
-                                : 'text-gray-300 dark:text-gray-600'
-                            }`}
+                            className={`w-8 h-8 ${star <= rating
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'text-gray-300 dark:text-gray-600'
+                              }`}
                           />
                         </button>
                       ))}
@@ -205,7 +204,7 @@ const FeedbackWidget = () => {
                   <Button
                     type="submit"
                     disabled={loading || !message}
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-medium py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <span className="flex items-center justify-center gap-2">

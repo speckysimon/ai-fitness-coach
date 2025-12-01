@@ -4,9 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/Button';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import logger from '../lib/logger';
-import { 
-  calculatePowerCurve, 
-  classifyRiderType, 
+import {
+  calculatePowerCurve,
+  classifyRiderType,
   calculateZoneDistribution,
   generateSmartInsights,
   calculateEfficiencyMetrics
@@ -117,10 +117,10 @@ const RiderProfile = ({ stravaTokens }) => {
         localStorage.removeItem('cache_timestamp_recent');
         localStorage.setItem('insights_cache_version', '1.1');
       }
-      
+
       let allActivities = [];
       const cachedActivities = localStorage.getItem('cached_activities_recent');
-      
+
       if (cachedActivities) {
         allActivities = JSON.parse(cachedActivities);
         console.log('📦 [Rider Profile] Using cached activities:', allActivities.length, 'total');
@@ -135,7 +135,7 @@ const RiderProfile = ({ stravaTokens }) => {
       }
 
       setActivities(allActivities);
-      
+
       // Get FTP for classification - check manual override first, then cached metrics
       let currentFtp = null;
       const manualFtpValue = localStorage.getItem('manual_ftp');
@@ -161,7 +161,7 @@ const RiderProfile = ({ stravaTokens }) => {
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
       const recentActivities = allActivities.filter(a => new Date(a.date) >= threeMonthsAgo);
-      
+
       if (recentActivities.length >= 10) {
         const recentCurve = calculatePowerCurve(recentActivities);
         const recentProfileData = classifyRiderType(recentActivities, recentCurve, currentFtp);
@@ -175,14 +175,14 @@ const RiderProfile = ({ stravaTokens }) => {
       try {
         const coachId = getUserCoach();
         const coach = getCoachPersona(coachId);
-        
+
         console.log('🧠 [Rider Profile] Sending', allActivities.length, 'activities to Smart Insights API');
-        console.log('📅 [Rider Profile] Date range:', 
+        console.log('📅 [Rider Profile] Date range:',
           allActivities.length > 0 ? new Date(allActivities[allActivities.length - 1].date).toLocaleDateString() : 'none',
           'to',
           allActivities.length > 0 ? new Date(allActivities[0].date).toLocaleDateString() : 'none'
         );
-        
+
         const insightsResponse = await fetch('/api/analytics/smart-insights', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -193,7 +193,7 @@ const RiderProfile = ({ stravaTokens }) => {
             coachPersona: coach
           })
         });
-        
+
         if (insightsResponse.ok) {
           const aiInsights = await insightsResponse.json();
           setInsights(aiInsights);
@@ -226,18 +226,18 @@ const RiderProfile = ({ stravaTokens }) => {
     try {
       const manualValue = manual && !isNaN(parseInt(manual)) ? parseInt(manual) : null;
       const maxHRValue = maxHR && !isNaN(parseInt(maxHR)) ? parseInt(maxHR) : null;
-      
+
       const response = await fetch('/api/analytics/fthr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           activities: acts,
           manualFTHR: manualValue,
           zoneModel: zoneModel,
           maxHR: maxHRValue
         }),
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setFthr(data.fthr);
@@ -251,7 +251,7 @@ const RiderProfile = ({ stravaTokens }) => {
   const handleZoneModelChange = (newModel) => {
     setZoneModel(newModel);
     localStorage.setItem('hr_zone_model', newModel);
-    
+
     // Recalculate zones with new model
     if (activities.length > 0) {
       calculateFTHR(activities, manualFTHR);
@@ -261,7 +261,7 @@ const RiderProfile = ({ stravaTokens }) => {
   const handleMaxHRChange = (e) => {
     const value = e.target.value;
     setMaxHR(value);
-    
+
     if (value) {
       localStorage.setItem('max_hr', value);
     } else {
@@ -272,7 +272,7 @@ const RiderProfile = ({ stravaTokens }) => {
   const handleManualFTPChange = (e) => {
     const value = e.target.value;
     setManualFTP(value);
-    
+
     // Save to localStorage and update current FTP
     if (value) {
       localStorage.setItem('manual_ftp', value);
@@ -291,7 +291,7 @@ const RiderProfile = ({ stravaTokens }) => {
   const handleManualFTHRChange = (e) => {
     const value = e.target.value;
     setManualFTHR(value);
-    
+
     // Save to localStorage
     if (value) {
       localStorage.setItem('manual_fthr', value);
@@ -313,7 +313,7 @@ const RiderProfile = ({ stravaTokens }) => {
     if (type.includes('Sprinter')) return 'from-yellow-400 to-orange-500';
     if (type.includes('Climber')) return 'from-green-400 to-emerald-600';
     if (type.includes('Rouleur')) return 'from-blue-400 to-blue-600';
-    if (type.includes('Time Trial')) return 'from-purple-400 to-purple-600';
+    if (type.includes('Time Trial')) return 'from-indigo-400 to-indigo-600';
     if (type.includes('Puncheur')) return 'from-red-400 to-red-600';
     return 'from-gray-400 to-gray-600';
   };
@@ -384,8 +384,8 @@ const RiderProfile = ({ stravaTokens }) => {
               <p className="text-gray-600 dark:text-gray-400 mb-6">
                 To view your rider profile and performance metrics, please connect your Strava account.
               </p>
-              <a 
-                href="/settings" 
+              <a
+                href="/settings"
                 className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
               >
                 Go to Settings
@@ -493,8 +493,8 @@ const RiderProfile = ({ stravaTokens }) => {
                 <span className="text-xs font-semibold text-green-900 dark:text-green-100 uppercase tracking-wide">BMI</span>
               </div>
               <div className="text-3xl font-bold text-green-900 dark:text-green-100">
-                {userProfile.weight > 0 && userProfile.height > 0 
-                  ? (userProfile.weight / Math.pow(userProfile.height / 100, 2)).toFixed(1) 
+                {userProfile.weight > 0 && userProfile.height > 0
+                  ? (userProfile.weight / Math.pow(userProfile.height / 100, 2)).toFixed(1)
                   : 'N/A'}
               </div>
               <p className="text-xs text-green-700 dark:text-green-300 mt-1">Body Mass Index</p>
@@ -533,10 +533,9 @@ const RiderProfile = ({ stravaTokens }) => {
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                     title="Toggle zone details"
                   >
-                    <ChevronDown 
-                      className={`w-5 h-5 transition-transform duration-200 ${
-                        hrZonesExpanded ? 'transform rotate-180' : ''
-                      }`}
+                    <ChevronDown
+                      className={`w-5 h-5 transition-transform duration-200 ${hrZonesExpanded ? 'transform rotate-180' : ''
+                        }`}
                     />
                   </button>
                 </div>
@@ -562,116 +561,116 @@ const RiderProfile = ({ stravaTokens }) => {
             {hrZonesExpanded && (
               <CardContent className="pt-4">
 
-              {/* Optional: Max HR input for 7-zone model */}
-              {zoneModel === '7-zone' && (
-                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <label className="block text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                    Max HR (Optional for 7-Zone)
-                  </label>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
-                    For more accurate Zone 6 & 7 calculations. Leave blank to estimate from FTHR.
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      value={maxHR}
-                      onChange={handleMaxHRChange}
-                      placeholder="e.g., 190"
-                      min="140"
-                      max="220"
-                      className="w-32 px-3 py-2 border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 text-foreground rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <span className="text-sm text-blue-700 dark:text-blue-300">BPM</span>
-                  </div>
-                </div>
-              )}
-              <div className="space-y-3">
-                {Object.entries(hrZones).map(([zoneKey, zone], index, allEntries) => {
-                  // Extract zone number from key (e.g., "zone1" -> 1)
-                  const zoneNumber = parseInt(zoneKey.replace('zone', ''));
-                  
-                  // Calculate min and max HR across all zones for positioning
-                  const allZones = allEntries.map(([, z]) => z);
-                  const minHR = Math.min(...allZones.map(z => z.min));
-                  const maxHR = Math.max(...allZones.map(z => z.max));
-                  const totalRange = maxHR - minHR;
-                  
-                  // Calculate position and width as percentage of total range
-                  const startPercent = ((zone.min - minHR) / totalRange) * 100;
-                  const widthPercent = ((zone.max - zone.min) / totalRange) * 100;
-                  
-                  // Color mapping based on zone number
-                  const zoneColorMap = {
-                    1: { 
-                      bgColor: '#f0fdf4',       // green-50
-                      textColor: '#15803d',     // green-700
-                      darkBgColor: 'rgba(20, 83, 45, 0.2)' // green-900/20
-                    },
-                    2: { 
-                      bgColor: '#eff6ff',       // blue-50
-                      textColor: '#1d4ed8',     // blue-700
-                      darkBgColor: 'rgba(30, 58, 138, 0.2)' // blue-900/20
-                    },
-                    3: { 
-                      bgColor: '#fefce8',       // yellow-50
-                      textColor: '#a16207',     // yellow-700
-                      darkBgColor: 'rgba(113, 63, 18, 0.2)' // yellow-900/20
-                    },
-                    4: { 
-                      bgColor: '#fff7ed',       // orange-50
-                      textColor: '#c2410c',     // orange-700
-                      darkBgColor: 'rgba(124, 45, 18, 0.2)' // orange-900/20
-                    },
-                    5: { 
-                      bgColor: '#fef2f2',       // red-50
-                      textColor: '#b91c1c',     // red-700
-                      darkBgColor: 'rgba(127, 29, 29, 0.2)' // red-900/20
-                    }
-                  };
-                  const colors = zoneColorMap[zoneNumber] || zoneColorMap[1];
-                  
-                  return (
-                    <div 
-                      key={zoneKey} 
-                      className="p-3 rounded-lg border-l-4 dark:bg-opacity-20"
-                      style={{ 
-                        backgroundColor: colors.bgColor,
-                        borderLeftColor: zone.color
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold dark:text-gray-100" style={{ color: colors.textColor }}>
-                            Zone {zoneNumber}
-                          </span>
-                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{zone.name}</span>
-                        </div>
-                        <span className="text-sm font-mono text-gray-600 dark:text-gray-400">{zone.min}-{zone.max} BPM</span>
-                      </div>
-                      <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
-                        <div 
-                          className="h-3 rounded-full transition-all absolute"
-                          style={{ 
-                            left: `${startPercent}%`,
-                            width: `${widthPercent}%`,
-                            backgroundColor: zone.color
-                          }}
-                        />
-                      </div>
-                      
-                      {/* Description */}
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{zone.description}</p>
-                      
-                      {/* Training time recommendation (for 3-zone only) */}
-                      {zone.trainingTime && (
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 italic">
-                          💡 {zone.trainingTime}
-                        </p>
-                      )}
+                {/* Optional: Max HR input for 7-zone model */}
+                {zoneModel === '7-zone' && (
+                  <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <label className="block text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                      Max HR (Optional for 7-Zone)
+                    </label>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                      For more accurate Zone 6 & 7 calculations. Leave blank to estimate from FTHR.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        value={maxHR}
+                        onChange={handleMaxHRChange}
+                        placeholder="e.g., 190"
+                        min="140"
+                        max="220"
+                        className="w-32 px-3 py-2 border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 text-foreground rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <span className="text-sm text-blue-700 dark:text-blue-300">BPM</span>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                )}
+                <div className="space-y-3">
+                  {Object.entries(hrZones).map(([zoneKey, zone], index, allEntries) => {
+                    // Extract zone number from key (e.g., "zone1" -> 1)
+                    const zoneNumber = parseInt(zoneKey.replace('zone', ''));
+
+                    // Calculate min and max HR across all zones for positioning
+                    const allZones = allEntries.map(([, z]) => z);
+                    const minHR = Math.min(...allZones.map(z => z.min));
+                    const maxHR = Math.max(...allZones.map(z => z.max));
+                    const totalRange = maxHR - minHR;
+
+                    // Calculate position and width as percentage of total range
+                    const startPercent = ((zone.min - minHR) / totalRange) * 100;
+                    const widthPercent = ((zone.max - zone.min) / totalRange) * 100;
+
+                    // Color mapping based on zone number
+                    const zoneColorMap = {
+                      1: {
+                        bgColor: '#f0fdf4',       // green-50
+                        textColor: '#15803d',     // green-700
+                        darkBgColor: 'rgba(20, 83, 45, 0.2)' // green-900/20
+                      },
+                      2: {
+                        bgColor: '#eff6ff',       // blue-50
+                        textColor: '#1d4ed8',     // blue-700
+                        darkBgColor: 'rgba(30, 58, 138, 0.2)' // blue-900/20
+                      },
+                      3: {
+                        bgColor: '#fefce8',       // yellow-50
+                        textColor: '#a16207',     // yellow-700
+                        darkBgColor: 'rgba(113, 63, 18, 0.2)' // yellow-900/20
+                      },
+                      4: {
+                        bgColor: '#fff7ed',       // orange-50
+                        textColor: '#c2410c',     // orange-700
+                        darkBgColor: 'rgba(124, 45, 18, 0.2)' // orange-900/20
+                      },
+                      5: {
+                        bgColor: '#fef2f2',       // red-50
+                        textColor: '#b91c1c',     // red-700
+                        darkBgColor: 'rgba(127, 29, 29, 0.2)' // red-900/20
+                      }
+                    };
+                    const colors = zoneColorMap[zoneNumber] || zoneColorMap[1];
+
+                    return (
+                      <div
+                        key={zoneKey}
+                        className="p-3 rounded-lg border-l-4 dark:bg-opacity-20"
+                        style={{
+                          backgroundColor: colors.bgColor,
+                          borderLeftColor: zone.color
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold dark:text-gray-100" style={{ color: colors.textColor }}>
+                              Zone {zoneNumber}
+                            </span>
+                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{zone.name}</span>
+                          </div>
+                          <span className="text-sm font-mono text-gray-600 dark:text-gray-400">{zone.min}-{zone.max} BPM</span>
+                        </div>
+                        <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
+                          <div
+                            className="h-3 rounded-full transition-all absolute"
+                            style={{
+                              left: `${startPercent}%`,
+                              width: `${widthPercent}%`,
+                              backgroundColor: zone.color
+                            }}
+                          />
+                        </div>
+
+                        {/* Description */}
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{zone.description}</p>
+
+                        {/* Training time recommendation (for 3-zone only) */}
+                        {zone.trainingTime && (
+                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 italic">
+                            💡 {zone.trainingTime}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             )}
           </Card>
@@ -680,7 +679,7 @@ const RiderProfile = ({ stravaTokens }) => {
         {/* Rider Type - Right Half */}
         {riderProfile && riderProfile.scores && (
           <Card className="border-2 border-blue-200 dark:border-blue-800 overflow-hidden">
-            <div 
+            <div
               className={`bg-gradient-to-r ${getRiderTypeColor(riderProfile.type)} p-6 text-white`}
             >
               <div className="flex items-center gap-3 mb-4">
@@ -703,10 +702,9 @@ const RiderProfile = ({ stravaTokens }) => {
                   className="hover:opacity-80 transition-opacity"
                   title="Toggle strengths profile"
                 >
-                  <ChevronDown 
-                    className={`w-6 h-6 text-white transition-transform duration-200 ${
-                      riderTypeExpanded ? 'transform rotate-180' : ''
-                    }`}
+                  <ChevronDown
+                    className={`w-6 h-6 text-white transition-transform duration-200 ${riderTypeExpanded ? 'transform rotate-180' : ''
+                      }`}
                   />
                 </button>
               </div>
@@ -716,129 +714,129 @@ const RiderProfile = ({ stravaTokens }) => {
               </div>
             </div>
             {riderTypeExpanded && (
-            <CardContent className="pt-4">
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Strengths Profile</h4>
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(riderProfile.scores).map(([type, score]) => (
-                  <div key={type} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300 capitalize">
-                        {type.replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
-                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{score}/7</span>
+              <CardContent className="pt-4">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Strengths Profile</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(riderProfile.scores).map(([type, score]) => (
+                    <div key={type} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300 capitalize">
+                          {type.replace(/([A-Z])/g, ' $1').trim()}
+                        </span>
+                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{score}/7</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div
+                          className="bg-blue-600 dark:bg-blue-500 h-1.5 rounded-full transition-all"
+                          style={{ width: `${(score / 7) * 100}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                      <div 
-                        className="bg-blue-600 dark:bg-blue-500 h-1.5 rounded-full transition-all"
-                        style={{ width: `${(score / 7) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-                Click Info icon for detailed analysis
-              </p>
-            </CardContent>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+                  Click Info icon for detailed analysis
+                </p>
+              </CardContent>
             )}
           </Card>
         )}
       </div>
 
       {/* Manual Overrides */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              Manual Overrides
-            </CardTitle>
-            <CardDescription>Override automatic calculations if needed</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Manual FTP Override */}
-            <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-lg">
-              <div className="flex items-start gap-3">
-                <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <label htmlFor="manualFTP" className="block text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
-                    Manual FTP Override
-                  </label>
-                  <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
-                    Enter your FTP from a recent test to override automatic calculation.
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <input
-                      id="manualFTP"
-                      type="number"
-                      value={manualFTP}
-                      onChange={handleManualFTPChange}
-                      placeholder="e.g., 250"
-                      min="50"
-                      max="600"
-                      className="w-32 px-3 py-2 border border-yellow-300 dark:border-yellow-700 bg-white dark:bg-gray-800 text-foreground rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                    />
-                    <span className="text-sm text-yellow-700 dark:text-yellow-300">Watts</span>
-                    {manualFTP && (
-                      <button
-                        onClick={() => {
-                          setManualFTP('');
-                          localStorage.removeItem('manual_ftp');
-                          const cachedMetrics = localStorage.getItem('cached_metrics');
-                          if (cachedMetrics) {
-                            const metrics = JSON.parse(cachedMetrics);
-                            setFtp(metrics.ftp || null);
-                          }
-                        }}
-                        className="text-xs text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200 underline"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            Manual Overrides
+          </CardTitle>
+          <CardDescription>Override automatic calculations if needed</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Manual FTP Override */}
+          <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <label htmlFor="manualFTP" className="block text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
+                  Manual FTP Override
+                </label>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
+                  Enter your FTP from a recent test to override automatic calculation.
+                </p>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="manualFTP"
+                    type="number"
+                    value={manualFTP}
+                    onChange={handleManualFTPChange}
+                    placeholder="e.g., 250"
+                    min="50"
+                    max="600"
+                    className="w-32 px-3 py-2 border border-yellow-300 dark:border-yellow-700 bg-white dark:bg-gray-800 text-foreground rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  />
+                  <span className="text-sm text-yellow-700 dark:text-yellow-300">Watts</span>
+                  {manualFTP && (
+                    <button
+                      onClick={() => {
+                        setManualFTP('');
+                        localStorage.removeItem('manual_ftp');
+                        const cachedMetrics = localStorage.getItem('cached_metrics');
+                        if (cachedMetrics) {
+                          const metrics = JSON.parse(cachedMetrics);
+                          setFtp(metrics.ftp || null);
+                        }
+                      }}
+                      className="text-xs text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200 underline"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Manual FTHR Override */}
-            <div className="p-4 bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-800 rounded-lg">
-              <div className="flex items-start gap-3">
-                <Heart className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <label htmlFor="manualFTHR" className="block text-sm font-semibold text-red-900 dark:text-red-100 mb-1">
-                    Manual FTHR Override
-                  </label>
-                  <p className="text-xs text-red-700 dark:text-red-300 mb-3">
-                    Enter your FTHR from a recent test to override automatic calculation.
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <input
-                      id="manualFTHR"
-                      type="number"
-                      value={manualFTHR}
-                      onChange={handleManualFTHRChange}
-                      placeholder="e.g., 162"
-                      min="100"
-                      max="220"
-                      className="w-32 px-3 py-2 border border-red-300 dark:border-red-700 bg-white dark:bg-gray-800 text-foreground rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    />
-                    <span className="text-sm text-red-700 dark:text-red-300">BPM</span>
-                    {manualFTHR && (
-                      <button
-                        onClick={() => {
-                          setManualFTHR('');
-                          localStorage.removeItem('manual_fthr');
-                        }}
-                        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 underline"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
+          {/* Manual FTHR Override */}
+          <div className="p-4 bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-800 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Heart className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <label htmlFor="manualFTHR" className="block text-sm font-semibold text-red-900 dark:text-red-100 mb-1">
+                  Manual FTHR Override
+                </label>
+                <p className="text-xs text-red-700 dark:text-red-300 mb-3">
+                  Enter your FTHR from a recent test to override automatic calculation.
+                </p>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="manualFTHR"
+                    type="number"
+                    value={manualFTHR}
+                    onChange={handleManualFTHRChange}
+                    placeholder="e.g., 162"
+                    min="100"
+                    max="220"
+                    className="w-32 px-3 py-2 border border-red-300 dark:border-red-700 bg-white dark:bg-gray-800 text-foreground rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                  <span className="text-sm text-red-700 dark:text-red-300">BPM</span>
+                  {manualFTHR && (
+                    <button
+                      onClick={() => {
+                        setManualFTHR('');
+                        localStorage.removeItem('manual_fthr');
+                      }}
+                      className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 underline"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Power Curve Analysis */}
       {powerCurve && (
@@ -990,7 +988,7 @@ const RiderProfile = ({ stravaTokens }) => {
                         <span className="text-2xl font-bold text-blue-600">{score}/7</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div 
+                        <div
                           className="bg-blue-600 h-3 rounded-full transition-all"
                           style={{ width: `${(score / 7) * 100}%` }}
                         />
@@ -1037,7 +1035,7 @@ const RiderProfile = ({ stravaTokens }) => {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-6">
               {/* 3-Zone Model */}
               <div className="border-l-4 border-green-500 pl-4">

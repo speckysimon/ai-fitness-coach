@@ -17,7 +17,7 @@ const ThemeSelector = ({ className = '' }) => {
       // Fetch all themes (not just active one)
       const response = await fetch('/api/admin/theme-configs/all');
       const data = await response.json();
-      
+
       if (data.success && data.themes) {
         setAllThemes(data.themes);
       } else {
@@ -55,10 +55,10 @@ const ThemeSelector = ({ className = '' }) => {
     <div className={`relative ${className}`}>
       <button
         onClick={handleToggleDropdown}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500"
         title="Choose theme"
       >
-        <Palette className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+        <Palette className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
           {selectedTheme?.name || 'Select Theme'}
         </span>
@@ -88,9 +88,8 @@ const ThemeSelector = ({ className = '' }) => {
                 <button
                   key={theme.id}
                   onClick={() => handleSelectTheme(theme.id)}
-                  className={`w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                    theme.id === selectedThemeId ? 'bg-purple-50 dark:bg-purple-900/20' : ''
-                  }`}
+                  className={`w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${theme.id === selectedThemeId ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
@@ -99,7 +98,7 @@ const ThemeSelector = ({ className = '' }) => {
                           {theme.name}
                         </span>
                         {theme.id === selectedThemeId && (
-                          <Check className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                         )}
                       </div>
                       {theme.description && (
@@ -107,7 +106,7 @@ const ThemeSelector = ({ className = '' }) => {
                           {theme.description}
                         </p>
                       )}
-                      
+
                       {/* Color preview */}
                       {theme.config && (
                         <div className="flex gap-1 mt-2">

@@ -96,7 +96,7 @@ const AllActivities = ({ stravaTokens }) => {
 
     setCurrentTokens(newTokens);
     localStorage.setItem('strava_tokens', JSON.stringify(newTokens));
-    
+
     return newTokens;
   };
 
@@ -139,7 +139,7 @@ const AllActivities = ({ stravaTokens }) => {
 
       // Read from Dashboard's cache (never fetch independently)
       const cachedActivities = localStorage.getItem('cached_activities_recent');
-      
+
       if (cachedActivities) {
         const activities = JSON.parse(cachedActivities);
         console.log(`📦 [All Activities] Using Dashboard cache (${activities.length} activities)`);
@@ -174,7 +174,7 @@ const AllActivities = ({ stravaTokens }) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ activities: data }),
         });
-        
+
         if (ftpResponse.ok) {
           const ftpData = await ftpResponse.json();
           currentFtp = ftpData.ftp;
@@ -183,43 +183,43 @@ const AllActivities = ({ stravaTokens }) => {
       } catch (ftpError) {
         // Continue without FTP
       }
-      
+
       // Add TSS to each Strava activity
       const activitiesWithTSS = data.map(activity => ({
         ...activity,
         tss: calculateTSS(activity, currentFtp)
       }));
-      
+
       // Load manual activities and merge
       try {
         const currentUser = localStorage.getItem('current_user');
         const userId = currentUser ? JSON.parse(currentUser).id || 1 : 1;
-        
+
         console.log('📥 [All Activities] Fetching manual activities for user:', userId);
-        
+
         // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Manual activities fetch timeout')), 5000)
         );
-        
+
         const manual = await Promise.race([
           fetchManualActivities({ userId, limit: 200 }),
           timeoutPromise
         ]);
-        
+
         console.log('✅ [All Activities] Loaded', manual.length, 'manual activities');
         setManualActivities(manual);
-        
+
         // Merge Strava and manual activities
         const allActivities = mergeActivities(activitiesWithTSS, manual);
-        
+
         // Sort by date, most recent first
         const sortedData = allActivities.sort((a, b) => {
           const dateA = new Date(a.start_date_local || a.start_date || a.date);
           const dateB = new Date(b.start_date_local || b.start_date || b.date);
           return dateB - dateA;
         });
-        
+
         setActivities(sortedData);
         setFilteredActivities(sortedData);
       } catch (manualError) {
@@ -281,7 +281,7 @@ const AllActivities = ({ stravaTokens }) => {
   const getActivityIcon = (activity) => {
     const isZwift = activity.name?.toLowerCase().includes('zwift');
     const isIndoor = activity.trainer || activity.type === 'VirtualRide';
-    
+
     // Zwift activities get special treatment
     if (isZwift) {
       return (
@@ -291,12 +291,12 @@ const AllActivities = ({ stravaTokens }) => {
         </div>
       );
     }
-    
+
     // Indoor activities
     if (isIndoor) {
-      return <Home className="w-5 h-5 text-purple-600" />;
+      return <Home className="w-5 h-5 text-indigo-600" />;
     }
-    
+
     // Outdoor activities by type
     switch (activity.type) {
       case 'Ride':
@@ -453,11 +453,10 @@ const AllActivities = ({ stravaTokens }) => {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setShowRacesOnly(!showRacesOnly)}
-                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 transition-all min-h-[44px] ${
-                  showRacesOnly
+                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 transition-all min-h-[44px] ${showRacesOnly
                     ? 'bg-yellow-500 text-white border-yellow-600 hover:bg-yellow-600'
                     : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
-                }`}
+                  }`}
               >
                 <Trophy className="w-5 h-5" />
                 <span className="font-medium">
@@ -469,7 +468,7 @@ const AllActivities = ({ stravaTokens }) => {
                   </span>
                 )}
               </button>
-              
+
               {/* Refresh Activities Button */}
               <button
                 onClick={() => loadAllActivities(true)}
@@ -480,17 +479,17 @@ const AllActivities = ({ stravaTokens }) => {
                 <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
               </button>
-              
+
               {/* Add Manual Activity Button */}
               <button
                 onClick={() => setShowManualActivityModal(true)}
-                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-700 hover:from-purple-700 hover:to-pink-700 transition-all font-medium min-h-[44px]"
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 bg-gradient-to-r from-indigo-600 to-pink-600 text-white border-indigo-700 hover:from-indigo-700 hover:to-pink-700 transition-all font-medium min-h-[44px]"
               >
                 <Plus className="w-5 h-5" />
                 <span>Add Manual Activity</span>
               </button>
             </div>
-            
+
             {/* Results count */}
             {showRacesOnly && (
               <div className="text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
@@ -531,13 +530,13 @@ const AllActivities = ({ stravaTokens }) => {
                         getActivityIcon(activity)
                       )}
                     </div>
-                    
+
                     {/* Title and metadata */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h4 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate">{activity.name}</h4>
                         {isManualActivity(activity) && (
-                          <span className="px-2 py-0.5 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300 text-xs font-medium rounded flex items-center gap-1 flex-shrink-0">
+                          <span className="px-2 py-0.5 bg-gradient-to-r from-indigo-100 to-pink-100 dark:from-indigo-900 dark:to-pink-900 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded flex items-center gap-1 flex-shrink-0">
                             {activity.icon} Manual
                           </span>
                         )}
@@ -554,7 +553,7 @@ const AllActivities = ({ stravaTokens }) => {
                           </>
                         )}
                       </div>
-                      
+
                       {/* Date and type */}
                       <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                         <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-500 flex items-center gap-1">
@@ -565,7 +564,7 @@ const AllActivities = ({ stravaTokens }) => {
                           {activity.type}
                         </span>
                       </div>
-                      
+
                       {/* Stats - Show on mobile below title */}
                       <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:hidden text-xs text-gray-600 dark:text-gray-400 flex-wrap">
                         <div>
@@ -585,7 +584,7 @@ const AllActivities = ({ stravaTokens }) => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Stats and actions - Desktop only for stats, always show actions */}
                   <div className="flex items-center gap-2 sm:gap-4 justify-between sm:justify-end">
                     {/* Stats - Desktop only */}
@@ -619,7 +618,7 @@ const AllActivities = ({ stravaTokens }) => {
                             e.stopPropagation();
                             setEditingManualActivity(activity);
                           }}
-                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
+                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
                           title="Edit manual activity"
                         >
                           <Edit2 className="w-4 h-4" />

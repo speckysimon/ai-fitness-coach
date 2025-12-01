@@ -7,6 +7,7 @@ import ZwiftAttribution from './ZwiftAttribution';
 import ThemeSwitcher from './ThemeSwitcher';
 import ThemeSelector from './ThemeSelector';
 import FeedbackWidget from './FeedbackWidget';
+import CoachChatWidget from './CoachChatWidget';
 
 const Layout = ({ children, onLogout, userProfile }) => {
   const location = useLocation();
@@ -47,7 +48,7 @@ const Layout = ({ children, onLogout, userProfile }) => {
 
   // Check if any race page is active
   const isRacePageActive = raceIntelligence.some(item => location.pathname === item.href);
-  
+
   // Check if any rider intelligence page is active
   const isRiderPageActive = riderIntelligence.some(item => location.pathname === item.href);
 
@@ -80,9 +81,8 @@ const Layout = ({ children, onLogout, userProfile }) => {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 w-64 bg-card border-r border-border overflow-hidden z-50 transform transition-transform duration-300 lg:translate-x-0 ${
-        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div className={`fixed inset-y-0 left-0 w-64 bg-card border-r border-border overflow-hidden z-50 transform transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="px-6 py-6 border-b border-border flex-shrink-0">
@@ -144,11 +144,10 @@ const Layout = ({ children, onLogout, userProfile }) => {
                   key={item.name}
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : 'text-foreground hover:bg-muted'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-foreground hover:bg-muted'
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.name}</span>
@@ -160,20 +159,18 @@ const Layout = ({ children, onLogout, userProfile }) => {
             <div className="pt-2">
               <button
                 onClick={() => setRiderIntelligenceExpanded(!riderIntelligenceExpanded)}
-                className={`flex items-center justify-between w-full px-4 py-3 rounded-lg transition-colors ${
-                  isRiderPageActive
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-foreground hover:bg-muted'
-                }`}
+                className={`flex items-center justify-between w-full px-4 py-3 rounded-lg transition-colors ${isRiderPageActive
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-foreground hover:bg-muted'
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <Brain className="w-5 h-5" />
                   <span>Rider Intelligence</span>
                 </div>
                 <ChevronDown
-                  className={`w-4 h-4 transition-transform duration-200 ${
-                    riderIntelligenceExpanded ? 'transform rotate-180' : ''
-                  }`}
+                  className={`w-4 h-4 transition-transform duration-200 ${riderIntelligenceExpanded ? 'transform rotate-180' : ''
+                    }`}
                 />
               </button>
               {riderIntelligenceExpanded && (
@@ -186,11 +183,10 @@ const Layout = ({ children, onLogout, userProfile }) => {
                         key={item.name}
                         to={item.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${
-                          isActive
-                            ? 'bg-primary/10 text-primary font-medium'
-                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                        }`}
+                        className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${isActive
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          }`}
                       >
                         <Icon className="w-4 h-4" />
                         <span>{item.name}</span>
@@ -205,20 +201,18 @@ const Layout = ({ children, onLogout, userProfile }) => {
             <div className="pt-2">
               <button
                 onClick={() => setRaceIntelligenceExpanded(!raceIntelligenceExpanded)}
-                className={`flex items-center justify-between w-full px-4 py-3 rounded-lg transition-colors ${
-                  isRacePageActive
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-foreground hover:bg-muted'
-                }`}
+                className={`flex items-center justify-between w-full px-4 py-3 rounded-lg transition-colors ${isRacePageActive
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-foreground hover:bg-muted'
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-5 h-5" />
                   <span>Race Intelligence</span>
                 </div>
                 <ChevronDown
-                  className={`w-4 h-4 transition-transform duration-200 ${
-                    raceIntelligenceExpanded ? 'transform rotate-180' : ''
-                  }`}
+                  className={`w-4 h-4 transition-transform duration-200 ${raceIntelligenceExpanded ? 'transform rotate-180' : ''
+                    }`}
                 />
               </button>
               {raceIntelligenceExpanded && (
@@ -231,11 +225,10 @@ const Layout = ({ children, onLogout, userProfile }) => {
                         key={item.name}
                         to={item.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${
-                          isActive
-                            ? 'bg-primary/10 text-primary font-medium'
-                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                        }`}
+                        className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${isActive
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          }`}
                       >
                         <Icon className="w-4 h-4" />
                         <span>{item.name}</span>
@@ -255,11 +248,10 @@ const Layout = ({ children, onLogout, userProfile }) => {
                   key={item.name}
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : 'text-foreground hover:bg-muted'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-foreground hover:bg-muted'
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.name}</span>
@@ -303,6 +295,9 @@ const Layout = ({ children, onLogout, userProfile }) => {
 
       {/* Feedback Widget */}
       <FeedbackWidget />
+
+      {/* Coach Chat Widget */}
+      <CoachChatWidget />
     </div>
   );
 };

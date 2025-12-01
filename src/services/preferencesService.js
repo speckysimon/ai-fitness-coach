@@ -3,7 +3,8 @@
  * Handles saving/loading preferences from backend with localStorage fallback
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+// Use relative path - Vite proxy will handle routing to backend
+const API_BASE = '';
 
 export const preferencesService = {
   /**
@@ -15,7 +16,7 @@ export const preferencesService = {
       if (preferences.ftp) localStorage.setItem('user_ftp', preferences.ftp);
       if (preferences.timezone) localStorage.setItem('user_timezone', preferences.timezone);
       if (preferences.theme) localStorage.setItem('theme', preferences.theme);
-      
+
       // Then save to backend
       const response = await fetch(`${API_BASE}/api/user/preferences/${userId}`, {
         method: 'PUT',
@@ -27,12 +28,12 @@ export const preferencesService = {
           otherSettings: preferences.other,
         }),
       });
-      
+
       if (!response.ok) {
         console.error('Failed to save preferences to backend');
         return { success: false, source: 'localStorage' };
       }
-      
+
       return { success: true, source: 'backend' };
     } catch (error) {
       console.error('Error saving preferences:', error);
@@ -46,60 +47,60 @@ export const preferencesService = {
   async loadPreferences(userId) {
     try {
       const response = await fetch(`${API_BASE}/api/user/preferences/${userId}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to load preferences from backend');
       }
-      
+
       const { preferences } = await response.json();
-      
+
       if (preferences) {
         // Save to localStorage as cache
         if (preferences.ftp) localStorage.setItem('user_ftp', preferences.ftp);
         if (preferences.timezone) localStorage.setItem('user_timezone', preferences.timezone);
         if (preferences.theme) localStorage.setItem('theme', preferences.theme);
-        
-        return { 
+
+        return {
           preferences: {
             ftp: preferences.ftp,
             timezone: preferences.timezone,
             theme: preferences.theme,
             other: preferences.other_settings,
           },
-          source: 'backend' 
+          source: 'backend'
         };
       }
-      
+
       // No preferences in backend, try localStorage
       const localPrefs = {
         ftp: localStorage.getItem('user_ftp'),
         timezone: localStorage.getItem('user_timezone'),
         theme: localStorage.getItem('theme'),
       };
-      
+
       if (localPrefs.ftp || localPrefs.timezone || localPrefs.theme) {
-        return { 
-          preferences: localPrefs, 
+        return {
+          preferences: localPrefs,
           source: 'localStorage',
-          needsMigration: true 
+          needsMigration: true
         };
       }
-      
+
       return { preferences: null, source: null };
     } catch (error) {
       console.error('Error loading preferences from backend, using localStorage:', error);
-      
+
       // Fallback to localStorage
       const localPrefs = {
         ftp: localStorage.getItem('user_ftp'),
         timezone: localStorage.getItem('user_timezone'),
         theme: localStorage.getItem('theme'),
       };
-      
-      return { 
-        preferences: localPrefs, 
+
+      return {
+        preferences: localPrefs,
         source: 'localStorage',
-        error 
+        error
       };
     }
   },
@@ -110,26 +111,26 @@ export const preferencesService = {
   async updateField(userId, field, value) {
     try {
       // Update localStorage first
-      const storageKey = field === 'ftp' ? 'user_ftp' : 
-                        field === 'timezone' ? 'user_timezone' : 
-                        field === 'theme' ? 'theme' : null;
-      
+      const storageKey = field === 'ftp' ? 'user_ftp' :
+        field === 'timezone' ? 'user_timezone' :
+          field === 'theme' ? 'theme' : null;
+
       if (storageKey) {
         localStorage.setItem(storageKey, value);
       }
-      
+
       // Then update backend
       const response = await fetch(`${API_BASE}/api/user/preferences/${userId}/${field}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value }),
       });
-      
+
       if (!response.ok) {
         console.error(`Failed to update ${field} in backend`);
         return { success: false, source: 'localStorage' };
       }
-      
+
       return { success: true, source: 'backend' };
     } catch (error) {
       console.error(`Error updating ${field}:`, error);
@@ -147,18 +148,18 @@ export const preferencesService = {
         timezone: localStorage.getItem('user_timezone'),
         theme: localStorage.getItem('theme'),
       };
-      
+
       if (!preferences.ftp && !preferences.timezone && !preferences.theme) {
         return { success: false, message: 'No preferences to migrate' };
       }
-      
+
       const result = await this.savePreferences(userId, preferences);
-      
+
       if (result.success) {
         localStorage.setItem('preferences_migrated', 'true');
         return { success: true };
       }
-      
+
       return { success: false, message: 'Migration failed' };
     } catch (error) {
       console.error('Error migrating preferences:', error);

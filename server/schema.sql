@@ -232,6 +232,8 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   ftp INTEGER,
   timezone TEXT,
   theme TEXT DEFAULT 'system',
+  long_term_goal TEXT,
+  week_start_day TEXT DEFAULT 'Monday',
   other_settings TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),

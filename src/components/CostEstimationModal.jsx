@@ -51,19 +51,19 @@ const CostEstimationModal = ({ isOpen, onClose, models }) => {
 
   const calculateCost = (operation, modelData) => {
     if (!modelData) return 0;
-    
+
     const inputCost = (operation.promptTokens / 1000000) * modelData.input_price_per_1m;
     const outputCost = (operation.completionTokens / 1000000) * modelData.output_price_per_1m;
-    
+
     return (inputCost + outputCost).toFixed(4);
   };
 
   const currentModel = models?.[selectedProvider]?.find(m => m.model_name === selectedModel);
 
   const getProviderColor = (provider) => {
-    return provider === 'openai' 
-      ? 'from-green-500 to-green-600' 
-      : 'from-purple-500 to-purple-600';
+    return provider === 'openai'
+      ? 'from-green-500 to-green-600'
+      : 'from-indigo-500 to-indigo-600';
   };
 
   return (
@@ -72,7 +72,7 @@ const CostEstimationModal = ({ isOpen, onClose, models }) => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
                 <Calculator className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -100,11 +100,10 @@ const CostEstimationModal = ({ isOpen, onClose, models }) => {
             <div className="flex gap-3">
               <button
                 onClick={() => setSelectedProvider('openai')}
-                className={`flex-1 p-4 border-2 rounded-lg transition-all ${
-                  selectedProvider === 'openai'
+                className={`flex-1 p-4 border-2 rounded-lg transition-all ${selectedProvider === 'openai'
                     ? 'border-green-500 bg-green-50'
                     : 'border-gray-200 hover:border-green-300'
-                }`}
+                  }`}
               >
                 <div className="font-semibold text-gray-900">ChatGPT (OpenAI)</div>
                 <div className="text-xs text-gray-600 mt-1">
@@ -113,11 +112,10 @@ const CostEstimationModal = ({ isOpen, onClose, models }) => {
               </button>
               <button
                 onClick={() => setSelectedProvider('gemini')}
-                className={`flex-1 p-4 border-2 rounded-lg transition-all ${
-                  selectedProvider === 'gemini'
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-200 hover:border-purple-300'
-                }`}
+                className={`flex-1 p-4 border-2 rounded-lg transition-all ${selectedProvider === 'gemini'
+                    ? 'border-indigo-500 bg-indigo-50'
+                    : 'border-gray-200 hover:border-indigo-300'
+                  }`}
               >
                 <div className="font-semibold text-gray-900">Gemini (Google)</div>
                 <div className="text-xs text-gray-600 mt-1">
@@ -151,8 +149,8 @@ const CostEstimationModal = ({ isOpen, onClose, models }) => {
               <div className="flex items-start gap-2">
                 <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-blue-800">
-                  <strong>{currentModel.model_label}</strong> pricing: 
-                  ${currentModel.input_price_per_1m} per 1M input tokens, 
+                  <strong>{currentModel.model_label}</strong> pricing:
+                  ${currentModel.input_price_per_1m} per 1M input tokens,
                   ${currentModel.output_price_per_1m} per 1M output tokens
                 </div>
               </div>
@@ -193,9 +191,9 @@ const CostEstimationModal = ({ isOpen, onClose, models }) => {
           </div>
 
           {/* Volume Estimates */}
-          <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
+          <div className="p-4 bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg">
             <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-purple-600" />
+              <DollarSign className="w-5 h-5 text-indigo-600" />
               Monthly Volume Estimates
             </h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
@@ -204,10 +202,10 @@ const CostEstimationModal = ({ isOpen, onClose, models }) => {
                 <div className="text-xs text-gray-600 mt-1">
                   (50 × 4-week + 50 × 6-week)
                 </div>
-                <div className="text-lg font-bold text-purple-600 mt-2">
+                <div className="text-lg font-bold text-indigo-600 mt-2">
                   ${currentModel ? (
                     (50 * parseFloat(calculateCost(OPERATION_ESTIMATES.plan_4week, currentModel)) +
-                     50 * parseFloat(calculateCost(OPERATION_ESTIMATES.plan_6week, currentModel)))
+                      50 * parseFloat(calculateCost(OPERATION_ESTIMATES.plan_6week, currentModel)))
                   ).toFixed(2) : '0.00'}
                 </div>
               </div>
@@ -216,7 +214,7 @@ const CostEstimationModal = ({ isOpen, onClose, models }) => {
                 <div className="text-xs text-gray-600 mt-1">
                   Average athlete modifications
                 </div>
-                <div className="text-lg font-bold text-purple-600 mt-2">
+                <div className="text-lg font-bold text-indigo-600 mt-2">
                   ${currentModel ? (
                     200 * parseFloat(calculateCost(OPERATION_ESTIMATES.plan_adjustment, currentModel))
                   ).toFixed(2) : '0.00'}
@@ -227,7 +225,7 @@ const CostEstimationModal = ({ isOpen, onClose, models }) => {
                 <div className="text-xs text-gray-600 mt-1">
                   Post-workout AI feedback
                 </div>
-                <div className="text-lg font-bold text-purple-600 mt-2">
+                <div className="text-lg font-bold text-indigo-600 mt-2">
                   ${currentModel ? (
                     500 * parseFloat(calculateCost(OPERATION_ESTIMATES.workout_analysis, currentModel))
                   ).toFixed(2) : '0.00'}
@@ -238,23 +236,23 @@ const CostEstimationModal = ({ isOpen, onClose, models }) => {
                 <div className="text-xs text-gray-600 mt-1">
                   Post-race performance reviews
                 </div>
-                <div className="text-lg font-bold text-purple-600 mt-2">
+                <div className="text-lg font-bold text-indigo-600 mt-2">
                   ${currentModel ? (
                     50 * parseFloat(calculateCost(OPERATION_ESTIMATES.race_analysis, currentModel))
                   ).toFixed(2) : '0.00'}
                 </div>
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-purple-200">
+            <div className="mt-4 pt-4 border-t border-indigo-200">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-gray-900">Total Estimated Monthly Cost:</span>
-                <span className="text-2xl font-bold text-purple-600">
+                <span className="text-2xl font-bold text-indigo-600">
                   ${currentModel ? (
                     (50 * parseFloat(calculateCost(OPERATION_ESTIMATES.plan_4week, currentModel)) +
-                     50 * parseFloat(calculateCost(OPERATION_ESTIMATES.plan_6week, currentModel)) +
-                     200 * parseFloat(calculateCost(OPERATION_ESTIMATES.plan_adjustment, currentModel)) +
-                     500 * parseFloat(calculateCost(OPERATION_ESTIMATES.workout_analysis, currentModel)) +
-                     50 * parseFloat(calculateCost(OPERATION_ESTIMATES.race_analysis, currentModel)))
+                      50 * parseFloat(calculateCost(OPERATION_ESTIMATES.plan_6week, currentModel)) +
+                      200 * parseFloat(calculateCost(OPERATION_ESTIMATES.plan_adjustment, currentModel)) +
+                      500 * parseFloat(calculateCost(OPERATION_ESTIMATES.workout_analysis, currentModel)) +
+                      50 * parseFloat(calculateCost(OPERATION_ESTIMATES.race_analysis, currentModel)))
                   ).toFixed(2) : '0.00'}
                 </span>
               </div>
@@ -264,7 +262,7 @@ const CostEstimationModal = ({ isOpen, onClose, models }) => {
           {/* Disclaimer */}
           <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-xs text-yellow-800">
-              <strong>Note:</strong> These are estimates based on typical token usage. Actual costs may vary depending on 
+              <strong>Note:</strong> These are estimates based on typical token usage. Actual costs may vary depending on
               prompt complexity, response length, and specific use cases. Token counts are approximate averages.
             </p>
           </div>

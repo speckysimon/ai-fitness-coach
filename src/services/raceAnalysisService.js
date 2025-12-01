@@ -3,7 +3,8 @@
  * Handles saving/loading race analyses from backend with localStorage fallback
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+// Use relative path - Vite proxy will handle routing to backend
+const API_BASE = '';
 
 export const raceAnalysisService = {
   /**
@@ -14,15 +15,15 @@ export const raceAnalysisService = {
       // Save to localStorage first (immediate)
       const localAnalyses = JSON.parse(localStorage.getItem('race_analyses') || '[]');
       const existingIndex = localAnalyses.findIndex(a => a.activityId === activityId);
-      
+
       if (existingIndex >= 0) {
         localAnalyses[existingIndex] = analysisData;
       } else {
         localAnalyses.push(analysisData);
       }
-      
+
       localStorage.setItem('race_analyses', JSON.stringify(localAnalyses));
-      
+
       // Then save to backend
       const response = await fetch(`${API_BASE}/api/race/analysis`, {
         method: 'POST',
@@ -40,12 +41,12 @@ export const raceAnalysisService = {
           analysisData,
         }),
       });
-      
+
       if (!response.ok) {
         console.error('Failed to save analysis to backend');
         return { success: false, source: 'localStorage' };
       }
-      
+
       const result = await response.json();
       return { success: true, analysisId: result.analysisId, source: 'backend' };
     } catch (error) {
@@ -60,13 +61,13 @@ export const raceAnalysisService = {
   async loadAnalyses(userId) {
     try {
       const response = await fetch(`${API_BASE}/api/race/analyses/${userId}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to load analyses from backend');
       }
-      
+
       const { analyses } = await response.json();
-      
+
       if (analyses && analyses.length > 0) {
         // Convert backend format to frontend format
         const formattedAnalyses = analyses.map(a => ({
@@ -82,40 +83,40 @@ export const raceAnalysisService = {
           },
           ...a.analysis_data,
         }));
-        
+
         // Save to localStorage as cache
         localStorage.setItem('race_analyses', JSON.stringify(formattedAnalyses));
-        
-        return { 
-          analyses: formattedAnalyses, 
-          source: 'backend' 
+
+        return {
+          analyses: formattedAnalyses,
+          source: 'backend'
         };
       }
-      
+
       // No analyses in backend, try localStorage
       const localAnalyses = localStorage.getItem('race_analyses');
       if (localAnalyses) {
-        return { 
-          analyses: JSON.parse(localAnalyses), 
+        return {
+          analyses: JSON.parse(localAnalyses),
           source: 'localStorage',
-          needsMigration: true 
+          needsMigration: true
         };
       }
-      
+
       return { analyses: [], source: null };
     } catch (error) {
       console.error('Error loading analyses from backend, using localStorage:', error);
-      
+
       // Fallback to localStorage
       const localAnalyses = localStorage.getItem('race_analyses');
       if (localAnalyses) {
-        return { 
-          analyses: JSON.parse(localAnalyses), 
+        return {
+          analyses: JSON.parse(localAnalyses),
           source: 'localStorage',
-          error 
+          error
         };
       }
-      
+
       return { analyses: [], source: null, error };
     }
   },
@@ -129,22 +130,22 @@ export const raceAnalysisService = {
       if (!localAnalyses) {
         return { success: false, message: 'No analyses to migrate' };
       }
-      
+
       const analyses = JSON.parse(localAnalyses);
       let migratedCount = 0;
-      
+
       for (const analysis of analyses) {
         const result = await this.saveAnalysis(userId, analysis.activityId, analysis);
         if (result.success) {
           migratedCount++;
         }
       }
-      
+
       if (migratedCount > 0) {
         localStorage.setItem('analyses_migrated', 'true');
         return { success: true, count: migratedCount };
       }
-      
+
       return { success: false, message: 'Migration failed' };
     } catch (error) {
       console.error('Error migrating analyses:', error);

@@ -7,31 +7,43 @@ const router = express.Router();
 // Generate training plan
 router.post('/plan/generate', async (req, res) => {
   const { activities, goals, constraints, currentMetrics, userProfile } = req.body;
-  
+
   // Debug: Log AI context received
   console.log('📥 Backend received AI Context:', goals?.aiContext);
   console.log('📥 AI Context length:', goals?.aiContext?.length || 0);
-  
+
   if (!activities || !goals) {
     return res.status(400).json({ error: 'Activities and goals required' });
   }
 
   try {
+    // Load user preferences (including long-term goal)
+    let longTermGoal = null;
+    if (userProfile?.id) {
+      const db = getDb();
+      const prefs = db.prepare('SELECT long_term_goal FROM user_preferences WHERE user_id = ?').get(userProfile.id);
+      longTermGoal = prefs?.long_term_goal;
+      console.log('📥 Loaded long-term goal:', longTermGoal);
+    }
+
     const plan = await aiPlannerService.generateTrainingPlan({
       activities,
-      goals,
+      goals: {
+        ...goals,
+        longTermGoal // Add long-term goal to goals context
+      },
       constraints,
       currentMetrics,
       userProfile,
     });
-    
+
     res.json(plan);
   } catch (error) {
     console.error('❌ Error generating training plan:', error.message);
     console.error('Stack trace:', error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to generate training plan',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -39,7 +51,7 @@ router.post('/plan/generate', async (req, res) => {
 // Adapt existing plan based on completed activities
 router.post('/plan/adapt', async (req, res) => {
   const { currentPlan, completedActivities, upcomingActivities } = req.body;
-  
+
   if (!currentPlan || !completedActivities) {
     return res.status(400).json({ error: 'Current plan and completed activities required' });
   }
@@ -50,7 +62,7 @@ router.post('/plan/adapt', async (req, res) => {
       completedActivities,
       upcomingActivities,
     });
-    
+
     res.json(adaptedPlan);
   } catch (error) {
     console.error('Error adapting training plan:', error.message);
@@ -61,14 +73,14 @@ router.post('/plan/adapt', async (req, res) => {
 // Get session recommendations
 router.post('/session/recommend', async (req, res) => {
   const { recentActivities, targetType, constraints } = req.body;
-  
+
   try {
     const recommendation = await aiPlannerService.recommendSession({
       recentActivities,
       targetType,
       constraints,
     });
-    
+
     res.json(recommendation);
   } catch (error) {
     console.error('Error recommending session:', error.message);
@@ -79,7 +91,7 @@ router.post('/session/recommend', async (req, res) => {
 // Adjust plan based on user request (adaptive adjustments)
 router.post('/plan/adjust', async (req, res) => {
   const { plan, activities, completedSessions, adjustmentRequest, context, userDateTime } = req.body;
-  
+
   if (!plan || !adjustmentRequest) {
     return res.status(400).json({ error: 'Plan and adjustment request required' });
   }
@@ -93,7 +105,7 @@ router.post('/plan/adjust', async (req, res) => {
       context,
       userDateTime,
     });
-    
+
     res.json(adjustment);
   } catch (error) {
     console.error('Error adjusting training plan:', error.message);
@@ -104,7 +116,7 @@ router.post('/plan/adjust', async (req, res) => {
 // Analyze workout vs planned session
 router.post('/workout/analyze', async (req, res) => {
   const { plannedSession, actualActivity, athleteComment } = req.body;
-  
+
   if (!plannedSession || !actualActivity) {
     return res.status(400).json({ error: 'Planned session and actual activity required' });
   }
@@ -115,7 +127,7 @@ router.post('/workout/analyze', async (req, res) => {
       actualActivity,
       athleteComment,
     });
-    
+
     res.json(analysis);
   } catch (error) {
     console.error('Error analyzing workout:', error.message);
@@ -130,7 +142,7 @@ router.post('/workout/analyze', async (req, res) => {
 // Save training plan to database
 router.post('/plan', async (req, res) => {
   const { userId, planData, eventType, durationWeeks, daysPerWeek, maxHoursPerWeek, goals, generatedAt } = req.body;
-  
+
   if (!userId || !planData) {
     return res.status(400).json({ error: 'User ID and plan data required' });
   }
@@ -152,11 +164,11 @@ router.post('/plan', async (req, res) => {
       goals,
       generatedAt
     );
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       planId: result.lastInsertRowid,
-      message: 'Training plan saved successfully' 
+      message: 'Training plan saved successfully'
     });
   } catch (error) {
     console.error('Error saving training plan:', error.message);
@@ -167,7 +179,7 @@ router.post('/plan', async (req, res) => {
 // Get current training plan for user
 router.get('/plan/:userId', async (req, res) => {
   const { userId } = req.params;
-  
+
   try {
     const db = getDb();
     const plan = db.prepare(`
@@ -176,14 +188,14 @@ router.get('/plan/:userId', async (req, res) => {
       ORDER BY created_at DESC 
       LIMIT 1
     `).get(userId);
-    
+
     if (!plan) {
       return res.json({ plan: null });
     }
-    
+
     // Parse JSON data
     plan.plan_data = JSON.parse(plan.plan_data);
-    
+
     res.json({ plan });
   } catch (error) {
     console.error('Error loading training plan:', error.message);
@@ -195,7 +207,7 @@ router.get('/plan/:userId', async (req, res) => {
 router.put('/plan/:planId', async (req, res) => {
   const { planId } = req.params;
   const { planData } = req.body;
-  
+
   if (!planData) {
     return res.status(400).json({ error: 'Plan data required' });
   }
@@ -207,7 +219,7 @@ router.put('/plan/:planId', async (req, res) => {
       SET plan_data = ?, updated_at = datetime('now')
       WHERE id = ?
     `).run(JSON.stringify(planData), planId);
-    
+
     res.json({ success: true, message: 'Training plan updated successfully' });
   } catch (error) {
     console.error('Error updating training plan:', error.message);
@@ -218,11 +230,11 @@ router.put('/plan/:planId', async (req, res) => {
 // Delete training plan
 router.delete('/plan/:planId', async (req, res) => {
   const { planId } = req.params;
-  
+
   try {
     const db = getDb();
     db.prepare('DELETE FROM training_plans WHERE id = ?').run(planId);
-    
+
     res.json({ success: true, message: 'Training plan deleted successfully' });
   } catch (error) {
     console.error('Error deleting training plan:', error.message);

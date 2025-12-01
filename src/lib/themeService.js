@@ -17,7 +17,7 @@ export async function fetchActiveTheme() {
   try {
     const response = await fetch('/api/admin/theme-configs/active');
     const data = await response.json();
-    
+
     if (data.success && data.theme) {
       // Cache the theme
       const cacheData = {
@@ -27,7 +27,7 @@ export async function fetchActiveTheme() {
       localStorage.setItem(THEME_CACHE_KEY, JSON.stringify(cacheData));
       return data.theme;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error fetching active theme:', error);
@@ -43,15 +43,15 @@ export function getCachedTheme() {
   try {
     const cached = localStorage.getItem(THEME_CACHE_KEY);
     if (!cached) return null;
-    
+
     const { theme, timestamp } = JSON.parse(cached);
     const isExpired = Date.now() - timestamp > THEME_CACHE_DURATION;
-    
+
     if (isExpired) {
       localStorage.removeItem(THEME_CACHE_KEY);
       return null;
     }
-    
+
     return theme;
   } catch (error) {
     console.error('Error reading cached theme:', error);
@@ -76,10 +76,10 @@ export function applyTheme(themeConfig) {
     console.warn('No theme config provided');
     return;
   }
-  
+
   const root = document.documentElement;
   const config = themeConfig.config;
-  
+
   // Create or get style element for dark mode overrides
   let darkStyle = document.getElementById('theme-dark-vars');
   if (!darkStyle) {
@@ -87,13 +87,13 @@ export function applyTheme(themeConfig) {
     darkStyle.id = 'theme-dark-vars';
     document.head.appendChild(darkStyle);
   }
-  
+
   let darkCSS = '.dark {\n';
-  
+
   // Apply each color
   Object.keys(config).forEach(colorName => {
     const colorValue = config[colorName];
-    
+
     if (colorValue && typeof colorValue === 'object') {
       // Set light mode color on :root
       if (colorValue.light) {
@@ -105,13 +105,13 @@ export function applyTheme(themeConfig) {
       }
     }
   });
-  
+
   darkCSS += '}';
   darkStyle.textContent = darkCSS;
-  
+
   console.log(`✅ Applied theme: ${themeConfig.name} (${Object.keys(config).length} colors)`);
   console.log(`🌙 Dark mode CSS injected with ${Object.keys(config).length} color overrides`);
-  
+
   // Dispatch custom event so components can react to theme changes
   window.dispatchEvent(new CustomEvent('themeChanged', { detail: themeConfig }));
 }
@@ -127,20 +127,20 @@ export function getDefaultTheme() {
     config: {
       // Brand colors (2)
       'primary': { light: '#2563EB', dark: '#3B82F6', label: 'Primary', category: 'brand' },
-      'accent': { light: '#9333EA', dark: '#A855F7', label: 'Accent', category: 'brand' },
-      
+      'accent': { light: '#4F46E5', dark: '#6366F1', label: 'Accent', category: 'brand' },
+
       // Status colors (3)
       'success': { light: '#10B981', dark: '#34D399', label: 'Success', category: 'status' },
       'warning': { light: '#F59E0B', dark: '#FBBF24', label: 'Warning', category: 'status' },
       'error': { light: '#EF4444', dark: '#F87171', label: 'Error', category: 'status' },
-      
+
       // Activity colors (6)
       'recovery': { light: '#10B981', dark: '#34D399', label: 'Recovery', category: 'activity' },
       'endurance': { light: '#3B82F6', dark: '#60A5FA', label: 'Endurance', category: 'activity' },
       'tempo': { light: '#F59E0B', dark: '#FBBF24', label: 'Tempo', category: 'activity' },
       'threshold': { light: '#F97316', dark: '#FB923C', label: 'Threshold', category: 'activity' },
       'vo2max': { light: '#EF4444', dark: '#F87171', label: 'VO2 Max', category: 'activity' },
-      'sprint': { light: '#A855F7', dark: '#C084FC', label: 'Sprint', category: 'activity' },
+      'sprint': { light: '#4F46E5', dark: '#6366F1', label: 'Sprint', category: 'activity' },
     }
   };
 }
@@ -153,11 +153,11 @@ export function getDefaultTheme() {
 export async function initializeTheme() {
   // Try to get cached theme first
   let theme = getCachedTheme();
-  
+
   if (theme) {
     console.log('📦 Using cached theme:', theme.name);
     applyTheme(theme);
-    
+
     // Fetch fresh theme in background
     fetchActiveTheme().then(freshTheme => {
       if (freshTheme && freshTheme.id !== theme.id) {
@@ -165,18 +165,18 @@ export async function initializeTheme() {
         applyTheme(freshTheme);
       }
     });
-    
+
     return theme;
   }
-  
+
   // No cache, fetch from API
   theme = await fetchActiveTheme();
-  
+
   if (theme) {
     applyTheme(theme);
     return theme;
   }
-  
+
   // No theme from API, use default
   console.log('⚠️ No active theme found, using default');
   const defaultTheme = getDefaultTheme();
@@ -191,11 +191,11 @@ export async function initializeTheme() {
 export async function reloadTheme() {
   clearThemeCache();
   const theme = await fetchActiveTheme();
-  
+
   if (theme) {
     applyTheme(theme);
     return theme;
   }
-  
+
   return null;
 }

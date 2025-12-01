@@ -42,11 +42,10 @@ const CoachAvatarSelector = ({ onCoachChange }) => {
             <div
               key={coach.id}
               onClick={() => handleSelectCoach(coach.id)}
-              className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-lg ${
-                selectedCoach === coach.id
+              className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-lg ${selectedCoach === coach.id
                   ? 'border-blue-500 bg-blue-50 shadow-md'
                   : 'border-gray-200 hover:border-blue-300'
-              }`}
+                }`}
             >
               {/* Selection Indicator */}
               {selectedCoach === coach.id && (
@@ -80,7 +79,7 @@ const CoachAvatarSelector = ({ onCoachChange }) => {
               <p className="text-sm text-gray-700 mb-3">{coach.description}</p>
 
               {/* Catchphrase */}
-              <div className={`p-2 rounded-lg bg-gradient-to-r ${coach.color} text-white text-center`}>
+              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-800 text-white text-center">
                 <p className="text-xs font-semibold italic">"{coach.catchphrase}"</p>
               </div>
 

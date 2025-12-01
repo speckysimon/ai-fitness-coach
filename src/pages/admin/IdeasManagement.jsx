@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
+import {
   Lightbulb, Plus, Edit2, Trash2, Save, X, RefreshCw,
   TrendingUp, Clock, CheckCircle, Archive, AlertCircle
 } from 'lucide-react';
@@ -35,7 +35,7 @@ const IdeasManagement = () => {
     { value: 'feature', label: 'Feature', color: 'blue' },
     { value: 'improvement', label: 'Improvement', color: 'green' },
     { value: 'bug_fix', label: 'Bug Fix', color: 'red' },
-    { value: 'enhancement', label: 'Enhancement', color: 'purple' },
+    { value: 'enhancement', label: 'Enhancement', color: 'indigo' },
     { value: 'integration', label: 'Integration', color: 'cyan' }
   ];
 
@@ -50,7 +50,7 @@ const IdeasManagement = () => {
     { value: 'small', label: 'Small (< 8h)', color: 'green' },
     { value: 'medium', label: 'Medium (8-24h)', color: 'blue' },
     { value: 'large', label: 'Large (24-80h)', color: 'orange' },
-    { value: 'epic', label: 'Epic (80h+)', color: 'purple' }
+    { value: 'epic', label: 'Epic (80h+)', color: 'indigo' }
   ];
 
   const statuses = [
@@ -269,18 +269,16 @@ const IdeasManagement = () => {
             <button
               type="button"
               onClick={() => setViewMode('card')}
-              className={`px-3 py-2 text-sm font-medium flex items-center gap-2 ${
-                viewMode === 'card' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              className={`px-3 py-2 text-sm font-medium flex items-center gap-2 ${viewMode === 'card' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
             >
               Card View
             </button>
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`px-3 py-2 text-sm font-medium flex items-center gap-2 ${
-                viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              className={`px-3 py-2 text-sm font-medium flex items-center gap-2 ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
             >
               List View
             </button>

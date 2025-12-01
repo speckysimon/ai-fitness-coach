@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Calendar as CalendarIcon, 
-  TrendingUp, 
-  Zap as ZapIcon, 
-  Clock, 
-  CheckCircle, 
+import {
+  Calendar as CalendarIcon,
+  TrendingUp,
+  Zap as ZapIcon,
+  Clock,
+  CheckCircle,
   Circle,
-  X, 
-  AlertCircle, 
-  RefreshCw, 
-  Download, 
-  CalendarPlus, 
-  Award, 
-  Info, 
-  ChevronDown, 
-  ChevronUp, 
+  X,
+  AlertCircle,
+  RefreshCw,
+  Download,
+  CalendarPlus,
+  Award,
+  Info,
+  ChevronDown,
+  ChevronUp,
   User,
   Target,
   Sparkles,
@@ -30,11 +30,11 @@ import ActivityMatchModal from '../components/ActivityMatchModal';
 import AdaptivePlanModal from '../components/AdaptivePlanModal';
 import SuccessModal from '../components/SuccessModal';
 import TemplateSelector from '../components/TemplateSelector';
-import { 
-  calculateTrainingFocus, 
-  calculateRiderTypeProgress, 
-  getProgressStatus, 
-  getMotivationalMessage 
+import {
+  calculateTrainingFocus,
+  calculateRiderTypeProgress,
+  getProgressStatus,
+  getMotivationalMessage
 } from '../lib/trainingPlanMapping';
 import { getCoachPersona, getUserCoach } from '../lib/coachPersonas';
 import {
@@ -92,19 +92,19 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   useEffect(() => {
     // Load activities (Strava + manual)
     loadActivities();
-    
+
     // Load completed sessions from localStorage
     const saved = localStorage.getItem('completed_sessions');
     if (saved) {
       setCompletedSessions(JSON.parse(saved));
     }
-    
+
     // Load existing plan from backend (with localStorage fallback)
     loadPlanFromBackend();
-    
+
     // Check if migration is needed
     checkMigrationStatus();
-    
+
     // Load illness/injury history
     loadIllnessHistory();
   }, [stravaTokens]);
@@ -118,7 +118,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         setPlan(parsedPlan);
         setPlanLoadedFromStorage(true);
         setIsFormExpanded(false);
-        
+
         // Restore form data from plan goals
         if (parsedPlan.goals) {
           setFormData({
@@ -139,12 +139,12 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 
     try {
       const result = await planService.loadPlan(userProfile.id);
-      
+
       if (result.plan) {
         setPlan(result.plan);
         setPlanLoadedFromStorage(true);
         setIsFormExpanded(false);
-        
+
         // Restore form data from plan goals
         if (result.plan.goals) {
           setFormData({
@@ -159,15 +159,15 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
             aiContext: result.plan.goals.aiContext || '',
           });
         }
-        
+
         if (result.planId) {
           setCurrentPlanId(result.planId);
         }
-        
+
         if (result.needsMigration) {
           setMigrationNeeded(true);
         }
-        
+
         setBackendSyncStatus(result.source === 'backend' ? 'synced' : 'localStorage');
       }
     } catch (error) {
@@ -188,27 +188,30 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
     if (!userProfile?.id) {
       // No user ID, just save to localStorage
       localStorage.setItem('training_plan', JSON.stringify(planData));
-      return;
+      return { success: true, source: 'localStorage' };
     }
 
     try {
       setBackendSyncStatus('syncing');
-      
+      let result;
+
       if (currentPlanId) {
         // Update existing plan
-        await planService.updatePlan(currentPlanId, planData);
+        result = await planService.updatePlan(currentPlanId, planData);
       } else {
         // Save new plan
-        const result = await planService.savePlan(userProfile.id, planData);
+        result = await planService.savePlan(userProfile.id, planData);
         if (result.planId) {
           setCurrentPlanId(result.planId);
         }
       }
-      
-      setBackendSyncStatus('synced');
+
+      setBackendSyncStatus(result.source === 'backend' ? 'synced' : 'error');
+      return result;
     } catch (error) {
       console.error('Error saving plan to backend:', error);
       setBackendSyncStatus('error');
+      return { success: false, source: 'localStorage', error };
     }
   };
 
@@ -233,9 +236,9 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const loadRaceHistory = () => {
     const storedAnalyses = localStorage.getItem('race_analyses');
     if (!storedAnalyses) return [];
-    
+
     const analyses = JSON.parse(storedAnalyses);
-    
+
     // Convert to array and sort by date (most recent first)
     return Object.entries(analyses)
       .map(([activityId, analysis]) => ({
@@ -261,7 +264,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         setShowMissedDropdown(null);
       }
     };
-    
+
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showMissedDropdown]);
@@ -281,30 +284,30 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   // Helper function to determine current week based on today's date
   const getCurrentWeek = (plan) => {
     if (!plan || !plan.weeks || plan.weeks.length === 0) return 1;
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Find which week contains today's date
     for (const week of plan.weeks) {
       for (const session of week.sessions) {
         if (session.date) {
           const sessionDate = new Date(session.date);
           sessionDate.setHours(0, 0, 0, 0);
-          
+
           // Check if this session's week contains today
           const weekStart = new Date(sessionDate);
           weekStart.setDate(sessionDate.getDate() - sessionDate.getDay() + 1); // Monday of this week
           const weekEnd = new Date(weekStart);
           weekEnd.setDate(weekStart.getDate() + 6); // Sunday of this week
-          
+
           if (today >= weekStart && today <= weekEnd) {
             return week.weekNumber;
           }
         }
       }
     }
-    
+
     // If no week contains today, return the first week with future sessions
     for (const week of plan.weeks) {
       for (const session of week.sessions) {
@@ -317,7 +320,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         }
       }
     }
-    
+
     // Default to first week
     return 1;
   };
@@ -333,7 +336,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
     const key = `${weekNum}-${sessionIdx}`;
     const currentCompletion = completedSessions[key];
     const match = automaticMatches[key];
-    
+
     // Toggle completion with new object format
     const newCompleted = {
       ...completedSessions,
@@ -346,10 +349,10 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         reason: 'Manually marked complete'
       }
     };
-    
+
     setCompletedSessions(newCompleted);
     localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
-    
+
     // Check if plan is now 100% complete and trigger confetti
     if (plan) {
       const total = plan.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
@@ -372,7 +375,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         reason: 'Manually selected activity'
       }
     };
-    
+
     setCompletedSessions(newCompleted);
     localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
   };
@@ -382,7 +385,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       ...completedSessions,
       [sessionKey]: null
     };
-    
+
     setCompletedSessions(newCompleted);
     localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
   };
@@ -399,7 +402,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         alignmentScore: 0
       }
     };
-    
+
     setCompletedSessions(newCompleted);
     localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
     setShowMissedDropdown(null);
@@ -410,7 +413,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       ...completedSessions,
       [sessionKey]: null
     };
-    
+
     setCompletedSessions(newCompleted);
     localStorage.setItem('completed_sessions', JSON.stringify(newCompleted));
   };
@@ -429,7 +432,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       return Math.random() * (max - min) + min;
     }
 
-    const interval = setInterval(function() {
+    const interval = setInterval(function () {
       const timeLeft = animationEnd - Date.now();
 
       if (timeLeft <= 0) {
@@ -437,7 +440,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       }
 
       const particleCount = 50 * (timeLeft / duration);
-      
+
       confetti({
         ...defaults,
         particleCount,
@@ -453,17 +456,17 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 
   const calculateProgress = () => {
     if (!plan) return { completed: 0, total: 0, percentage: 0, autoMatched: 0, manual: 0 };
-    
+
     const total = plan.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
-    
+
     // Merge manual and automatic completions
     const merged = mergeCompletions(completedSessions, automaticMatches);
     const completed = Object.values(merged).filter(c => c && c.completed).length;
     const autoMatched = Object.values(merged).filter(c => c && c.completed && c.automatic).length;
     const manual = Object.values(merged).filter(c => c && c.completed && !c.automatic).length;
-    
+
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-    
+
     return { completed, total, percentage, autoMatched, manual };
   };
 
@@ -488,10 +491,10 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       }
 
       const data = await response.json();
-      
+
       // Backend returns { success: true, tokens: {...} }
       const tokenData = data.tokens || data;
-      
+
       // Update tokens in localStorage
       const newTokens = {
         access_token: tokenData.access_token,
@@ -499,7 +502,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         expires_at: tokenData.expires_at,
       };
       localStorage.setItem('strava_tokens', JSON.stringify(newTokens));
-      
+
       return newTokens;
     } catch (error) {
       logger.error('Token refresh error:', error);
@@ -510,11 +513,11 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const loadActivities = async () => {
     try {
       let stravaActivities = [];
-      
+
       // Load Strava activities if connected
       if (stravaTokens) {
         let tokensToUse = { ...stravaTokens };
-        
+
         // Check if token is expired and refresh if needed
         const nowSeconds = Math.floor(Date.now() / 1000);
         if (tokensToUse.expires_at && tokensToUse.expires_at < nowSeconds) {
@@ -535,94 +538,94 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
           `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100`
         );
 
-      // Handle 401/403 errors by refreshing token and retrying
-      if (response.status === 401 || response.status === 403) {
-        try {
-          const newTokens = await refreshAccessToken();
-          
-          // Wait a moment for token to propagate
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Retry the request with new token
-          const retryResponse = await fetch(
-            `/api/strava/activities?access_token=${newTokens.access_token}&after=${sixWeeksAgo}&per_page=100`
-          );
-          
-          if (retryResponse.ok) {
-            const data = await retryResponse.json();
-            stravaActivities = data;
+        // Handle 401/403 errors by refreshing token and retrying
+        if (response.status === 401 || response.status === 403) {
+          try {
+            const newTokens = await refreshAccessToken();
 
-            // Calculate FTP for power targets
-            const ftpResponse = await fetch('/api/analytics/ftp', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ activities: data }),
-            });
-            const ftpData = await ftpResponse.json();
-            setFtp(ftpData.ftp);
+            // Wait a moment for token to propagate
+            await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Calculate FTHR and HR zones
-            const fthrResponse = await fetch('/api/analytics/fthr', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ activities: data }),
-            });
-            const fthrData = await fthrResponse.json();
-            setFthr(fthrData.fthr);
-            setHrZones(fthrData.zones);
-            return;
-          } else {
-            const errorText = await retryResponse.text();
-            logger.error('Retry failed:', retryResponse.status, errorText);
+            // Retry the request with new token
+            const retryResponse = await fetch(
+              `/api/strava/activities?access_token=${newTokens.access_token}&after=${sixWeeksAgo}&per_page=100`
+            );
+
+            if (retryResponse.ok) {
+              const data = await retryResponse.json();
+              stravaActivities = data;
+
+              // Calculate FTP for power targets
+              const ftpResponse = await fetch('/api/analytics/ftp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ activities: data }),
+              });
+              const ftpData = await ftpResponse.json();
+              setFtp(ftpData.ftp);
+
+              // Calculate FTHR and HR zones
+              const fthrResponse = await fetch('/api/analytics/fthr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ activities: data }),
+              });
+              const fthrData = await fthrResponse.json();
+              setFthr(fthrData.fthr);
+              setHrZones(fthrData.zones);
+              return;
+            } else {
+              const errorText = await retryResponse.text();
+              logger.error('Retry failed:', retryResponse.status, errorText);
+            }
+          } catch (refreshError) {
+            logger.error('Token refresh error:', refreshError);
           }
-        } catch (refreshError) {
-          logger.error('Token refresh error:', refreshError);
         }
-      }
 
-      // Try to parse response even if status isn't perfect
-      if (response.ok) {
-        const data = await response.json();
-        stravaActivities = data;
+        // Try to parse response even if status isn't perfect
+        if (response.ok) {
+          const data = await response.json();
+          stravaActivities = data;
 
-        // Calculate FTP for power targets
-        const ftpResponse = await fetch('/api/analytics/ftp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ activities: data }),
-        });
-        const ftpData = await ftpResponse.json();
-        setFtp(ftpData.ftp);
+          // Calculate FTP for power targets
+          const ftpResponse = await fetch('/api/analytics/ftp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ activities: data }),
+          });
+          const ftpData = await ftpResponse.json();
+          setFtp(ftpData.ftp);
 
-        // Calculate FTHR and HR zones
-        const fthrResponse = await fetch('/api/analytics/fthr', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ activities: data }),
-        });
-        const fthrData = await fthrResponse.json();
-        setFthr(fthrData.fthr);
-        setHrZones(fthrData.zones);
-      } else {
-        logger.error('Failed to fetch activities:', response.status);
-        setFtp(null);
-        setFthr(null);
-        setHrZones(null);
-      }
+          // Calculate FTHR and HR zones
+          const fthrResponse = await fetch('/api/analytics/fthr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ activities: data }),
+          });
+          const fthrData = await fthrResponse.json();
+          setFthr(fthrData.fthr);
+          setHrZones(fthrData.zones);
+        } else {
+          logger.error('Failed to fetch activities:', response.status);
+          setFtp(null);
+          setFthr(null);
+          setHrZones(null);
+        }
       } // Close Strava loading block
-      
+
       // Load manual activities (always, regardless of Strava connection)
       const manualActivities = await fetchManualActivities({
         userId: userProfile?.id,
         limit: 100
       });
-      
+
       // Merge Strava and manual activities
       const allActivities = mergeActivities(stravaActivities, manualActivities);
       setActivities(allActivities);
-      
+
       logger.info(`Loaded ${stravaActivities.length} Strava + ${manualActivities.length} manual = ${allActivities.length} total activities`);
-      
+
     } catch (error) {
       logger.error('Error loading activities:', error);
       setActivities([]);
@@ -646,7 +649,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       // Calculate the start of this week (Monday)
       const weekStartDate = new Date(start);
       weekStartDate.setDate(start.getDate() + (weekIdx * 7));
-      
+
       // Adjust to Monday of this week if start date isn't Monday
       const startDayOfWeek = weekStartDate.getDay();
       const daysUntilMonday = startDayOfWeek === 0 ? 1 : (1 - startDayOfWeek + 7) % 7;
@@ -655,18 +658,18 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       } else if (weekIdx > 0) {
         weekStartDate.setDate(weekStartDate.getDate() + daysUntilMonday);
       }
-      
+
       week.sessions.forEach(session => {
         const targetDay = dayMap[session.day];
         const sessionDate = new Date(weekStartDate);
-        
+
         // Calculate days from Monday (1) to target day
         const daysFromMonday = targetDay === 0 ? 6 : targetDay - 1; // Sunday is 6 days from Monday
         sessionDate.setDate(weekStartDate.getDate() + daysFromMonday);
-        
+
         session.date = sessionDate.toISOString().split('T')[0];
         session.dateObj = sessionDate;
-        
+
         // Fix day name to match actual date
         const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         session.day = dayNames[sessionDate.getDay()];
@@ -682,7 +685,12 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       setShowConfirmModal(true);
       return; // Wait for user confirmation via modal
     }
-    
+
+    if (!userProfile?.id) {
+      const proceed = window.confirm('You are not logged in. Your plan will only be saved to this browser. Do you want to continue?');
+      if (!proceed) return;
+    }
+
     setLoading(true);
     try {
       // Calculate duration in weeks from start date to event date
@@ -691,12 +699,12 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       const diffTime = Math.abs(end - start);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       const duration = Math.max(1, Math.ceil(diffDays / 7)); // At least 1 week
-      
+
       // Calculate enhanced metrics
-      const bmi = userProfile?.weight && userProfile?.height 
+      const bmi = userProfile?.weight && userProfile?.height
         ? (userProfile.weight / ((userProfile.height / 100) ** 2))
         : null;
-      
+
       const powerToWeight = ftp && userProfile?.weight
         ? (ftp / userProfile.weight)
         : null;
@@ -708,10 +716,10 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       // Debug: Log AI context being sent
       console.log('🤖 Generating plan with AI Context:', formData.aiContext);
       console.log('🤖 AI Context length:', formData.aiContext?.length || 0);
-      
+
       // Get week start preference
       const weekStartDay = localStorage.getItem('week_start_day') || 'Monday';
-      
+
       const response = await fetch('/api/training/plan/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -766,24 +774,29 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate plan');
+      }
+
       const planData = await response.json();
-      
+
       console.log('🤖 AI Response - Expected weeks:', duration);
       console.log('🤖 AI Response - Received weeks:', planData.weeks?.length);
       console.log('🤖 AI Response - Week numbers:', planData.weeks?.map(w => w.weekNumber));
-      
+
       // Validate that AI returned all weeks
       if (!planData.weeks || planData.weeks.length !== duration) {
         logger.error(`AI returned ${planData.weeks?.length || 0} weeks but expected ${duration} weeks`);
         alert(`Warning: The AI generated ${planData.weeks?.length || 0} weeks instead of ${duration} weeks. Please try regenerating the plan.`);
       }
-      
+
       // Add dates to all sessions
       const planWithDates = addDatesToSessions(planData, formData.startDate);
-      
+
       // Add event type to plan for rider type tracking
       planWithDates.eventType = formData.eventType;
-      
+
       // Store original goals in the plan for future regeneration
       planWithDates.goals = {
         eventName: formData.eventName,
@@ -797,7 +810,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         aiContext: formData.aiContext,
         duration: duration
       };
-      
+
       // Add coach note if race history exists
       if (raceHistory.length > 0) {
         const raceNote = {
@@ -805,22 +818,40 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
           timestamp: new Date().toISOString(),
           type: 'Race Integration'
         };
-        
+
         planWithDates.coachNotes = [raceNote, ...(planWithDates.coachNotes || [])];
       }
-      
+
       setPlan(planWithDates);
-      
+
       // Save plan with dual-write (localStorage + backend)
-      await savePlanWithBackend(planWithDates);
+      const saveResult = await savePlanWithBackend(planWithDates);
+
+      if (saveResult?.source === 'backend') {
+        setBackendSyncStatus('synced');
+      } else {
+        setBackendSyncStatus('localStorage');
+        if (userProfile?.id) {
+          alert('Plan generated but failed to save to server. It is saved locally.');
+        }
+      }
+
       setPlanLoadedFromStorage(false); // This is a newly generated plan
-      
+
       // Clear completed sessions for new plan
       setCompletedSessions({});
       localStorage.removeItem('completed_sessions');
+
+      // Show success message
+      setSuccessMessage({
+        title: 'Plan Generated Successfully!',
+        message: 'Your custom AI training plan is ready. Good luck!'
+      });
+      setShowSuccessModal(true);
+
     } catch (error) {
       logger.error('Error generating plan:', error);
-      alert('Failed to generate training plan. Please try again.');
+      alert(`Failed to generate training plan: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -852,7 +883,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       // Get the Monday of this week by finding a session with matching day name
       // This is more reliable than calculating from any date
       let weekStartDate = null;
-      
+
       // First, try to find a Monday in the original week
       const mondaySession = originalWeek.sessions.find(s => s.day === 'Monday' && s.date);
       if (mondaySession) {
@@ -878,12 +909,12 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 
           // Check if the day of week changed
           const dayChanged = session.day !== originalSession.day;
-          
+
           if (dayChanged && weekStartDate) {
             // Recalculate date based on new day of week
             const newDate = new Date(weekStartDate);
             newDate.setDate(weekStartDate.getDate() + getDayOffset(session.day));
-            
+
             return {
               ...session,
               date: newDate.toISOString().split('T')[0],
@@ -906,27 +937,27 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
     // Append new coach note to existing notes (don't overwrite)
     const existingNotes = plan.coachNotes || [];
     const newNotes = adjustedPlan.coachNotes || [];
-    
+
     // Add the new adjustment note with current timestamp
     const adjustmentNote = {
       message: explanation,
       timestamp: new Date().toISOString(),
       type: 'Adjustment'
     };
-    
+
     planWithPreservedDates.coachNotes = [...existingNotes, adjustmentNote];
-    
+
     // Save adjusted plan with dual-write (localStorage + backend)
     setPlan(planWithPreservedDates);
     await savePlanWithBackend(planWithPreservedDates);
-    
+
     // Re-run activity matching to match activities to adjusted sessions
     // This will automatically match the completed activity to the correct session
     if (activities.length > 0) {
       const matches = matchActivitiesToPlan(planWithPreservedDates, activities);
       setAutomaticMatches(matches);
     }
-    
+
     // Show success modal
     setSuccessMessage({
       title: 'Plan Adjusted Successfully!',
@@ -938,14 +969,14 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
   const handleTemplateSelect = async (template) => {
     setLoading(true);
     setShowTemplateSelector(false);
-    
+
     try {
       // Use template's plan_data directly
       const templatePlan = template.plan_data;
-      
+
       // Add dates to sessions based on start date
       const planWithDates = addDatesToSessions(templatePlan, formData.startDate);
-      
+
       // Add metadata
       planWithDates.eventType = template.event_type;
       planWithDates.templateId = template.id;
@@ -962,15 +993,27 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         duration: template.duration_weeks,
         isTemplate: true
       };
-      
+
       setPlan(planWithDates);
-      await savePlanWithBackend(planWithDates);
+
+      // Save plan with dual-write (localStorage + backend)
+      const saveResult = await savePlanWithBackend(planWithDates);
+
+      if (saveResult?.source === 'backend') {
+        setBackendSyncStatus('synced');
+      } else {
+        setBackendSyncStatus('localStorage');
+        if (userProfile?.id) {
+          alert('Plan generated but failed to save to server. It is saved locally.');
+        }
+      }
+
       setPlanLoadedFromStorage(false);
-      
+
       // Clear completed sessions for new plan
       setCompletedSessions({});
       localStorage.removeItem('completed_sessions');
-      
+
       // Show success message
       setSuccessMessage({
         title: 'Template Applied Successfully!',
@@ -990,7 +1033,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       alert('Google Calendar not connected. Please connect in Settings first.');
       return;
     }
-    
+
     if (!plan) {
       alert('No training plan available. Please generate a plan first.');
       return;
@@ -1003,7 +1046,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         week.sessions.map((session) => {
           // Use the calculated date from the session
           const startTime = new Date(session.date + 'T07:00:00'); // 7 AM local time
-          
+
           const endTime = new Date(startTime);
           endTime.setMinutes(endTime.getMinutes() + session.duration);
 
@@ -1040,7 +1083,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
       }
 
       const result = await response.json();
-      
+
       if (result.success) {
         alert(`Successfully added ${events.length} training sessions to Google Calendar!`);
       } else {
@@ -1067,16 +1110,16 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
         const raceHistory = loadRaceHistory();
         if (raceHistory.length === 0) return null;
         const latestRace = raceHistory[0];
-        
+
         return (
-          <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-[var(--color-primary)]/10 dark:from-purple-950/30 dark:to-[var(--color-primary-dark)]/20">
+          <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-[var(--color-primary)]/10 dark:from-blue-950/30 dark:to-[var(--color-primary-dark)]/20">
             <CardContent className="pt-4 sm:pt-6">
               <div className="flex items-start gap-2 sm:gap-3">
-                <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
                     AI Will Use Your Race Data
-                    <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <Award className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </h3>
                   <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mb-3">
                     Your training plan will be customized based on your recent race performance:
@@ -1095,12 +1138,12 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                       <span>Focus: {latestRace.trainingFocus[0]}</span>
                     </div>
                   </div>
-                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-purple-200 dark:border-purple-800">
+                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-blue-200 dark:border-blue-800">
                     <Button
                       onClick={() => window.location.href = '/race-analysis'}
                       variant="outline"
                       size="sm"
-                      className="text-purple-600 dark:text-purple-400 border-purple-300 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/30 w-full sm:w-auto text-xs sm:text-sm"
+                      className="text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 w-full sm:w-auto text-xs sm:text-sm"
                     >
                       View Full Race Analysis
                       <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
@@ -1115,7 +1158,7 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 
       {/* Form */}
       <Card>
-        <CardHeader 
+        <CardHeader
           className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           onClick={() => setIsFormExpanded(!isFormExpanded)}
         >
@@ -1135,934 +1178,973 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
           </div>
         </CardHeader>
         {isFormExpanded && (
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Event Name
-              </label>
-              <input
-                type="text"
-                name="eventName"
-                value={formData.eventName}
-                onChange={handleInputChange}
-                placeholder="e.g., Spring Century Ride"
-                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Event Date {formData.eventType === 'Off-Season Training' && <span className="text-muted-foreground">(Optional)</span>}
-              </label>
-              <input
-                type="date"
-                name="eventDate"
-                value={formData.eventDate}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Event Type
-              </label>
-              <select
-                name="eventType"
-                value={formData.eventType}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
-              >
-                <option value="Endurance">Endurance</option>
-                <option value="Gran Fondo">Gran Fondo</option>
-                <option value="Criterium">Criterium</option>
-                <option value="Time Trial">Time Trial</option>
-                <option value="General Fitness">General Fitness</option>
-                <option value="Off-Season Training">Off-Season Training</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Priority
-              </label>
-              <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
-              >
-                <option value="Peak Performance">Peak Performance - A-race, most important event</option>
-                <option value="High Priority">High Priority - B-race, important event</option>
-                <option value="Moderate Priority">Moderate Priority - C-race, tune-up event</option>
-                <option value="Maintenance">Maintenance - Stay fit, no specific goal</option>
-                <option value="Base Building">Base Building - Off-season foundation</option>
-                <option value="Recovery/Comeback">Recovery/Comeback - Post-injury or break</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Start Date
-              </label>
-              <input
-                type="date"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Days per Week
-              </label>
-              <input
-                type="number"
-                name="daysPerWeek"
-                value={formData.daysPerWeek}
-                onChange={handleInputChange}
-                min="3"
-                max="7"
-                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Max Hours per Week
-              </label>
-              <input
-                type="number"
-                name="maxHoursPerWeek"
-                value={formData.maxHoursPerWeek}
-                onChange={handleInputChange}
-                min="3"
-                max="20"
-                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Indoor/Outdoor Preference
-              </label>
-              <select
-                name="preference"
-                value={formData.preference}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
-              >
-                <option value="Both">Both</option>
-                <option value="Outdoor">Outdoor Only</option>
-                <option value="Indoor">Indoor Only</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Athlete Metrics Indicator */}
-          {(ftp || fthr || userProfile?.weight) && (
-            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-purple-50 dark:bg-purple-950/30 border-2 border-purple-200 dark:border-purple-800 rounded-lg">
-              <div className="flex items-start gap-2 sm:gap-3">
-                <User className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-1">
-                    ✓ Athlete Metrics Detected
-                  </h4>
-                  <p className="text-xs text-purple-700 dark:text-purple-300 mb-3">
-                    Your AI coach has analyzed your performance data to create a plan matched to your current fitness level.
-                  </p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
-                    {ftp && (
-                      <div className="bg-purple-100 dark:bg-purple-900/30 p-2 sm:p-3 rounded">
-                        <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">FTP</div>
-                        <div className="text-base sm:text-lg font-bold text-purple-900 dark:text-purple-100">{ftp}W</div>
-                        <div className="text-xs text-purple-700 dark:text-purple-300">Power Threshold</div>
-                      </div>
-                    )}
-                    {fthr && (
-                      <div className="bg-purple-100 dark:bg-purple-900/30 p-2 sm:p-3 rounded">
-                        <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">FTHR</div>
-                        <div className="text-base sm:text-lg font-bold text-purple-900 dark:text-purple-100">{fthr} bpm</div>
-                        <div className="text-xs text-purple-700 dark:text-purple-300">HR Threshold</div>
-                      </div>
-                    )}
-                    {ftp && userProfile?.weight && (
-                      <div className="bg-purple-100 dark:bg-purple-900/30 p-2 sm:p-3 rounded">
-                        <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">Power/Weight</div>
-                        <div className="text-base sm:text-lg font-bold text-purple-900 dark:text-purple-100">
-                          {(ftp / userProfile.weight).toFixed(2)}
-                        </div>
-                        <div className="text-xs text-purple-700 dark:text-purple-300">W/kg</div>
-                      </div>
-                    )}
-                    {userProfile?.weight && userProfile?.height && (
-                      <div className="bg-purple-100 dark:bg-purple-900/30 p-2 sm:p-3 rounded">
-                        <div className="text-xs text-purple-600 dark:text-purple-400 mb-1">BMI</div>
-                        <div className="text-base sm:text-lg font-bold text-purple-900 dark:text-purple-100">
-                          {((userProfile.weight / ((userProfile.height / 100) ** 2))).toFixed(1)}
-                        </div>
-                        <div className="text-xs text-purple-700 dark:text-purple-300">Body Mass Index</div>
-                      </div>
-                    )}
-                  </div>
-                  {hrZones && (
-                    <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-800">
-                      <p className="text-xs font-medium text-purple-800 dark:text-purple-200 mb-2">
-                        💓 HR Training Zones (based on 6-week FTHR)
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-                        {Object.entries(hrZones).map(([key, zone]) => (
-                          <div key={key} className="p-2 rounded" style={{ backgroundColor: `${zone.color}20`, borderLeft: `3px solid ${zone.color}` }}>
-                            <div className="font-semibold" style={{ color: zone.color }}>
-                              Z{key.replace('zone', '')} - {zone.name}
-                            </div>
-                            <div className="text-purple-700 dark:text-purple-300 mt-1">
-                              {zone.min}-{zone.max} bpm
-                            </div>
-                            <div className="text-purple-600 dark:text-purple-400 mt-1">
-                              {zone.percentage}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Illness/Injury History Indicator */}
-          {illnessHistory.length > 0 && (
-            <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/30 border-2 border-green-200 dark:border-green-800 rounded-lg">
-              <div className="flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">
-                    ✓ Health History Detected
-                  </h4>
-                  <p className="text-xs text-green-700 dark:text-green-300 mb-3">
-                    Your AI coach is aware of {illnessHistory.length} recorded health {illnessHistory.length === 1 ? 'event' : 'events'} and will create a safer, more personalized plan.
-                  </p>
-                  <div className="space-y-2">
-                    {illnessHistory.slice(0, 3).map((event, idx) => {
-                      const startDate = new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                      const endDate = event.end_date ? new Date(event.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Ongoing';
-                      const isRecent = event.end_date && (new Date() - new Date(event.end_date)) < (30 * 24 * 60 * 60 * 1000); // Within 30 days
-                      
-                      return (
-                        <div key={idx} className={`text-xs p-2 rounded ${isRecent ? 'bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700' : 'bg-green-100 dark:bg-green-900/30'}`}>
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-green-900 dark:text-green-100">
-                              {event.category} - {event.severity}
-                            </span>
-                            {isRecent && (
-                              <span className="text-orange-700 dark:text-orange-300 text-xs font-semibold">
-                                Recent
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-green-700 dark:text-green-300 mt-1">
-                            {startDate} → {endDate}
-                          </div>
-                          {event.notes && (
-                            <div className="text-green-600 dark:text-green-400 mt-1 italic">
-                              "{event.notes}"
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {illnessHistory.length > 3 && (
-                      <p className="text-xs text-green-600 dark:text-green-400 italic">
-                        + {illnessHistory.length - 3} more {illnessHistory.length - 3 === 1 ? 'event' : 'events'} in history
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* AI Coaching Context Section */}
-          <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 border-2 border-[var(--color-primary)]/30 dark:border-[var(--color-primary-dark)]/50 rounded-lg">
-            <div className="flex items-start gap-2 sm:gap-3 mb-3">
-              <Brain className="w-5 h-5 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <label htmlFor="aiContext" className="block text-sm font-semibold text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] mb-1">
-                  Tell Your AI Coach More (Optional)
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Event Name
                 </label>
-                <p className="text-xs text-[var(--color-primary)]/80 dark:text-[var(--color-primary-dark)]/80 mb-3">
-                  Share additional context about your training history, goals, constraints, 
-                  or preferences to help create a more personalized plan. This information will be used when you press <span className="font-semibold">"Generate Training Plan"</span> below.
-                </p>
-                {plan && (
-                  <p className="text-xs text-orange-700 dark:text-orange-300 mb-3 italic">
-                    💡 Already have a plan? Use the <span className="font-semibold">"Adjust Plan"</span> button below to modify your existing plan instead.
-                  </p>
-                )}
-                <Textarea
-                  id="aiContext"
-                  name="aiContext"
-                  value={formData.aiContext}
+                <input
+                  type="text"
+                  name="eventName"
+                  value={formData.eventName}
                   onChange={handleInputChange}
-                  placeholder="e.g., I'm coming back from a knee injury and need to build back gradually. I prefer morning workouts and have limited time on weekdays but more flexibility on weekends. I've been cycling for 3 years and my best FTP was 280W..."
-                  className="text-sm resize-none"
-                  rows={5}
+                  placeholder="e.g., Spring Century Ride"
+                  className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               </div>
-            </div>
-            
-            {/* Helpful Prompts */}
-            <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
-              <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
-                💡 Helpful things to mention:
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-blue-700 dark:text-blue-300">
-                <div className="flex items-start gap-1">
-                  <span>•</span>
-                  <span>Training history & experience level</span>
-                </div>
-                <div className="flex items-start gap-1">
-                  <span>•</span>
-                  <span>Time constraints & schedule preferences</span>
-                </div>
-                <div className="flex items-start gap-1">
-                  <span>•</span>
-                  <span>Equipment available (trainer, power meter, etc.)</span>
-                </div>
-                <div className="flex items-start gap-1">
-                  <span>•</span>
-                  <span>Specific weaknesses to address</span>
-                </div>
-                <div className="flex items-start gap-1">
-                  <span>•</span>
-                  <span>Past performance goals or PRs</span>
-                </div>
-                <div className="flex items-start gap-1">
-                  <span>•</span>
-                  <span>Preferred training style or philosophy</span>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <div className="mt-4 sm:mt-6">
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              <Button
-                onClick={generatePlan}
-                disabled={loading || !formData.eventName}
-                className="flex-1"
-                size="lg"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Generating Plan...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    AI Generate Plan
-                  </>
-                )}
-              </Button>
-              
-              <div className="flex items-center justify-center text-gray-400 dark:text-gray-600">
-                <span className="text-sm font-medium">OR</span>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Event Date {formData.eventType === 'Off-Season Training' && <span className="text-muted-foreground">(Optional)</span>}
+                </label>
+                <input
+                  type="date"
+                  name="eventDate"
+                  value={formData.eventDate}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
+                />
               </div>
-              
-              <Button
-                onClick={() => setShowTemplateSelector(true)}
-                disabled={loading}
-                variant="outline"
-                className="flex-1 border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 dark:border-[var(--color-primary-dark)] dark:text-[var(--color-primary-dark)] dark:hover:bg-[var(--color-primary-dark)]/20"
-                size="lg"
-              >
-                <CalendarIcon className="w-4 h-4 mr-2" />
-                Use a Template
-              </Button>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Event Type
+                </label>
+                <select
+                  name="eventType"
+                  value={formData.eventType}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
+                >
+                  <option value="Endurance">Endurance</option>
+                  <option value="Gran Fondo">Gran Fondo</option>
+                  <option value="Criterium">Criterium</option>
+                  <option value="Time Trial">Time Trial</option>
+                  <option value="General Fitness">General Fitness</option>
+                  <option value="Off-Season Training">Off-Season Training</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Priority
+                </label>
+                <select
+                  name="priority"
+                  value={formData.priority}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
+                >
+                  <option value="Peak Performance">Peak Performance - A-race, most important event</option>
+                  <option value="High Priority">High Priority - B-race, important event</option>
+                  <option value="Moderate Priority">Moderate Priority - C-race, tune-up event</option>
+                  <option value="Maintenance">Maintenance - Stay fit, no specific goal</option>
+                  <option value="Base Building">Base Building - Off-season foundation</option>
+                  <option value="Recovery/Comeback">Recovery/Comeback - Post-injury or break</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Days per Week
+                </label>
+                <input
+                  type="number"
+                  name="daysPerWeek"
+                  value={formData.daysPerWeek}
+                  onChange={handleInputChange}
+                  min="3"
+                  max="7"
+                  className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Max Hours per Week
+                </label>
+                <input
+                  type="number"
+                  name="maxHoursPerWeek"
+                  value={formData.maxHoursPerWeek}
+                  onChange={handleInputChange}
+                  min="3"
+                  max="20"
+                  className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Indoor/Outdoor Preference
+                </label>
+                <select
+                  name="preference"
+                  value={formData.preference}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
+                >
+                  <option value="Both">Both</option>
+                  <option value="Outdoor">Outdoor Only</option>
+                  <option value="Indoor">Indoor Only</option>
+                </select>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-              Choose AI for personalized plans or browse pre-built templates from expert coaches
-            </p>
-          </div>
-        </CardContent>
+
+            {/* Athlete Metrics Indicator */}
+            {(ftp || fthr || userProfile?.weight) && (
+              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <User className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                      ✓ Athlete Metrics Detected
+                    </h4>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
+                      Your AI coach has analyzed your performance data to create a plan matched to your current fitness level.
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+                      {ftp && (
+                        <div className="bg-blue-100 dark:bg-blue-900/30 p-2 sm:p-3 rounded">
+                          <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">FTP</div>
+                          <div className="text-base sm:text-lg font-bold text-blue-900 dark:text-blue-100">{ftp}W</div>
+                          <div className="text-xs text-blue-700 dark:text-blue-300">Power Threshold</div>
+                        </div>
+                      )}
+                      {fthr && (
+                        <div className="bg-blue-100 dark:bg-blue-900/30 p-2 sm:p-3 rounded">
+                          <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">FTHR</div>
+                          <div className="text-base sm:text-lg font-bold text-blue-900 dark:text-blue-100">{fthr} bpm</div>
+                          <div className="text-xs text-blue-700 dark:text-blue-300">HR Threshold</div>
+                        </div>
+                      )}
+                      {ftp && userProfile?.weight && (
+                        <div className="bg-blue-100 dark:bg-blue-900/30 p-2 sm:p-3 rounded">
+                          <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">Power/Weight</div>
+                          <div className="text-base sm:text-lg font-bold text-blue-900 dark:text-blue-100">
+                            {(ftp / userProfile.weight).toFixed(2)}
+                          </div>
+                          <div className="text-xs text-blue-700 dark:text-blue-300">W/kg</div>
+                        </div>
+                      )}
+                      {userProfile?.weight && userProfile?.height && (
+                        <div className="bg-blue-100 dark:bg-blue-900/30 p-2 sm:p-3 rounded">
+                          <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">BMI</div>
+                          <div className="text-base sm:text-lg font-bold text-blue-900 dark:text-blue-100">
+                            {((userProfile.weight / ((userProfile.height / 100) ** 2))).toFixed(1)}
+                          </div>
+                          <div className="text-xs text-blue-700 dark:text-blue-300">Body Mass Index</div>
+                        </div>
+                      )}
+                    </div>
+                    {hrZones && (
+                      <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+                        <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
+                          💓 HR Training Zones (based on 6-week FTHR)
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                          {Object.entries(hrZones).map(([key, zone]) => (
+                            <div key={key} className="p-2 rounded" style={{ backgroundColor: `${zone.color}20`, borderLeft: `3px solid ${zone.color}` }}>
+                              <div className="font-semibold" style={{ color: zone.color }}>
+                                Z{key.replace('zone', '')} - {zone.name}
+                              </div>
+                              <div className="text-blue-700 dark:text-blue-300 mt-1">
+                                {zone.min}-{zone.max} bpm
+                              </div>
+                              <div className="text-blue-600 dark:text-blue-400 mt-1">
+                                {zone.percentage}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Illness/Injury History Indicator */}
+            {illnessHistory.length > 0 && (
+              <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/30 border-2 border-green-200 dark:border-green-800 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">
+                      ✓ Health History Detected
+                    </h4>
+                    <p className="text-xs text-green-700 dark:text-green-300 mb-3">
+                      Your AI coach is aware of {illnessHistory.length} recorded health {illnessHistory.length === 1 ? 'event' : 'events'} and will create a safer, more personalized plan.
+                    </p>
+                    <div className="space-y-2">
+                      {illnessHistory.slice(0, 3).map((event, idx) => {
+                        const startDate = new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const endDate = event.end_date ? new Date(event.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Ongoing';
+                        const isRecent = event.end_date && (new Date() - new Date(event.end_date)) < (30 * 24 * 60 * 60 * 1000); // Within 30 days
+
+                        return (
+                          <div key={idx} className={`text-xs p-2 rounded ${isRecent ? 'bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700' : 'bg-green-100 dark:bg-green-900/30'}`}>
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-green-900 dark:text-green-100">
+                                {event.category} - {event.severity}
+                              </span>
+                              {isRecent && (
+                                <span className="text-orange-700 dark:text-orange-300 text-xs font-semibold">
+                                  Recent
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-green-700 dark:text-green-300 mt-1">
+                              {startDate} → {endDate}
+                            </div>
+                            {event.notes && (
+                              <div className="text-green-600 dark:text-green-400 mt-1 italic">
+                                "{event.notes}"
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {illnessHistory.length > 3 && (
+                        <p className="text-xs text-green-600 dark:text-green-400 italic">
+                          + {illnessHistory.length - 3} more {illnessHistory.length - 3 === 1 ? 'event' : 'events'} in history
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* AI Coaching Context Section */}
+            <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 border-2 border-[var(--color-primary)]/30 dark:border-[var(--color-primary-dark)]/50 rounded-lg">
+              <div className="flex items-start gap-2 sm:gap-3 mb-3">
+                <Brain className="w-5 h-5 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <label htmlFor="aiContext" className="block text-sm font-semibold text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] mb-1">
+                    Tell Your AI Coach More (Optional)
+                  </label>
+                  <p className="text-xs text-[var(--color-primary)]/80 dark:text-[var(--color-primary-dark)]/80 mb-3">
+                    Share additional context about your training history, goals, constraints,
+                    or preferences to help create a more personalized plan. This information will be used when you press <span className="font-semibold">"Generate Training Plan"</span> below.
+                  </p>
+                  {plan && (
+                    <p className="text-xs text-orange-700 dark:text-orange-300 mb-3 italic">
+                      💡 Already have a plan? Use the <span className="font-semibold">"Adjust Plan"</span> button below to modify your existing plan instead.
+                    </p>
+                  )}
+                  <Textarea
+                    id="aiContext"
+                    name="aiContext"
+                    value={formData.aiContext}
+                    onChange={handleInputChange}
+                    placeholder="e.g., I'm coming back from a knee injury and need to build back gradually. I prefer morning workouts and have limited time on weekdays but more flexibility on weekends. I've been cycling for 3 years and my best FTP was 280W..."
+                    className="text-sm resize-none"
+                    rows={5}
+                  />
+                </div>
+              </div>
+
+              {/* Helpful Prompts */}
+              <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+                <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
+                  💡 Helpful things to mention:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-blue-700 dark:text-blue-300">
+                  <div className="flex items-start gap-1">
+                    <span>•</span>
+                    <span>Training history & experience level</span>
+                  </div>
+                  <div className="flex items-start gap-1">
+                    <span>•</span>
+                    <span>Time constraints & schedule preferences</span>
+                  </div>
+                  <div className="flex items-start gap-1">
+                    <span>•</span>
+                    <span>Equipment available (trainer, power meter, etc.)</span>
+                  </div>
+                  <div className="flex items-start gap-1">
+                    <span>•</span>
+                    <span>Specific weaknesses to address</span>
+                  </div>
+                  <div className="flex items-start gap-1">
+                    <span>•</span>
+                    <span>Past performance goals or PRs</span>
+                  </div>
+                  <div className="flex items-start gap-1">
+                    <span>•</span>
+                    <span>Preferred training style or philosophy</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 sm:mt-6">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <Button
+                  onClick={generatePlan}
+                  disabled={loading || !formData.eventName}
+                  className="flex-1"
+                  size="lg"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Generating Plan...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      AI Generate Plan
+                    </>
+                  )}
+                </Button>
+
+                <div className="flex items-center justify-center text-gray-400 dark:text-gray-600">
+                  <span className="text-sm font-medium">OR</span>
+                </div>
+
+                <Button
+                  onClick={() => setShowTemplateSelector(true)}
+                  disabled={loading}
+                  variant="outline"
+                  className="flex-1 border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 dark:border-[var(--color-primary-dark)] dark:text-[var(--color-primary-dark)] dark:hover:bg-[var(--color-primary-dark)]/20"
+                  size="lg"
+                >
+                  <CalendarIcon className="w-4 h-4 mr-2" />
+                  Use a Template
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+                Choose AI for personalized plans or browse pre-built templates from expert coaches
+              </p>
+            </div>
+          </CardContent>
         )}
       </Card>
 
       {/* Generated Plan */}
       {plan && (
         <>
-        {/* Progress Tracker */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)]" />
-                  Your Training Progress
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {calculateProgress().completed} of {calculateProgress().total} sessions completed
-                </p>
-                <div className="flex items-center gap-3 mt-2 text-xs">
-                  <span className="flex items-center gap-1 px-2 py-1 bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] rounded">
-                    <ZapIcon className="w-3 h-3" />
-                    {calculateProgress().autoMatched} auto-matched
-                  </span>
-                  <span className="flex items-center gap-1 px-2 py-1 bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 rounded">
-                    {calculateProgress().manual} manual
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-[var(--color-primary)] dark:text-[var(--color-primary-dark)]">
-                  {calculateProgress().percentage}%
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Complete</p>
-              </div>
-            </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-              <div 
-                className="bg-[var(--color-primary)] dark:bg-[var(--color-primary-dark)] h-3 rounded-full transition-all duration-500"
-                style={{ width: `${calculateProgress().percentage}%` }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Working Towards Rider Type */}
-        {(() => {
-          const merged = mergeCompletions(completedSessions, automaticMatches);
-          const trainingFocus = calculateTrainingFocus(plan, merged);
-          const eventType = plan.eventType || formData.eventType; // Use saved event type if available
-          const riderProgress = calculateRiderTypeProgress(eventType, trainingFocus);
-          
-          if (!riderProgress) return null;
-          
-          const progressStatus = getProgressStatus(riderProgress.progress);
-          const motivationalMsg = getMotivationalMessage(riderProgress.progress, riderProgress.targetType);
-          
-          return (
-            <Card className="mb-6 border-2 border-purple-200 overflow-hidden">
-              <button
-                onClick={() => setIsRiderTypeExpanded(!isRiderTypeExpanded)}
-                className={`w-full bg-gradient-to-r ${riderProgress.color} p-6 text-white cursor-pointer hover:opacity-95 transition-opacity`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="text-5xl">{riderProgress.icon}</div>
-                    <div className="text-left">
-                      <h3 className="text-2xl font-bold mb-1">
-                        Working Towards: {riderProgress.targetType}
-                      </h3>
-                      <p className="text-white/90">{riderProgress.description}</p>
-                      {/* Starting Level Badge in Header */}
-                      <div className="mt-2">
-                        <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm font-semibold text-sm`}>
-                          <Award className="w-4 h-4" />
-                          Starting Level: {progressStatus.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-5xl font-bold">{riderProgress.progress}%</div>
-                    <p className="text-white/80 text-sm mt-1">Progress</p>
-                    <div className="mt-2">
-                      {isRiderTypeExpanded ? (
-                        <ChevronUp className="w-6 h-6 mx-auto" />
-                      ) : (
-                        <ChevronDown className="w-6 h-6 mx-auto" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </button>
-              
-              {isRiderTypeExpanded && (
-                <CardContent className="pt-6">
-                  {/* Motivational Message */}
-                  <div className="mb-6 p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
-                    <p className="text-purple-900 font-medium">{motivationalMsg}</p>
-                  </div>
-
-                {/* Target Characteristics */}
-                <div className="mb-6">
-                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Target className="w-4 h-4 text-purple-600" />
-                    Target Characteristics
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {riderProgress.characteristics.map((char, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                        <span className="text-purple-600 font-bold">✓</span>
-                        <span>{char}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Training Focus Breakdown */}
+          {/* Progress Tracker */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Info className="w-4 h-4 text-purple-600" />
-                    Training Focus Distribution
-                  </h4>
-                  <div className="space-y-3">
-                    {Object.keys(trainingFocus.plannedPercentages).filter(type => trainingFocus.plannedPercentages[type] > 0).map((sessionType) => {
-                      const plannedPct = trainingFocus.plannedPercentages[sessionType];
-                      const completedPct = trainingFocus.completedPercentages[sessionType] || 0;
-                      const completionRatio = plannedPct > 0 ? (completedPct / plannedPct) * 100 : 0;
-                      
-                      return (
-                        <div key={sessionType}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium text-gray-700">{sessionType}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">Planned: {plannedPct}%</span>
-                              <span className="text-sm font-bold text-purple-600">
-                                {completedPct}% completed
-                              </span>
-                            </div>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-purple-600 h-2 rounded-full transition-all"
-                              style={{ width: `${Math.min(completionRatio, 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                  {/* Completion Stats */}
-                  <div className="mt-6 grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 rounded-lg text-center">
-                      <div className="text-2xl font-bold text-[var(--color-primary)] dark:text-[var(--color-primary-dark)]">{riderProgress.completionRate}%</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Plan Completion</div>
-                    </div>
-                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">{riderProgress.alignmentScore}%</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Training Alignment</div>
-                    </div>
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          );
-        })()}
-
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-4">
-              {/* Title and Description - Top on mobile */}
-              <div>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <CardTitle>Your Plan</CardTitle>
-                  {planLoadedFromStorage && (
-                    <span className="px-3 py-1 bg-[var(--color-primary)]/20 dark:bg-[var(--color-primary-dark)]/20 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] text-xs font-semibold rounded-full flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" />
-                      Saved Plan
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)]" />
+                    Your Training Progress
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {calculateProgress().completed} of {calculateProgress().total} sessions completed
+                  </p>
+                  <div className="flex items-center gap-3 mt-2 text-xs">
+                    <span className="flex items-center gap-1 px-2 py-1 bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] rounded">
+                      <ZapIcon className="w-3 h-3" />
+                      {calculateProgress().autoMatched} auto-matched
                     </span>
-                  )}
+                    <span className="flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 rounded">
+                      {calculateProgress().manual} manual
+                    </span>
+                  </div>
                 </div>
-                <CardDescription className="mt-2">{plan.planSummary}</CardDescription>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-[var(--color-primary)] dark:text-[var(--color-primary-dark)]">
+                    {calculateProgress().percentage}%
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Complete</p>
+                </div>
               </div>
-              
-              {/* Buttons - Bottom on mobile, stacked vertically on small screens */}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button 
-                  onClick={() => setShowAdaptiveModal(true)}
-                  variant="default"
-                  className="bg-gradient-to-r from-purple-600 to-[var(--color-primary)] hover:from-purple-700 hover:to-[var(--color-primary)]/90 w-full sm:w-auto"
-                  title="Modify existing sessions (reschedule, change intensity, move days). Cannot add new weeks."
-                >
-                  <Brain className="w-4 h-4 mr-2" />
-                  Adjust Plan
-                </Button>
-                <Button 
-                  onClick={syncToCalendar} 
-                  disabled={syncing} 
-                  variant="default"
-                  className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
-                  title="Add all training sessions to your Google Calendar"
-                >
-                  {syncing ? (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <CalendarPlus className="w-4 h-4 mr-2" />
-                      Add to Calendar
-                    </>
-                  )}
-                </Button>
-                <Button onClick={() => {
-                  generatePlan(false); // Will show confirmation since plan exists
-                }} variant="outline" disabled={loading} title="Create a new plan from scratch. Use this to change event date or add more weeks." className="w-full sm:w-auto">
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
-                      Regenerating...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Regenerate Plan
-                    </>
-                  )}
-                </Button>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                <div
+                  className="bg-[var(--color-primary)] dark:bg-[var(--color-primary-dark)] h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${calculateProgress().percentage}%` }}
+                />
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Debug: Log plan structure */}
-              {console.log('📋 Plan weeks count:', plan.weeks?.length)}
-              {console.log('📋 Plan weeks:', plan.weeks?.map(w => w.weekNumber))}
-              {plan.weeks.map((week) => {
-                const isExpanded = expandedWeeks[week.weekNumber];
-                const isCurrentWeek = getCurrentWeek(plan) === week.weekNumber;
-                
-                // Calculate week completion stats
-                const weekSessions = week.sessions.length;
-                const merged = mergeCompletions(completedSessions, automaticMatches);
-                const weekCompleted = week.sessions.filter((_, idx) => {
-                  const sessionKey = `${week.weekNumber}-${idx}`;
-                  const completion = merged[sessionKey];
-                  return completion && completion.completed;
-                }).length;
-                const weekCompletionPct = weekSessions > 0 ? Math.round((weekCompleted / weekSessions) * 100) : 0;
-                
-                return (
-                <div key={week.weekNumber} className={`border-2 rounded-lg overflow-hidden ${
-                  isCurrentWeek ? 'border-[var(--color-primary)] dark:border-[var(--color-primary-dark)] shadow-md' : 'border-gray-200 dark:border-gray-700'
-                }`}>
-                  <div 
-                    className={`p-4 cursor-pointer transition-colors ${
-                      isCurrentWeek 
-                        ? 'bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 hover:bg-[var(--color-primary)]/20 dark:hover:bg-[var(--color-primary-dark)]/30' 
-                        : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                    onClick={() => toggleWeekExpanded(week.weekNumber)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {isExpanded ? (
-                          <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                        )}
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                            Week {week.weekNumber}: {week.focus}
-                            {isCurrentWeek && (
-                              <span className="px-2 py-1 bg-[var(--color-primary)] dark:bg-[var(--color-primary-dark)] text-white text-xs font-semibold rounded">
-                                Current Week
-                              </span>
-                            )}
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            Total: {week.totalHours}h • {weekCompleted}/{weekSessions} sessions completed ({weekCompletionPct}%)
-                          </p>
+            </CardContent>
+          </Card>
+
+          {/* Working Towards Rider Type */}
+          {(() => {
+            const merged = mergeCompletions(completedSessions, automaticMatches);
+            const trainingFocus = calculateTrainingFocus(plan, merged);
+            const eventType = plan.eventType || formData.eventType; // Use saved event type if available
+            const riderProgress = calculateRiderTypeProgress(eventType, trainingFocus);
+
+            if (!riderProgress) return null;
+
+            const progressStatus = getProgressStatus(riderProgress.progress);
+            const motivationalMsg = getMotivationalMessage(riderProgress.progress, riderProgress.targetType);
+
+            return (
+              <Card className="mb-6 border-2 border-blue-200 overflow-hidden">
+                <button
+                  onClick={() => setIsRiderTypeExpanded(!isRiderTypeExpanded)}
+                  className={`w-full bg-gradient-to-r ${riderProgress.color} p-6 text-white cursor-pointer hover:opacity-95 transition-opacity`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="text-5xl">{riderProgress.icon}</div>
+                      <div className="text-left">
+                        <h3 className="text-2xl font-bold mb-1">
+                          Working Towards: {riderProgress.targetType}
+                        </h3>
+                        <p className="text-white/90">{riderProgress.description}</p>
+                        {/* Starting Level Badge in Header */}
+                        <div className="mt-2">
+                          <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm font-semibold text-sm`}>
+                            <Award className="w-4 h-4" />
+                            Starting Level: {progressStatus.status}
+                          </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {weekCompletionPct === 100 && (
-                          <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="text-center">
+                      <div className="text-5xl font-bold">{riderProgress.progress}%</div>
+                      <p className="text-white/80 text-sm mt-1">Progress</p>
+                      <div className="mt-2">
+                        {isRiderTypeExpanded ? (
+                          <ChevronUp className="w-6 h-6 mx-auto" />
+                        ) : (
+                          <ChevronDown className="w-6 h-6 mx-auto" />
                         )}
                       </div>
                     </div>
                   </div>
-                  {isExpanded && (
-                  <div className="p-4 bg-white dark:bg-gray-800 space-y-2">
-                    {week.sessions.map((session, idx) => {
-                      const sessionKey = `${week.weekNumber}-${idx}`;
-                      const merged = mergeCompletions(completedSessions, automaticMatches);
-                      const completion = merged[sessionKey];
-                      const completionStatus = getCompletionStatus(sessionKey, merged, automaticMatches);
-                      const isCompleted = completion && completion.completed;
-                      const isMissed = completion && completion.missed;
-                      
-                      // Check if session date has passed (compare date only, not time)
-                      const isPastSession = session.date && (() => {
-                        const sessionDate = new Date(session.date);
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        sessionDate.setHours(0, 0, 0, 0);
-                        return sessionDate < today;
-                      })();
-                      
-                      return (
-                        <div
-                          key={idx}
-                          className={`p-4 border-2 rounded-lg transition-all cursor-pointer ${
-                            session.status === 'cancelled'
-                              ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 opacity-60'
-                              : session.modified
-                              ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20'
-                              : isCompleted 
-                              ? `${completionStatus.borderColor} ${completionStatus.bgColor}` 
-                              : isMissed
-                              ? 'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
-                              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-[var(--color-primary)]/30 dark:hover:border-[var(--color-primary-dark)]/50 hover:shadow-md'
-                          }`}
-                          onClick={() => setHoveredSession(session)}
-                        >
-                          {/* Mobile: Stack vertically, Desktop: Side by side */}
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            {/* Title and Description Section */}
-                            <div className="flex items-start gap-4 flex-1">
-                              <div className={`w-2 h-12 rounded flex-shrink-0 ${
-                                session.type === 'Recovery' ? 'bg-green-500' :
-                                session.type === 'Endurance' ? 'bg-[var(--color-endurance)]' :
-                                session.type === 'Tempo' ? 'bg-yellow-500' :
-                                session.type === 'Threshold' ? 'bg-orange-500' :
-                                session.type === 'VO2Max' ? 'bg-red-500' :
-                                'bg-purple-500'
-                              }`} />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <h4 className={`font-semibold ${
-                                    isCompleted ? `${completionStatus.color} line-through` : 
-                                    isMissed ? 'text-red-700 dark:text-red-400 line-through' :
-                                    session.status === 'cancelled' ? 'text-red-700 dark:text-red-400 line-through' :
-                                    session.modified ? 'text-orange-700 dark:text-orange-400' :
-                                    'text-gray-900 dark:text-gray-100'
-                                  }`}>
-                                    {session.title}
-                                  </h4>
-                                  <span className={`px-2 py-0.5 text-xs rounded font-medium ${
-                                    session.type === 'Recovery' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
-                                    session.type === 'Endurance' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' :
-                                    session.type === 'Tempo' ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400' :
-                                    session.type === 'Threshold' ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400' :
-                                    session.type === 'VO2Max' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' :
-                                    'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400'
-                                  }`}>
-                                    {session.type}
+                </button>
+
+                {isRiderTypeExpanded && (
+                  <CardContent className="pt-6">
+                    {/* Motivational Message */}
+                    <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                      <p className="text-blue-900 font-medium">{motivationalMsg}</p>
+                    </div>
+
+                    {/* Target Characteristics */}
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Target className="w-4 h-4 text-blue-600" />
+                        Target Characteristics
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {riderProgress.characteristics.map((char, idx) => (
+                          <div key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                            <span className="text-indigo-600 font-bold">✓</span>
+                            <span>{char}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Training Focus Breakdown */}
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Info className="w-4 h-4 text-indigo-600" />
+                        Training Focus Distribution
+                      </h4>
+                      <div className="space-y-3">
+                        {Object.keys(trainingFocus.plannedPercentages).filter(type => trainingFocus.plannedPercentages[type] > 0).map((sessionType) => {
+                          const plannedPct = trainingFocus.plannedPercentages[sessionType];
+                          const completedPct = trainingFocus.completedPercentages[sessionType] || 0;
+                          const completionRatio = plannedPct > 0 ? (completedPct / plannedPct) * 100 : 0;
+
+                          return (
+                            <div key={sessionType}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-700">{sessionType}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-600">Planned: {plannedPct}%</span>
+                                  <span className="text-sm font-bold text-indigo-600">
+                                    {completedPct}% completed
                                   </span>
-                                  {isMissed && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded font-semibold">
-                                      <X className="w-3 h-3" />
-                                      Missed: {completion.missedReason}
-                                    </span>
-                                  )}
-                                  {session.status === 'cancelled' && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded font-semibold border border-red-300">
-                                      <X className="w-3 h-3" />
-                                      Cancelled
-                                    </span>
-                                  )}
-                                  {session.modified && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-semibold border border-orange-300">
-                                      <AlertCircle className="w-3 h-3" />
-                                      Modified
-                                    </span>
-                                  )}
-                                </div>
-                                <p className={`text-sm mt-1 ${
-                                  isCompleted ? 'text-green-700 dark:text-green-400' : 
-                                  isMissed ? 'text-red-700 dark:text-red-400' :
-                                  session.status === 'cancelled' ? 'text-red-600 dark:text-red-400 line-through' :
-                                  session.modified ? 'text-orange-600 dark:text-orange-400' :
-                                  'text-gray-600 dark:text-gray-400'
-                                }`}>
-                                  {session.description}
-                                </p>
-                                {session.cancellationReason && (
-                                  <p className="text-xs text-red-600 dark:text-red-400 mt-1 italic">
-                                    Reason: {session.cancellationReason}
-                                  </p>
-                                )}
-                                {session.modificationReason && (
-                                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 italic">
-                                    Adjustment: {session.modificationReason}
-                                  </p>
-                                )}
-                                <div className="flex items-center gap-4 mt-2 text-xs flex-wrap">
-                                  <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                                    <Clock className="w-3 h-3" />
-                                    {session.duration} min
-                                  </span>
-                                  {session.date && (
-                                    <span className="font-medium text-gray-500 dark:text-gray-400">
-                                      {new Date(session.date).toLocaleDateString('en-US', { 
-                                        weekday: 'short',
-                                        month: 'short', 
-                                        day: 'numeric' 
-                                      })}
-                                    </span>
-                                  )}
-                                  {isCompleted && completion.automatic && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 rounded font-semibold">
-                                      <ZapIcon className="w-3 h-3" />
-                                      Auto-matched ({completion.alignmentScore}%)
-                                    </span>
-                                  )}
-                                  {isCompleted && completion.manualOverride && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 rounded font-semibold">
-                                      Manual Override ({completion.alignmentScore}%)
-                                    </span>
-                                  )}
-                                  {isCompleted && !completion.automatic && !completion.manualOverride && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 rounded font-semibold">
-                                      Manual
-                                    </span>
-                                  )}
-                                  {!isCompleted && automaticMatches[sessionKey] && automaticMatches[sessionKey].matched && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 rounded font-semibold">
-                                      <ZapIcon className="w-3 h-3" />
-                                      Activity found ({Math.round(automaticMatches[sessionKey].alignmentScore)}%)
-                                    </span>
-                                  )}
-                                  {!isCompleted && automaticMatches[sessionKey] && !automaticMatches[sessionKey].matched && automaticMatches[sessionKey].activity && automaticMatches[sessionKey].activity.id && automaticMatches[sessionKey].alignmentScore > 0 && (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 rounded font-semibold">
-                                      <AlertCircle className="w-3 h-3" />
-                                      Low match ({Math.round(automaticMatches[sessionKey].alignmentScore)}%)
-                                    </span>
-                                  )}
-                                  {automaticMatches[sessionKey] && automaticMatches[sessionKey].activity && automaticMatches[sessionKey].activity.id && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openMatchModal(session, sessionKey);
-                                      }}
-                                      className="text-blue-600 dark:text-blue-400 font-medium hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-                                    >
-                                      View Match
-                                    </button>
-                                  )}
                                 </div>
                               </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-indigo-600 h-2 rounded-full transition-all"
+                                  style={{ width: `${Math.min(completionRatio, 100)}%` }}
+                                />
+                              </div>
                             </div>
-                            
-                            {/* Buttons Section - Stack vertically on mobile, horizontal on desktop */}
-                            <div className="flex flex-col sm:flex-row gap-2 sm:ml-4 w-full sm:w-auto">
-                              {isMissed ? (
-                                <Button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    undoMissed(sessionKey);
-                                  }}
-                                  variant="outline"
-                                  className="border-red-300 text-red-700 hover:bg-red-50 w-full sm:w-auto"
-                                >
-                                  <RefreshCw className="w-4 h-4 mr-2" />
-                                  Undo Missed
-                                </Button>
-                              ) : (
-                                <>
-                                  <Button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleSessionComplete(week.weekNumber, idx);
-                                    }}
-                                    variant={isCompleted ? "default" : "outline"}
-                                    className={`${isCompleted ? 'bg-green-600 hover:bg-green-700' : ''} w-full sm:w-auto`}
-                                  >
-                                    {isCompleted ? (
-                                      <>
-                                        <CheckCircle className="w-4 h-4 mr-2" />
-                                        Completed
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Circle className="w-4 h-4 mr-2" />
-                                        Mark Complete
-                                      </>
-                                    )}
-                                  </Button>
-                                  
-                                  {isPastSession && !isCompleted && (
-                                    <div className="relative w-full sm:w-auto">
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Completion Stats */}
+                    <div className="mt-6 grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-[var(--color-primary)] dark:text-[var(--color-primary-dark)]">{riderProgress.completionRate}%</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Plan Completion</div>
+                      </div>
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{riderProgress.alignmentScore}%</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Training Alignment</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            );
+          })()}
+
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col gap-4">
+                {/* Title and Description - Top on mobile */}
+                <div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <CardTitle>Your Plan</CardTitle>
+                    {planLoadedFromStorage && (
+                      <span className="px-3 py-1 bg-[var(--color-primary)]/20 dark:bg-[var(--color-primary-dark)]/20 text-[var(--color-primary)] dark:text-[var(--color-primary-dark)] text-xs font-semibold rounded-full flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Saved Plan
+                      </span>
+                    )}
+                  </div>
+                  <CardDescription className="mt-2">{plan.planSummary}</CardDescription>
+                </div>
+
+                {/* Buttons - Bottom on mobile, stacked vertically on small screens */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    onClick={() => setShowAdaptiveModal(true)}
+                    variant="default"
+                    className="bg-gradient-to-r from-indigo-600 to-[var(--color-primary)] hover:from-indigo-700 hover:to-[var(--color-primary)]/90 w-full sm:w-auto"
+                    title="Modify existing sessions (reschedule, change intensity, move days). Cannot add new weeks."
+                  >
+                    <Brain className="w-4 h-4 mr-2" />
+                    Adjust Plan
+                  </Button>
+                  <Button
+                    onClick={syncToCalendar}
+                    disabled={syncing}
+                    variant="default"
+                    className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                    title="Add all training sessions to your Google Calendar"
+                  >
+                    {syncing ? (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <CalendarPlus className="w-4 h-4 mr-2" />
+                        Add to Calendar
+                      </>
+                    )}
+                  </Button>
+                  <Button onClick={() => {
+                    generatePlan(false); // Will show confirmation since plan exists
+                  }} variant="outline" disabled={loading} title="Create a new plan from scratch. Use this to change event date or add more weeks." className="w-full sm:w-auto">
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                        Regenerating...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Regenerate Plan
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Debug: Log plan structure */}
+                {console.log('📋 Plan weeks count:', plan.weeks?.length)}
+                {console.log('📋 Plan weeks:', plan.weeks?.map(w => w.weekNumber))}
+                {plan.weeks.map((week) => {
+                  const isExpanded = expandedWeeks[week.weekNumber];
+                  const isCurrentWeek = getCurrentWeek(plan) === week.weekNumber;
+
+                  // Calculate week completion stats
+                  const weekSessions = week.sessions.length;
+                  const merged = mergeCompletions(completedSessions, automaticMatches);
+                  const weekCompleted = week.sessions.filter((_, idx) => {
+                    const sessionKey = `${week.weekNumber}-${idx}`;
+                    const completion = merged[sessionKey];
+                    return completion && completion.completed;
+                  }).length;
+                  const weekCompletionPct = weekSessions > 0 ? Math.round((weekCompleted / weekSessions) * 100) : 0;
+
+                  return (
+                    <div key={week.weekNumber} className={`border-2 rounded-lg overflow-hidden ${isCurrentWeek ? 'border-[var(--color-primary)] dark:border-[var(--color-primary-dark)] shadow-md' : 'border-gray-200 dark:border-gray-700'
+                      }`}>
+                      <div
+                        className={`p-4 cursor-pointer transition-colors ${isCurrentWeek
+                          ? 'bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20 hover:bg-[var(--color-primary)]/20 dark:hover:bg-[var(--color-primary-dark)]/30'
+                          : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                        onClick={() => toggleWeekExpanded(week.weekNumber)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {isExpanded ? (
+                              <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                            )}
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                Week {week.weekNumber}: {week.focus}
+                                {isCurrentWeek && (
+                                  <span className="px-2 py-1 bg-[var(--color-primary)] dark:bg-[var(--color-primary-dark)] text-white text-xs font-semibold rounded">
+                                    Current Week
+                                  </span>
+                                )}
+                              </h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                Total: {week.totalHours}h • {weekCompleted}/{weekSessions} sessions completed ({weekCompletionPct}%)
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {weekCompletionPct === 100 && (
+                              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div className="p-4 bg-white dark:bg-gray-800 space-y-2">
+                          {week.sessions.map((session, idx) => {
+                            const sessionKey = `${week.weekNumber}-${idx}`;
+                            const merged = mergeCompletions(completedSessions, automaticMatches);
+                            const completion = merged[sessionKey];
+                            const completionStatus = getCompletionStatus(sessionKey, merged, automaticMatches);
+                            const isCompleted = completion && completion.completed;
+                            const isMissed = completion && completion.missed;
+
+                            // Check if session date has passed (compare date only, not time)
+                            const isPastSession = session.date && (() => {
+                              const sessionDate = new Date(session.date);
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              sessionDate.setHours(0, 0, 0, 0);
+                              return sessionDate < today;
+                            })();
+
+                            return (
+                              <div
+                                key={idx}
+                                className={`p-4 border-2 rounded-lg transition-all cursor-pointer ${session.status === 'cancelled'
+                                  ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 opacity-60'
+                                  : session.modified
+                                    ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20'
+                                    : isCompleted
+                                      ? `${completionStatus.borderColor} ${completionStatus.bgColor}`
+                                      : isMissed
+                                        ? 'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
+                                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-[var(--color-primary)]/30 dark:hover:border-[var(--color-primary-dark)]/50 hover:shadow-md'
+                                  }`}
+                                onClick={() => setHoveredSession(session)}
+                              >
+                                {/* Mobile: Stack vertically, Desktop: Side by side */}
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                  {/* Title and Description Section */}
+                                  <div className="flex items-start gap-4 flex-1">
+                                    <div className={`w-2 h-12 rounded flex-shrink-0 ${session.type === 'Recovery' ? 'bg-green-500' :
+                                      session.type === 'Endurance' ? 'bg-[var(--color-endurance)]' :
+                                        session.type === 'Tempo' ? 'bg-yellow-500' :
+                                          session.type === 'Threshold' ? 'bg-orange-500' :
+                                            session.type === 'VO2Max' ? 'bg-red-500' :
+                                              'bg-indigo-500'
+                                      }`} />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <h4 className={`font-semibold ${isCompleted ? `${completionStatus.color} line-through` :
+                                          isMissed ? 'text-red-700 dark:text-red-400 line-through' :
+                                            session.status === 'cancelled' ? 'text-red-700 dark:text-red-400 line-through' :
+                                              session.modified ? 'text-orange-700 dark:text-orange-400' :
+                                                'text-gray-900 dark:text-gray-100'
+                                          }`}>
+                                          {session.title}
+                                        </h4>
+                                        <span className={`px-2 py-0.5 text-xs rounded font-medium ${session.type === 'Recovery' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
+                                          session.type === 'Endurance' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' :
+                                            session.type === 'Tempo' ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400' :
+                                              session.type === 'Threshold' ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400' :
+                                                session.type === 'VO2Max' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' :
+                                                  'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400'
+                                          }`}>
+                                          {session.type}
+                                        </span>
+                                        {isMissed && (
+                                          <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded font-semibold">
+                                            <X className="w-3 h-3" />
+                                            Missed: {completion.missedReason}
+                                          </span>
+                                        )}
+                                        {session.status === 'cancelled' && (
+                                          <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded font-semibold border border-red-300">
+                                            <X className="w-3 h-3" />
+                                            Cancelled
+                                          </span>
+                                        )}
+                                        {session.modified && (
+                                          <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-semibold border border-orange-300">
+                                            <AlertCircle className="w-3 h-3" />
+                                            Modified
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className={`text-sm mt-1 ${isCompleted ? 'text-green-700 dark:text-green-400' :
+                                        isMissed ? 'text-red-700 dark:text-red-400' :
+                                          session.status === 'cancelled' ? 'text-red-600 dark:text-red-400 line-through' :
+                                            session.modified ? 'text-orange-600 dark:text-orange-400' :
+                                              'text-gray-600 dark:text-gray-400'
+                                        }`}>
+                                        {session.description}
+                                      </p>
+                                      {session.cancellationReason && (
+                                        <p className="text-xs text-red-600 dark:text-red-400 mt-1 italic">
+                                          Reason: {session.cancellationReason}
+                                        </p>
+                                      )}
+                                      {session.modificationReason && (
+                                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 italic">
+                                          Adjustment: {session.modificationReason}
+                                        </p>
+                                      )}
+                                      <div className="flex items-center gap-4 mt-2 text-xs flex-wrap">
+                                        <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                                          <Clock className="w-3 h-3" />
+                                          {session.duration} min
+                                        </span>
+                                        {session.date && (
+                                          <span className="font-medium text-gray-500 dark:text-gray-400">
+                                            {new Date(session.date).toLocaleDateString('en-US', {
+                                              weekday: 'short',
+                                              month: 'short',
+                                              day: 'numeric'
+                                            })}
+                                          </span>
+                                        )}
+                                        {isCompleted && completion.automatic && (
+                                          <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 rounded font-semibold">
+                                            <ZapIcon className="w-3 h-3" />
+                                            Auto-matched ({completion.alignmentScore}%)
+                                          </span>
+                                        )}
+                                        {isCompleted && completion.manualOverride && (
+                                          <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 rounded font-semibold">
+                                            Manual Override ({completion.alignmentScore}%)
+                                          </span>
+                                        )}
+                                        {isCompleted && !completion.automatic && !completion.manualOverride && (
+                                          <span className="flex items-center gap-1 px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 rounded font-semibold">
+                                            Manual
+                                          </span>
+                                        )}
+                                        {!isCompleted && automaticMatches[sessionKey] && automaticMatches[sessionKey].matched && (
+                                          <span className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 rounded font-semibold">
+                                            <ZapIcon className="w-3 h-3" />
+                                            Activity found ({Math.round(automaticMatches[sessionKey].alignmentScore)}%)
+                                          </span>
+                                        )}
+                                        {!isCompleted && automaticMatches[sessionKey] && !automaticMatches[sessionKey].matched && automaticMatches[sessionKey].activity && automaticMatches[sessionKey].activity.id && automaticMatches[sessionKey].alignmentScore > 0 && (
+                                          <span className="flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 rounded font-semibold">
+                                            <AlertCircle className="w-3 h-3" />
+                                            Low match ({Math.round(automaticMatches[sessionKey].alignmentScore)}%)
+                                          </span>
+                                        )}
+                                        {automaticMatches[sessionKey] && automaticMatches[sessionKey].activity && automaticMatches[sessionKey].activity.id && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openMatchModal(session, sessionKey);
+                                            }}
+                                            className="text-blue-600 dark:text-blue-400 font-medium hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                                          >
+                                            View Match
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Buttons Section - Stack vertically on mobile, horizontal on desktop */}
+                                  <div className="flex flex-col sm:flex-row gap-2 sm:ml-4 w-full sm:w-auto">
+                                    {isMissed ? (
                                       <Button
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setShowMissedDropdown(showMissedDropdown === sessionKey ? null : sessionKey);
+                                          undoMissed(sessionKey);
                                         }}
                                         variant="outline"
                                         className="border-red-300 text-red-700 hover:bg-red-50 w-full sm:w-auto"
                                       >
-                                        <X className="w-4 h-4 mr-2" />
-                                        Mark Missed
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        Undo Missed
                                       </Button>
-                                      
-                                      {showMissedDropdown === sessionKey && (
-                                        <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 z-10">
-                                          <div className="p-2">
-                                            <div className="text-xs font-semibold text-gray-500 px-3 py-2">
-                                              Reason for missing:
-                                            </div>
-                                            <button
+                                    ) : (
+                                      <>
+                                        <Button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleSessionComplete(week.weekNumber, idx);
+                                          }}
+                                          variant={isCompleted ? "default" : "outline"}
+                                          className={`${isCompleted ? 'bg-green-600 hover:bg-green-700' : ''} w-full sm:w-auto`}
+                                        >
+                                          {isCompleted ? (
+                                            <>
+                                              <CheckCircle className="w-4 h-4 mr-2" />
+                                              Completed
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Circle className="w-4 h-4 mr-2" />
+                                              Mark Complete
+                                            </>
+                                          )}
+                                        </Button>
+
+                                        {isPastSession && !isCompleted && (
+                                          <div className="relative w-full sm:w-auto">
+                                            <Button
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                markSessionMissed(sessionKey, 'Illness');
+                                                setShowMissedDropdown(showMissedDropdown === sessionKey ? null : sessionKey);
                                               }}
-                                              className="w-full text-left px-3 py-2 hover:bg-red-50 rounded flex items-center gap-2 text-sm"
+                                              variant="outline"
+                                              className="border-red-300 text-red-700 hover:bg-red-50 w-full sm:w-auto"
                                             >
-                                              <AlertCircle className="w-4 h-4 text-red-600" />
-                                              Illness
-                                            </button>
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                markSessionMissed(sessionKey, 'Schedule Conflict');
-                                              }}
-                                              className="w-full text-left px-3 py-2 hover:bg-red-50 rounded flex items-center gap-2 text-sm"
-                                            >
-                                              <CalendarIcon className="w-4 h-4 text-red-600" />
-                                              Schedule Conflict
-                                            </button>
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                markSessionMissed(sessionKey, 'Other');
-                                              }}
-                                              className="w-full text-left px-3 py-2 hover:bg-red-50 rounded flex items-center gap-2 text-sm"
-                                            >
-                                              <User className="w-4 h-4 text-red-600" />
-                                              Other
-                                            </button>
+                                              <X className="w-4 h-4 mr-2" />
+                                              Mark Missed
+                                            </Button>
+
+                                            {showMissedDropdown === sessionKey && (
+                                              <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-200 dark:border-gray-700 z-10">
+                                                <div className="p-2">
+                                                  <div className="text-xs font-semibold text-gray-500 px-3 py-2">
+                                                    Reason for missing:
+                                                  </div>
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      markSessionMissed(sessionKey, 'Illness');
+                                                    }}
+                                                    className="w-full text-left px-3 py-2 hover:bg-red-50 rounded flex items-center gap-2 text-sm"
+                                                  >
+                                                    <AlertCircle className="w-4 h-4 text-red-600" />
+                                                    Illness
+                                                  </button>
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      markSessionMissed(sessionKey, 'Schedule Conflict');
+                                                    }}
+                                                    className="w-full text-left px-3 py-2 hover:bg-red-50 rounded flex items-center gap-2 text-sm"
+                                                  >
+                                                    <CalendarIcon className="w-4 h-4 text-red-600" />
+                                                    Schedule Conflict
+                                                  </button>
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      markSessionMissed(sessionKey, 'Other');
+                                                    }}
+                                                    className="w-full text-left px-3 py-2 hover:bg-red-50 rounded flex items-center gap-2 text-sm"
+                                                  >
+                                                    <User className="w-4 h-4 text-red-600" />
+                                                    Other
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            )}
                                           </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {plan.coachNotes && plan.coachNotes.length > 0 && (() => {
+                const coach = getCoachPersona(getUserCoach());
+                return (
+                  <div className="mt-6 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setIsCoachNotesExpanded(!isCoachNotesExpanded)}
+                      className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors flex items-center justify-between"
+                    >
+                      <h4 className="font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                        <span className="text-xl">{coach.avatar}</span>
+                        Coach Notes ({plan.coachNotes.length})
+                      </h4>
+                      {isCoachNotesExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      )}
+                    </button>
+                    {isCoachNotesExpanded && (
+                      <div className="p-4 bg-white dark:bg-gray-800 space-y-3">
+                        {[...plan.coachNotes].reverse().map((note, idx) => (
+                          <div key={idx} className="border-l-4 border-blue-400 pl-3 py-2">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-lg">{coach.avatar}</span>
+                              <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                                {note.timestamp ? new Date(note.timestamp).toLocaleString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit'
+                                }) : 'Initial Plan'}
+                              </span>
+                              {note.type && (
+                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-xs rounded">
+                                  {note.type}
+                                </span>
                               )}
                             </div>
+                            <p className="text-sm text-blue-700 dark:text-blue-400">{note.message || note}</p>
                           </div>
-                        </div>
-                      );
-                    })}
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  )}
-                </div>
                 );
-              })}
-            </div>
-
-            {plan.coachNotes && plan.coachNotes.length > 0 && (() => {
-              const coach = getCoachPersona(getUserCoach());
-              return (
+              })()}
+              {/* Legacy support for old plans with single notes field */}
+              {plan.notes && !plan.coachNotes && (
                 <div className="mt-6 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden">
                   <button
                     onClick={() => setIsCoachNotesExpanded(!isCoachNotesExpanded)}
                     className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors flex items-center justify-between"
                   >
                     <h4 className="font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                      <span className="text-xl">{coach.avatar}</span>
-                      Coach Notes ({plan.coachNotes.length})
+                      <Info className="w-4 h-4" />
+                      Coach Notes
                     </h4>
                     {isCoachNotesExpanded ? (
                       <ChevronUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -2071,84 +2153,38 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
                     )}
                   </button>
                   {isCoachNotesExpanded && (
-                    <div className="p-4 bg-white dark:bg-gray-800 space-y-3">
-                      {[...plan.coachNotes].reverse().map((note, idx) => (
-                        <div key={idx} className="border-l-4 border-blue-400 pl-3 py-2">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-lg">{coach.avatar}</span>
-                            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                              {note.timestamp ? new Date(note.timestamp).toLocaleString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit'
-                              }) : 'Initial Plan'}
-                            </span>
-                            {note.type && (
-                              <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-xs rounded">
-                                {note.type}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-blue-700 dark:text-blue-400">{note.message || note}</p>
-                        </div>
-                      ))}
+                    <div className="p-4 bg-white dark:bg-gray-800">
+                      <p className="text-sm text-blue-700 dark:text-blue-400">{plan.notes}</p>
                     </div>
                   )}
                 </div>
-              );
-            })()}
-            {/* Legacy support for old plans with single notes field */}
-            {plan.notes && !plan.coachNotes && (
-              <div className="mt-6 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setIsCoachNotesExpanded(!isCoachNotesExpanded)}
-                  className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors flex items-center justify-between"
-                >
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                    <Info className="w-4 h-4" />
-                    Coach Notes
-                  </h4>
-                  {isCoachNotesExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  )}
-                </button>
-                {isCoachNotesExpanded && (
-                  <div className="p-4 bg-white dark:bg-gray-800">
-                    <p className="text-sm text-blue-700 dark:text-blue-400">{plan.notes}</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Session Detail Modal */}
-        {hoveredSession && (
-          <SessionHoverModal
-            session={hoveredSession}
-            ftp={ftp}
-            onClose={() => setHoveredSession(null)}
+          {/* Session Detail Modal */}
+          {hoveredSession && (
+            <SessionHoverModal
+              session={hoveredSession}
+              ftp={ftp}
+              onClose={() => setHoveredSession(null)}
+            />
+          )}
+
+          {/* Activity Match Modal */}
+          <ActivityMatchModal
+            isOpen={matchModalSession !== null}
+            onClose={() => {
+              setMatchModalSession(null);
+              setMatchModalSessionKey(null);
+            }}
+            session={matchModalSession}
+            sessionKey={matchModalSessionKey}
+            activities={activities}
+            currentMatch={matchModalSessionKey ? automaticMatches[matchModalSessionKey] : null}
+            onManualSelect={handleManualActivitySelect}
+            onRemoveMatch={handleRemoveMatch}
           />
-        )}
-
-        {/* Activity Match Modal */}
-        <ActivityMatchModal
-          isOpen={matchModalSession !== null}
-          onClose={() => {
-            setMatchModalSession(null);
-            setMatchModalSessionKey(null);
-          }}
-          session={matchModalSession}
-          sessionKey={matchModalSessionKey}
-          activities={activities}
-          currentMatch={matchModalSessionKey ? automaticMatches[matchModalSessionKey] : null}
-          onManualSelect={handleManualActivitySelect}
-          onRemoveMatch={handleRemoveMatch}
-        />
         </>
       )}
 

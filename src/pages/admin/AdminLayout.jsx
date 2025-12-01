@@ -61,7 +61,7 @@ const AdminLayout = ({ admin, onLogout }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Bar */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
             <button
@@ -95,9 +95,8 @@ const AdminLayout = ({ admin, onLogout }) => {
       <div className="flex h-[calc(100vh-60px)]">
         {/* Sidebar */}
         <aside
-          className={`${
-            sidebarOpen ? 'w-64' : 'w-0'
-          } bg-white border-r border-gray-200 transition-all duration-300 overflow-hidden flex flex-col`}
+          className={`${sidebarOpen ? 'w-64' : 'w-0'
+            } bg-white border-r border-gray-200 transition-all duration-300 overflow-hidden flex flex-col`}
         >
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
             {navItems.map((item) => (
@@ -105,10 +104,9 @@ const AdminLayout = ({ admin, onLogout }) => {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-blue-50 text-blue-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
+                  `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                    ? 'bg-blue-50 text-blue-600 font-medium'
+                    : 'text-gray-700 hover:bg-gray-50'
                   }`
                 }
               >

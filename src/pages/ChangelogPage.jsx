@@ -209,7 +209,7 @@ const ChangelogPage = () => {
           'Beautiful modal UI with real-time TSS estimation',
           'Manual activities integrate with AI plan adjustments',
           'Edit and delete functionality for manual activities',
-          '🎨 Visual indicators - Purple/pink gradient badges for manual activities',
+          '🎨 Visual indicators - Indigo/pink gradient badges for manual activities',
           '✏️ Edit button (pencil icon) for manual activities',
           '🗑️ Delete button with confirmation for manual activities',
           '🏆 Trophy icon for race tagging (Strava activities)',
@@ -281,7 +281,7 @@ const ChangelogPage = () => {
         improvements: [
           'Consistent branding across Landing, Login, Settings, Layout',
           'Updated package.json and README.md with new brand',
-          'Blue-to-purple gradient color scheme',
+          'Blue-to-indigo gradient color scheme',
           'Version bumped to 0.2.0 (pre-beta)',
         ],
       },
@@ -396,7 +396,7 @@ const ChangelogPage = () => {
           'Modified session tracking with metadata',
           'Considers current plan, recent activities, and missed sessions',
           'Maintains training principles (progressive overload, recovery, specificity)',
-          '"Adjust Plan" button with purple gradient design',
+          '"Adjust Plan" button with indigo gradient design',
         ],
         improvements: [
           'Full integration with plan storage and completion tracking',
@@ -571,13 +571,13 @@ const ChangelogPage = () => {
               {release.changes.improvements && release.changes.improvements.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-purple-500" />
+                    <BookOpen className="w-4 h-4 text-blue-500" />
                     Improvements
                   </h4>
                   <ul className="space-y-1">
                     {release.changes.improvements.map((improvement, idx) => (
                       <li key={idx} className="text-sm text-gray-700 flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                         <span>{improvement}</span>
                       </li>
                     ))}

@@ -40,7 +40,7 @@ const ServicesPage = () => {
             }
           }
         });
-        
+
         // Merge with defaults
         setServices({ ...services, ...serviceSettings });
       }
@@ -53,7 +53,7 @@ const ServicesPage = () => {
 
   const handleToggleService = async (serviceKey) => {
     const newState = !services[serviceKey].enabled;
-    
+
     // Optimistic update
     setServices({
       ...services,
@@ -110,7 +110,7 @@ const ServicesPage = () => {
       weather: { bg: 'bg-blue-100', text: 'text-blue-600', ring: 'ring-blue-500' },
       google_calendar: { bg: 'bg-green-100', text: 'text-green-600', ring: 'ring-green-500' },
       strava: { bg: 'bg-orange-100', text: 'text-orange-600', ring: 'ring-orange-500' },
-      notifications: { bg: 'bg-purple-100', text: 'text-purple-600', ring: 'ring-purple-500' },
+      notifications: { bg: 'bg-indigo-100', text: 'text-indigo-600', ring: 'ring-indigo-500' },
     };
     return colors[key] || { bg: 'bg-gray-100', text: 'text-gray-600', ring: 'ring-gray-500' };
   };
@@ -150,7 +150,7 @@ const ServicesPage = () => {
       {/* Info Banner */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-sm text-blue-800">
-          <strong>Note:</strong> Disabling a service will prevent all users from accessing that feature. 
+          <strong>Note:</strong> Disabling a service will prevent all users from accessing that feature.
           Make sure the corresponding API keys are configured in the API Keys page.
         </p>
       </div>
@@ -160,10 +160,10 @@ const ServicesPage = () => {
         {Object.entries(services).map(([key, service]) => {
           const Icon = getServiceIcon(key);
           const colors = getServiceColor(key);
-          
+
           return (
-            <Card 
-              key={key} 
+            <Card
+              key={key}
               className={`transition-all ${service.enabled ? `ring-2 ${colors.ring}` : 'opacity-75'}`}
             >
               <CardContent className="p-6">
@@ -181,15 +181,14 @@ const ServicesPage = () => {
 
                 <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                      service.enabled 
-                        ? 'bg-green-100 text-green-700' 
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${service.enabled
+                        ? 'bg-green-100 text-green-700'
                         : 'bg-gray-100 text-gray-700'
-                    }`}>
+                      }`}>
                       {service.enabled ? 'ENABLED' : 'DISABLED'}
                     </span>
                   </div>
-                  
+
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"

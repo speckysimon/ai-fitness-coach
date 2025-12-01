@@ -177,7 +177,7 @@ const APIKeysPage = () => {
           </Button>
           <Button
             onClick={() => setShowCreateModal(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600"
+            className="bg-gradient-to-r from-blue-600 to-indigo-600"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add API Key
@@ -204,7 +204,7 @@ const APIKeysPage = () => {
         <div className="flex items-start gap-2">
           <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
           <div className="text-sm text-blue-800">
-            <strong>Security:</strong> API keys are encrypted with AES-256 before storage. 
+            <strong>Security:</strong> API keys are encrypted with AES-256 before storage.
             Only the last 4 characters are displayed for security. Keep your keys secure and never share them.
           </div>
         </div>
@@ -235,7 +235,7 @@ const APIKeysPage = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                        <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
                           <Key className="w-4 h-4 text-white" />
                         </div>
                         <div>
@@ -295,7 +295,7 @@ const APIKeysPage = () => {
             <CardHeader>
               <CardTitle>Add API Credentials</CardTitle>
               <CardDescription>
-                {['strava', 'google'].includes(formData.provider) 
+                {['strava', 'google'].includes(formData.provider)
                   ? 'Store OAuth credentials (Client ID, Secret, Redirect URI)'
                   : 'Store a new API key for a service provider'
                 }

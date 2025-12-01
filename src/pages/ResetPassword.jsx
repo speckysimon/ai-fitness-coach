@@ -136,7 +136,7 @@ const ResetPassword = () => {
 
     if (validating) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-600 dark:text-gray-400">Verifying reset link...</p>
@@ -146,7 +146,7 @@ const ResetPassword = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 sm:p-6 md:p-8">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 sm:p-6 md:p-8">
             <div className="w-full max-w-md">
                 {/* Logo/Header */}
                 <div className="text-center mb-6 sm:mb-8">
@@ -239,8 +239,8 @@ const ResetPassword = () => {
                                                     ></div>
                                                 </div>
                                                 <span className={`text-xs font-medium ${passwordStrength.strength === 4 ? 'text-green-600 dark:text-green-400' :
-                                                        passwordStrength.strength === 3 ? 'text-yellow-600 dark:text-yellow-400' :
-                                                            'text-red-600 dark:text-red-400'
+                                                    passwordStrength.strength === 3 ? 'text-yellow-600 dark:text-yellow-400' :
+                                                        'text-red-600 dark:text-red-400'
                                                     }`}>
                                                     {passwordStrength.label}
                                                 </span>

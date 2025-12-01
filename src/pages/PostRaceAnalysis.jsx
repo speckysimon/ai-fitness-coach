@@ -44,7 +44,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
     const multiplier = typeMultipliers[activity.type] || typeMultipliers.default;
     return Math.round(durationHours * 60 * multiplier);
   };
-  
+
   // Feedback form state
   const [feedback, setFeedback] = useState({
     overallFeeling: 3,
@@ -70,7 +70,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
       // Try to use cached activities first
       const cachedActivities = localStorage.getItem('cached_activities_recent');
       let data = [];
-      
+
       if (cachedActivities) {
         console.log('Using cached activities for post-race analysis');
         data = JSON.parse(cachedActivities);
@@ -80,7 +80,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
         const response = await fetch(
           `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${threeMonthsAgo}&per_page=100`
         );
-        
+
         if (!response.ok) {
           // Handle 401 Unauthorized - token expired
           if (response.status === 401) {
@@ -88,15 +88,15 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
           }
           throw new Error('Failed to fetch activities');
         }
-        
+
         data = await response.json();
-        
+
         // Check if response is an error object BEFORE using it
         if (data.error || !Array.isArray(data)) {
           throw new Error(data.error || 'Invalid response from Strava');
         }
       }
-      
+
       // Only set activities if data is valid array
       if (Array.isArray(data)) {
         setActivities(data);
@@ -116,7 +116,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
           if (raceTagsResponse.ok) {
             const raceTagsData = await raceTagsResponse.json();
             const raceTags = raceTagsData.raceTags || {};
-            
+
             // Filter for race activities and attach race type
             const races = data.filter(activity => raceTags[activity.id]?.isRace).map(activity => ({
               ...activity,
@@ -157,13 +157,13 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
       console.error('Activities is not an array:', activities);
       return [];
     }
-    
+
     return activities.filter(activity => {
-      const hasHighIntensity = activity.normalizedPower && activity.avgPower && 
-                               (activity.normalizedPower / activity.avgPower) > 1.05;
+      const hasHighIntensity = activity.normalizedPower && activity.avgPower &&
+        (activity.normalizedPower / activity.avgPower) > 1.05;
       const isLongEnough = activity.duration > 3600; // > 1 hour
       const hasRaceKeywords = activity.name.toLowerCase().match(/race|crit|gran fondo|championship|tt|time trial/);
-      
+
       return hasHighIntensity || hasRaceKeywords || isLongEnough;
     }).slice(0, 10); // Show top 10 potential races
   };
@@ -223,7 +223,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
       const raceDate = new Date(selectedActivity.date);
       const fourteenDaysBefore = new Date(raceDate);
       fourteenDaysBefore.setDate(fourteenDaysBefore.getDate() - 14);
-      
+
       const preRaceActivities = activities
         .filter(activity => {
           const activityDate = new Date(activity.date);
@@ -268,7 +268,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
       }
 
       const analysisData = await response.json();
-      
+
       // Store analysis with dual-write (localStorage + backend)
       const fullAnalysisData = {
         ...analysisData,
@@ -286,7 +286,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
           tactical: analysisData.tacticalScore,
         }
       };
-      
+
       // Save to backend (with localStorage fallback)
       const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
       if (userProfile.id) {
@@ -504,9 +504,8 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                       <button
                         key={star}
                         onClick={() => handleFeedbackChange('overallFeeling', star)}
-                        className={`text-2xl sm:text-3xl ${
-                          star <= feedback.overallFeeling ? 'text-yellow-500' : 'text-gray-300'
-                        }`}
+                        className={`text-2xl sm:text-3xl ${star <= feedback.overallFeeling ? 'text-yellow-500' : 'text-gray-300'
+                          }`}
                       >
                         ⭐
                       </button>
@@ -610,7 +609,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                 <Button
                   onClick={handleGenerateAnalysis}
                   disabled={analyzing}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                  className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white"
                 >
                   {analyzing ? (
                     <>
@@ -681,9 +680,9 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
               </div>
 
               {/* AI Assessment */}
-              <div className="mb-6 p-4 bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg">
+              <div className="mb-6 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <Brain className="w-5 h-5 text-purple-600 mt-0.5" />
+                  <Brain className="w-5 h-5 text-indigo-600 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-2">AI Coach Assessment</h3>
                     <p className="text-gray-700 leading-relaxed">{analysis.overallAssessment}</p>
@@ -742,13 +741,13 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
               {/* Recommendations */}
               <div className="mb-6">
                 <h3 className="font-semibold text-lg text-gray-900 mb-3 flex items-center gap-2">
-                  <Target className="w-5 h-5 text-purple-600" />
+                  <Target className="w-5 h-5 text-indigo-600" />
                   Recommendations for Next Race
                 </h3>
                 <ul className="space-y-2">
                   {analysis.recommendations.map((item, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-gray-700">
-                      <span className="text-purple-600 font-bold mt-1">•</span>
+                      <span className="text-indigo-600 font-bold mt-1">•</span>
                       <span>{item}</span>
                     </li>
                   ))}
@@ -787,7 +786,7 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                     // Navigate to plan generator with this analysis
                     window.location.href = '/plan';
                   }}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                 >
                   Generate Training Plan
                   <ArrowRight className="w-4 h-4 ml-2" />

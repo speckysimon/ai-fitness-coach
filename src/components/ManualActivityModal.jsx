@@ -96,15 +96,15 @@ const ManualActivityModal = ({ isOpen, onClose, onSave, editActivity = null }) =
 
       const sportMult = sportMultipliers[formData.sportType] || 0.5;
       const intensityFactor = intensityFactors[formData.intensityLevel] || 0.75;
-      
+
       let tss = durationHours * intensityFactor * intensityFactor * 100 * sportMult;
-      
+
       // Adjust by RPE
       if (formData.perceivedExertion) {
         const rpeAdjustment = formData.perceivedExertion / 10;
         tss *= (0.7 + (rpeAdjustment * 0.6));
       }
-      
+
       setEstimatedTSS(Math.round(tss));
     };
 
@@ -120,11 +120,11 @@ const ManualActivityModal = ({ isOpen, onClose, onSave, editActivity = null }) =
       // Get userId from localStorage
       const currentUser = localStorage.getItem('current_user');
       const userId = currentUser ? JSON.parse(currentUser).id || 1 : 1; // Default to 1 for now
-      
-      const endpoint = editActivity 
+
+      const endpoint = editActivity
         ? `/api/manual-activities/${editActivity.id}`
         : '/api/manual-activities';
-      
+
       const method = editActivity ? 'PUT' : 'POST';
 
       const response = await fetch(endpoint, {
@@ -428,7 +428,7 @@ const ManualActivityModal = ({ isOpen, onClose, onSave, editActivity = null }) =
             <Button
               type="submit"
               disabled={loading}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
             >
               {loading ? 'Saving...' : editActivity ? 'Update Activity' : 'Add Activity'}
             </Button>

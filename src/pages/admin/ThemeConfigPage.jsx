@@ -22,7 +22,7 @@ const ThemeConfigPage = () => {
       description: 'Primary brand color and accent for gradients',
       colors: [
         { name: 'primary', label: 'Primary', light: '#2563EB', dark: '#3B82F6' },
-        { name: 'accent', label: 'Accent', light: '#9333EA', dark: '#A855F7' },
+        { name: 'accent', label: 'Accent', light: '#4F46E5', dark: '#6366F1' },
       ]
     },
     {
@@ -45,7 +45,7 @@ const ThemeConfigPage = () => {
         { name: 'tempo', label: 'Tempo', light: '#F59E0B', dark: '#FBBF24' },
         { name: 'threshold', label: 'Threshold', light: '#F97316', dark: '#FB923C' },
         { name: 'vo2max', label: 'VO2 Max', light: '#EF4444', dark: '#F87171' },
-        { name: 'sprint', label: 'Sprint', light: '#A855F7', dark: '#C084FC' },
+        { name: 'sprint', label: 'Sprint', light: '#4F46E5', dark: '#6366F1' },
       ]
     },
   ];
@@ -78,10 +78,10 @@ const ThemeConfigPage = () => {
     setError('');
     try {
       const token = localStorage.getItem('admin_token');
-      const url = themeData.id 
+      const url = themeData.id
         ? `/api/admin/theme-configs/${themeData.id}`
         : '/api/admin/theme-configs';
-      
+
       const response = await fetch(url, {
         method: themeData.id ? 'PUT' : 'POST',
         headers: {
@@ -145,7 +145,7 @@ const ThemeConfigPage = () => {
       if (data.success) {
         setSuccess('Active theme updated - reloading theme...');
         loadThemes();
-        
+
         // Reload theme on frontend to apply changes immediately
         await reloadTheme();
         setSuccess('Active theme updated and applied successfully!');
@@ -167,7 +167,7 @@ const ThemeConfigPage = () => {
     setSaving(true);
     try {
       const token = localStorage.getItem('admin_token');
-      
+
       // Create default theme with all categories
       const defaultTheme = {
         name: 'RiderLabs Default',
@@ -214,7 +214,7 @@ const ThemeConfigPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-            <Palette className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+            <Palette className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
             Theme Configuration
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -234,7 +234,7 @@ const ThemeConfigPage = () => {
           )}
           <Button
             onClick={() => setShowAddModal(true)}
-            className="bg-purple-600 hover:bg-purple-700"
+            className="bg-indigo-600 hover:bg-indigo-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Theme
@@ -273,14 +273,14 @@ const ThemeConfigPage = () => {
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {themes.map((theme) => (
-            <Card key={theme.id} className={theme.is_active ? 'border-2 border-purple-500 dark:border-purple-600' : ''}>
+            <Card key={theme.id} className={theme.is_active ? 'border-2 border-indigo-500 dark:border-indigo-600' : ''}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       {theme.name}
                       {theme.is_active && (
-                        <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 text-xs font-semibold rounded">
+                        <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 text-xs font-semibold rounded">
                           ACTIVE
                         </span>
                       )}
@@ -293,7 +293,7 @@ const ThemeConfigPage = () => {
                         onClick={() => handleSetActive(theme.id)}
                         variant="outline"
                         size="sm"
-                        className="border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400"
+                        className="border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400"
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         Set Active
@@ -547,7 +547,7 @@ const ThemeEditorModal = ({ theme, categories, onSave, onClose, saving }) => {
           <Button
             onClick={handleSubmit}
             disabled={saving}
-            className="bg-purple-600 hover:bg-purple-700"
+            className="bg-indigo-600 hover:bg-indigo-700"
           >
             {saving ? (
               <>

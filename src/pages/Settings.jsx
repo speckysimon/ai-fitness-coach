@@ -19,6 +19,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
   const [timezone, setTimezone] = useState(getUserTimezone());
   const [currentTime, setCurrentTime] = useState(getCurrentDateTime());
   const [weekStartDay, setWeekStartDay] = useState(localStorage.getItem('week_start_day') || 'Monday');
+  const [longTermGoal, setLongTermGoal] = useState(localStorage.getItem('long_term_goal') || '');
+  const [goalChanged, setGoalChanged] = useState(false);
+  const [savingGoal, setSavingGoal] = useState(false);
   const [coachSectionExpanded, setCoachSectionExpanded] = useState(false);
   const [remindersSectionExpanded, setRemindersSectionExpanded] = useState(false);
   const [showStravaWelcomeModal, setShowStravaWelcomeModal] = useState(false);
@@ -104,7 +107,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
       localStorage.removeItem('user_timezone');
       const autoDetected = Intl.DateTimeFormat().resolvedOptions().timeZone;
       setTimezone(autoDetected);
-      
+
       // Save to backend
       const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
       if (userProfile.id) {
@@ -113,7 +116,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
     } else {
       setUserTimezone(newTimezone);
       setTimezone(newTimezone);
-      
+
       // Save to backend
       const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
       if (userProfile.id) {
@@ -127,11 +130,37 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
     const newStartDay = e.target.value;
     localStorage.setItem('week_start_day', newStartDay);
     setWeekStartDay(newStartDay);
-    
+
     // Save to backend
     const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
     if (userProfile.id) {
       await preferencesService.updateField(userProfile.id, 'week_start_day', newStartDay);
+    }
+  };
+
+  const handleLongTermGoalChange = (e) => {
+    const newGoal = e.target.value;
+    setLongTermGoal(newGoal);
+    setGoalChanged(true);
+  };
+
+  const saveLongTermGoal = async () => {
+    setSavingGoal(true);
+    try {
+      localStorage.setItem('long_term_goal', longTermGoal);
+
+      // Save to backend
+      const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      if (userProfile.id) {
+        await preferencesService.updateField(userProfile.id, 'long_term_goal', longTermGoal);
+      }
+
+      setGoalChanged(false);
+    } catch (error) {
+      console.error('Error saving long-term goal:', error);
+      alert('Failed to save long-term goal. Please try again.');
+    } finally {
+      setSavingGoal(false);
     }
   };
 
@@ -280,7 +309,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
             <div className="flex items-center gap-3 sm:gap-4 flex-1">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="#FC4C02">
-                  <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
+                  <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
@@ -297,9 +326,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                   <CheckCircle2 className="w-5 h-5" />
                   <span className="text-sm font-medium">Connected</span>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={disconnectStrava}
                   disabled={connecting}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50 min-h-[44px] w-full sm:w-auto"
@@ -308,9 +337,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                 </Button>
               </div>
             ) : (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={connectStrava}
                 disabled={connecting}
                 className="min-h-[44px] w-full sm:w-auto"
@@ -325,13 +354,13 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
             <div className="flex items-center gap-3 sm:gap-4 flex-1">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M19.5 3.5h-2V2h-2v1.5h-7V2h-2v1.5h-2C3.67 3.5 3 4.17 3 5v14c0 .83.67 1.5 1.5 1.5h15c.83 0 1.5-.67 1.5-1.5V5c0-.83-.67-1.5-1.5-1.5zm0 15.5h-15V8.5h15V19z"/>
-                  <path fill="#EA4335" d="M7 10h2v2H7z"/>
-                  <path fill="#FBBC04" d="M11 10h2v2h-2z"/>
-                  <path fill="#34A853" d="M15 10h2v2h-2z"/>
-                  <path fill="#4285F4" d="M7 14h2v2H7z"/>
-                  <path fill="#EA4335" d="M11 14h2v2h-2z"/>
-                  <path fill="#FBBC04" d="M15 14h2v2h-2z"/>
+                  <path fill="#4285F4" d="M19.5 3.5h-2V2h-2v1.5h-7V2h-2v1.5h-2C3.67 3.5 3 4.17 3 5v14c0 .83.67 1.5 1.5 1.5h15c.83 0 1.5-.67 1.5-1.5V5c0-.83-.67-1.5-1.5-1.5zm0 15.5h-15V8.5h15V19z" />
+                  <path fill="#EA4335" d="M7 10h2v2H7z" />
+                  <path fill="#FBBC04" d="M11 10h2v2h-2z" />
+                  <path fill="#34A853" d="M15 10h2v2h-2z" />
+                  <path fill="#4285F4" d="M7 14h2v2H7z" />
+                  <path fill="#EA4335" d="M11 14h2v2h-2z" />
+                  <path fill="#FBBC04" d="M15 14h2v2h-2z" />
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
@@ -345,9 +374,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                   <CheckCircle2 className="w-5 h-5" />
                   <span className="text-sm font-medium">Connected</span>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={disconnectGoogle}
                   disabled={connecting}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50 min-h-[44px] w-full sm:w-auto"
@@ -356,9 +385,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                 </Button>
               </div>
             ) : (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={connectGoogle}
                 disabled={connecting}
                 className="min-h-[44px] w-full sm:w-auto"
@@ -460,6 +489,46 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
         </Card>
       </div>
 
+      {/* Training Goals */}
+      <Card>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <span className="text-xl sm:text-2xl">🎯</span>
+            Training Goals
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Define your long-term cycling objectives</CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Long-Term Goal
+            </label>
+            <textarea
+              value={longTermGoal}
+              onChange={handleLongTermGoalChange}
+              placeholder="e.g., Complete a Gran Fondo in under 5 hours, Finish a 100-mile ride, or Improve FTP by 20 watts"
+              className="w-full px-3 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none min-h-[100px]"
+              rows={3}
+            />
+            <div className="flex items-center justify-between mt-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                💡 Your AI coach will use this goal to personalize training plans and provide contextual advice
+              </p>
+              <Button
+                onClick={saveLongTermGoal}
+                disabled={!goalChanged || savingGoal}
+                className={`ml-4 min-h-[44px] ${goalChanged
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-gray-300 cursor-not-allowed'
+                  }`}
+              >
+                {savingGoal ? 'Saving...' : goalChanged ? 'Save Goal' : 'Saved'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* User Profile */}
       <Card>
         <CardHeader className="p-4 sm:p-6">
@@ -467,7 +536,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
           <CardDescription className="text-xs sm:text-sm">Manage your personal information</CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
-          <Link 
+          <Link
             to="/profile"
             className="flex items-center justify-between gap-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[60px]"
           >
@@ -487,7 +556,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
 
       {/* Coach Avatar Selector - Collapsible */}
       <Card>
-        <CardHeader 
+        <CardHeader
           className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           onClick={() => setCoachSectionExpanded(!coachSectionExpanded)}
         >
@@ -501,10 +570,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                 Select a coaching style that resonates with you
               </CardDescription>
             </div>
-            <ChevronDown 
-              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
-                coachSectionExpanded ? 'transform rotate-180' : ''
-              }`}
+            <ChevronDown
+              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${coachSectionExpanded ? 'transform rotate-180' : ''
+                }`}
             />
           </div>
         </CardHeader>
@@ -517,7 +585,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
 
       {/* Notification Settings - Collapsible */}
       <Card>
-        <CardHeader 
+        <CardHeader
           className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           onClick={() => setRemindersSectionExpanded(!remindersSectionExpanded)}
         >
@@ -531,10 +599,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                 Configure notifications for your training sessions
               </CardDescription>
             </div>
-            <ChevronDown 
-              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
-                remindersSectionExpanded ? 'transform rotate-180' : ''
-              }`}
+            <ChevronDown
+              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${remindersSectionExpanded ? 'transform rotate-180' : ''
+                }`}
             />
           </div>
         </CardHeader>
@@ -559,9 +626,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
                 Built with React, Express, OpenAI, and modern web technologies.
               </p>
             </div>
-            
+
             {/* Changelog Link */}
-            <Link 
+            <Link
               to="/changelog"
               className="flex items-center gap-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[60px]"
             >
@@ -578,7 +645,7 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
             </Link>
 
             {/* Known Issues Link */}
-            <Link 
+            <Link
               to="/known-issues"
               className="flex items-center gap-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[60px]"
             >
@@ -595,9 +662,9 @@ const Settings = ({ stravaTokens, googleTokens, onLogout, onStravaAuth, onGoogle
       </Card>
 
       {/* Strava Welcome Modal */}
-      <StravaWelcomeModal 
-        isOpen={showStravaWelcomeModal} 
-        onClose={() => setShowStravaWelcomeModal(false)} 
+      <StravaWelcomeModal
+        isOpen={showStravaWelcomeModal}
+        onClose={() => setShowStravaWelcomeModal(false)}
       />
     </div>
   );

@@ -54,13 +54,13 @@ const ActivityLogPage = () => {
   };
 
   const filteredLogs = logs.filter(log => {
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       log.admin_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (log.resource_type && log.resource_type.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+
     const matchesFilter = filterAction === 'all' || log.action === filterAction;
-    
+
     return matchesSearch && matchesFilter;
   });
 
@@ -70,7 +70,7 @@ const ActivityLogPage = () => {
     if (action.includes('delete')) return 'text-red-600 bg-red-50';
     if (action.includes('create') || action.includes('add')) return 'text-green-600 bg-green-50';
     if (action.includes('update') || action.includes('edit')) return 'text-blue-600 bg-blue-50';
-    if (action.includes('login')) return 'text-purple-600 bg-purple-50';
+    if (action.includes('login')) return 'text-indigo-600 bg-indigo-50';
     return 'text-gray-600 bg-gray-50';
   };
 

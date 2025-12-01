@@ -35,7 +35,7 @@ const QuickRunPage = () => {
       description: 'Run only the Express server on port 5001',
       icon: Server,
       command: 'npm run server',
-      color: 'purple',
+      color: 'indigo',
     },
     {
       id: 'client',
@@ -87,7 +87,7 @@ const QuickRunPage = () => {
     const colors = {
       blue: isPrimary ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-700 border-blue-200',
       green: isPrimary ? 'bg-green-500 text-white' : 'bg-green-50 text-green-700 border-green-200',
-      purple: isPrimary ? 'bg-purple-500 text-white' : 'bg-purple-50 text-purple-700 border-purple-200',
+      indigo: isPrimary ? 'bg-indigo-500 text-white' : 'bg-indigo-50 text-indigo-700 border-indigo-200',
       orange: isPrimary ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-700 border-orange-200',
       gray: isPrimary ? 'bg-gray-500 text-white' : 'bg-gray-50 text-gray-700 border-gray-200',
     };
@@ -161,17 +161,15 @@ const QuickRunPage = () => {
             return (
               <Card
                 key={cmd.id}
-                className={`transition-all hover:shadow-md ${
-                  isPrimary ? 'border-2 border-green-500 shadow-sm' : ''
-                }`}
+                className={`transition-all hover:shadow-md ${isPrimary ? 'border-2 border-green-500 shadow-sm' : ''
+                  }`}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`p-2 rounded-lg ${
-                          isPrimary ? getColorClasses(cmd.color, true) : getColorClasses(cmd.color)
-                        }`}
+                        className={`p-2 rounded-lg ${isPrimary ? getColorClasses(cmd.color, true) : getColorClasses(cmd.color)
+                          }`}
                       >
                         <Icon className="w-5 h-5" />
                       </div>

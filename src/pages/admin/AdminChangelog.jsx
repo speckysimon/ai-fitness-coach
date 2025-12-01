@@ -222,13 +222,13 @@ const AdminChangelog = () => {
               {release.changes.improvements && release.changes.improvements.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <Package className="w-4 h-4 text-purple-500" />
+                    <Package className="w-4 h-4 text-blue-500" />
                     Improvements
                   </h4>
                   <ul className="space-y-1">
                     {release.changes.improvements.map((improvement, idx) => (
                       <li key={idx} className="text-sm text-gray-700 flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                         <span>{improvement}</span>
                       </li>
                     ))}

@@ -32,17 +32,17 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
     if (isOpen && !hasInitialized) {
       console.log('🚀 Initializing onboarding modal');
       loadCoaches();
-      
+
       // Check if returning from Strava OAuth during onboarding
       const onboardingInProgress = localStorage.getItem('onboarding_in_progress');
       const savedStep = localStorage.getItem('onboarding_step');
-      
-      console.log('🔍 Onboarding check:', { 
-        onboardingInProgress, 
-        savedStep, 
-        hasStrava: !!stravaTokens?.access_token 
+
+      console.log('🔍 Onboarding check:', {
+        onboardingInProgress,
+        savedStep,
+        hasStrava: !!stravaTokens?.access_token
       });
-      
+
       if (onboardingInProgress === 'true' && savedStep) {
         console.log('🔄 Resuming onboarding at step:', savedStep);
         const stepNumber = parseInt(savedStep);
@@ -59,7 +59,7 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
         console.log('▶️ Starting at step 1');
         setCurrentStep(1);
       }
-      
+
       setHasInitialized(true);
     } else if (!isOpen && hasInitialized) {
       // Reset when modal closes
@@ -96,7 +96,7 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
       // Set flag to resume onboarding after Strava connection
       localStorage.setItem('onboarding_in_progress', 'true');
       localStorage.setItem('onboarding_step', '3'); // Resume at coach selection
-      
+
       // Initiate Strava OAuth with onboarding state
       const response = await fetch(`/api/strava/auth?session_token=${sessionToken}&state=onboarding`);
       const data = await response.json();
@@ -147,14 +147,14 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
     if (!formData.eventName.trim()) errors.eventName = 'Event name is required';
     if (!formData.eventDate) errors.eventDate = 'Event date is required';
     if (!formData.startDate) errors.startDate = 'Start date is required';
-    
+
     // Validate dates
     const start = new Date(formData.startDate);
     const end = new Date(formData.eventDate);
     if (end <= start) {
       errors.eventDate = 'Event date must be after start date';
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -205,10 +205,10 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
       }
 
       const planData = await response.json();
-      
+
       // Add dates to sessions
       const planWithDates = addDatesToSessions(planData, formData.startDate);
-      
+
       // Add metadata
       planWithDates.eventType = formData.eventType;
       planWithDates.goals = {
@@ -251,13 +251,13 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
     planData.weeks.forEach((week, weekIdx) => {
       const weekStartDate = new Date(start);
       weekStartDate.setDate(start.getDate() + (weekIdx * 7));
-      
+
       week.sessions.forEach(session => {
         const targetDay = dayMap[session.day];
         const sessionDate = new Date(weekStartDate);
         const daysFromMonday = targetDay === 0 ? 6 : targetDay - 1;
         sessionDate.setDate(weekStartDate.getDate() + daysFromMonday);
-        
+
         session.date = sessionDate.toISOString().split('T')[0];
         session.dateObj = sessionDate;
       });
@@ -312,110 +312,110 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
         </div>
       </div>
       <div className="p-8">
-          {/* Main message */}
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              Connect Strava to Unlock Full Power
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300 text-lg">
-              Get AI-powered training plans based on your actual performance data
-            </p>
-          </div>
+        {/* Main message */}
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+            Connect Strava to Unlock Full Power
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">
+            Get AI-powered training plans based on your actual performance data
+          </p>
+        </div>
 
-          {/* Features grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Smart Training Plans</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    AI analyzes your activities to create personalized plans
-                  </p>
-                </div>
+        {/* Features grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
-            </div>
-
-            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Auto-Sync Activities</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Your rides automatically import and match to your plan
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Progress Tracking</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    See your FTP, training load, and performance trends
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Award className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Race Analysis</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Get detailed insights on your race performance
-                  </p>
-                </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Smart Training Plans</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  AI analyzes your activities to create personalized plans
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="space-y-3">
-            <Button
-              onClick={handleConnectStrava}
-              size="lg"
-              className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-semibold text-lg py-6"
-            >
-              <Activity className="w-5 h-5 mr-2" />
-              Connect Strava Now
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-
-            <Button
-              onClick={handleSkip}
-              variant="outline"
-              size="lg"
-              className="w-full"
-            >
-              I'll Do This Later
-            </Button>
+          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Activity className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Auto-Sync Activities</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Your rides automatically import and match to your plan
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="space-y-3">
-            <Button
-              onClick={handleNext}
-              size="lg"
-              className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-semibold text-lg py-6"
-            >
-              Get Started
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
+          <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Progress Tracking</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  See your FTP, training load, and performance trends
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Award className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Race Analysis</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Get detailed insights on your race performance
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </>
+
+        {/* Action buttons */}
+        <div className="space-y-3">
+          <Button
+            onClick={handleConnectStrava}
+            size="lg"
+            className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-semibold text-lg py-6"
+          >
+            <Activity className="w-5 h-5 mr-2" />
+            Connect Strava Now
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
+
+          <Button
+            onClick={handleSkip}
+            variant="outline"
+            size="lg"
+            className="w-full"
+          >
+            I'll Do This Later
+          </Button>
+        </div>
+
+        {/* Action buttons */}
+        <div className="space-y-3">
+          <Button
+            onClick={handleNext}
+            size="lg"
+            className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-semibold text-lg py-6"
+          >
+            Get Started
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
+        </div>
+      </div>
+    </>
   );
 
   // Step 2: Connect Strava
@@ -459,7 +459,7 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
   // Step 3: Choose Coach
   const renderCoachStep = () => (
     <>
-      <div className="relative bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 p-6 text-white">
+      <div className="relative bg-gradient-to-br from-indigo-500 via-blue-500 to-cyan-500 p-6 text-white">
         <h2 className="text-2xl font-bold text-center">Step 2: Choose Your Coach</h2>
       </div>
       <div className="p-8">
@@ -468,11 +468,10 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
             <button
               key={coach.id}
               onClick={() => handleSelectCoach(coach.id)}
-              className={`p-4 rounded-xl border-2 transition-all text-left ${
-                selectedCoach === coach.id
-                  ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-purple-300'
-              }`}
+              className={`p-4 rounded-xl border-2 transition-all text-left ${selectedCoach === coach.id
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300'
+                }`}
             >
               <div className="flex items-center gap-3">
                 <div className="text-3xl">{coach.avatar || coach.avatarUrl}</div>
@@ -480,7 +479,7 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
                   <h3 className="font-semibold text-gray-900 dark:text-white">{coach.name}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{coach.style}</p>
                 </div>
-                {selectedCoach === coach.id && <Check className="w-5 h-5 text-purple-600" />}
+                {selectedCoach === coach.id && <Check className="w-5 h-5 text-indigo-600" />}
               </div>
             </button>
           ))}
@@ -501,7 +500,7 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
   // Step 4: Generate Plan
   const renderPlanStep = () => (
     <>
-      <div className="relative bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 p-6 text-white">
+      <div className="relative bg-gradient-to-br from-blue-500 via-indigo-500 to-blue-600 p-6 text-white">
         <h2 className="text-2xl font-bold text-center">Step 3: Create Your Training Plan</h2>
       </div>
       <div className="p-6 max-h-[60vh] overflow-y-auto">
@@ -517,9 +516,8 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
               value={formData.eventName}
               onChange={handleInputChange}
               placeholder="e.g., Spring Century Ride"
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white ${
-                formErrors.eventName ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white ${formErrors.eventName ? 'border-red-500' : 'border-gray-300'
+                }`}
             />
             {formErrors.eventName && (
               <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -540,9 +538,8 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white ${
-                  formErrors.startDate ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white ${formErrors.startDate ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {formErrors.startDate && (
                 <p className="text-red-500 text-xs mt-1">{formErrors.startDate}</p>
@@ -557,9 +554,8 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
                 name="eventDate"
                 value={formData.eventDate}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white ${
-                  formErrors.eventDate ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white ${formErrors.eventDate ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {formErrors.eventDate && (
                 <p className="text-red-500 text-xs mt-1">{formErrors.eventDate}</p>
@@ -643,7 +639,7 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
             onClick={handleGeneratePlan}
             disabled={generatingPlan}
             size="lg"
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-500 mt-4"
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 mt-4"
           >
             {generatingPlan ? (
               <>
@@ -718,9 +714,8 @@ const OnboardingModal = ({ isOpen, onClose, stravaTokens, userProfile }) => {
               {[1, 2, 3, 4].map((step) => (
                 <div
                   key={step}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    step <= currentStep ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-600'
-                  }`}
+                  className={`w-2 h-2 rounded-full transition-all ${step <= currentStep ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
                 />
               ))}
             </div>

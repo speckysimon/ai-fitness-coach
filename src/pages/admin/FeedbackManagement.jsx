@@ -9,12 +9,12 @@ const FeedbackManagement = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  
+
   // Filters
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
-  
+
   // Stats
   const [stats, setStats] = useState({
     total: 0,
@@ -32,28 +32,28 @@ const FeedbackManagement = () => {
   const loadFeedbacks = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      
+
       // Build query params
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (categoryFilter !== 'all') params.append('category', categoryFilter);
       params.append('limit', '100');
-      
+
       const response = await fetch(`/api/feedback?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         let filteredFeedbacks = data.feedback;
-        
+
         // Apply rating filter client-side
         if (ratingFilter !== 'all') {
           const rating = parseInt(ratingFilter);
           filteredFeedbacks = filteredFeedbacks.filter(f => f.rating === rating);
         }
-        
+
         setFeedbacks(filteredFeedbacks);
         calculateStats(filteredFeedbacks);
       }
@@ -141,10 +141,10 @@ const FeedbackManagement = () => {
       resolved: { color: 'bg-green-100 text-green-700 border-green-300', icon: CheckCircle, label: 'Resolved' },
       dismissed: { color: 'bg-gray-100 text-gray-700 border-gray-300', icon: Clock, label: 'Dismissed' }
     };
-    
+
     const badge = badges[status] || badges.new;
     const Icon = badge.icon;
-    
+
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${badge.color}`}>
         <Icon className="w-3 h-3" />
@@ -157,11 +157,11 @@ const FeedbackManagement = () => {
     const colors = {
       general: 'bg-gray-100 text-gray-700',
       bug: 'bg-red-100 text-red-700',
-      feature: 'bg-purple-100 text-purple-700',
+      feature: 'bg-indigo-100 text-indigo-700',
       ui: 'bg-blue-100 text-blue-700',
       other: 'bg-orange-100 text-orange-700'
     };
-    
+
     return (
       <span className={`px-2 py-1 rounded text-xs font-medium ${colors[category] || colors.other}`}>
         {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -262,9 +262,9 @@ const FeedbackManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Avg Rating</p>
-                <p className="text-2xl font-bold text-purple-600">{stats.avgRating}</p>
+                <p className="text-2xl font-bold text-indigo-600">{stats.avgRating}</p>
               </div>
-              <TrendingUp className="w-8 h-8 text-purple-500" />
+              <TrendingUp className="w-8 h-8 text-indigo-500" />
             </div>
           </CardContent>
         </Card>
@@ -380,11 +380,11 @@ const FeedbackManagement = () => {
                         {getCategoryBadge(feedback.category)}
                         {getStatusBadge(feedback.status)}
                       </div>
-                      
+
                       <p className="text-gray-900 font-medium mb-1 line-clamp-2">
                         {feedback.message}
                       </p>
-                      
+
                       <div className="flex items-center gap-4 text-sm text-gray-500">
                         <span>{feedback.email}</span>
                         <span>•</span>

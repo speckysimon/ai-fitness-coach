@@ -35,7 +35,7 @@ const TemplateSelector = ({ onSelectTemplate, onClose }) => {
     const colors = {
       Beginner: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
       Intermediate: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-      Advanced: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+      Advanced: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
     };
     return colors[level] || 'bg-gray-100 text-gray-800';
   };
@@ -71,8 +71,8 @@ const TemplateSelector = ({ onSelectTemplate, onClose }) => {
         </p>
         <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
           <p className="text-xs text-amber-800 dark:text-amber-200">
-            <strong>Disclaimer:</strong> These templates provide general training guidance based on established sports science principles. 
-            They are not personalized coaching and should be adapted to your individual needs, fitness level, and goals. 
+            <strong>Disclaimer:</strong> These templates provide general training guidance based on established sports science principles.
+            They are not personalized coaching and should be adapted to your individual needs, fitness level, and goals.
             Consult with a qualified coach or physician before starting any new training program.
           </p>
         </div>
@@ -136,11 +136,10 @@ const TemplateSelector = ({ onSelectTemplate, onClose }) => {
         {filteredTemplates.map((template) => (
           <Card
             key={template.id}
-            className={`cursor-pointer transition-all ${
-              selectedTemplate?.id === template.id
+            className={`cursor-pointer transition-all ${selectedTemplate?.id === template.id
                 ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'hover:shadow-lg'
-            }`}
+              }`}
             onClick={() => setSelectedTemplate(template)}
           >
             <CardHeader>

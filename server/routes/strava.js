@@ -18,34 +18,34 @@ const pendingOAuthStates = new Map();
 router.get('/auth', (req, res) => {
   const sessionToken = req.query.session_token;
   const page = req.query.state || 'setup'; // 'setup' or 'settings'
-  
+
   if (!sessionToken) {
     return res.status(401).json({ error: 'Session token required' });
   }
-  
+
   // Verify session exists
   const session = sessionDb.findByToken(sessionToken);
   if (!session) {
     return res.status(401).json({ error: 'Invalid session token' });
   }
-  
+
   // Generate a unique state for this OAuth flow
   const state = crypto.randomBytes(16).toString('hex');
   pendingOAuthStates.set(state, { sessionToken, page });
-  
+
   // Clean up old states after 10 minutes
   setTimeout(() => pendingOAuthStates.delete(state), 10 * 60 * 1000);
-  
+
   const clientId = process.env.STRAVA_CLIENT_ID; // Client ID stays in .env (public)
   const redirectUri = process.env.STRAVA_REDIRECT_URI; // Redirect URI stays in .env
-  
+
   const authUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&approval_prompt=force&scope=activity:read_all&state=${state}`;
   res.json({ authUrl });
 });
 
 router.get('/callback', async (req, res) => {
   const { code, state } = req.query;
-  
+
   try {
     // Verify state and get session info
     const oauthData = pendingOAuthStates.get(state);
@@ -54,10 +54,10 @@ router.get('/callback', async (req, res) => {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return res.redirect(`${frontendUrl}/setup?error=${encodeURIComponent('Invalid or expired authentication request')}`);
     }
-    
+
     // Clean up the state
     pendingOAuthStates.delete(state);
-    
+
     // Verify session is still valid
     const session = sessionDb.findByToken(oauthData.sessionToken);
     if (!session) {
@@ -65,14 +65,14 @@ router.get('/callback', async (req, res) => {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Session expired, please login again')}`);
     }
-    
+
     // Get Strava client secret from database or .env
     const clientSecret = apiKeyLoader.getApiKey('strava') || process.env.STRAVA_CLIENT_SECRET;
-    
+
     if (!clientSecret) {
       throw new Error('Strava client secret not configured. Please add it in the admin panel.');
     }
-    
+
     const response = await axios.post('https://www.strava.com/oauth/token', {
       client_id: process.env.STRAVA_CLIENT_ID,
       client_secret: clientSecret,
@@ -81,7 +81,7 @@ router.get('/callback', async (req, res) => {
     });
 
     const { access_token, refresh_token, expires_at, athlete } = response.data;
-    
+
     // Save tokens to database
     stravaTokenDb.upsert(session.user_id, {
       access_token,
@@ -89,12 +89,12 @@ router.get('/callback', async (req, res) => {
       expires_at,
       athlete,
     });
-    
+
     // Redirect back to frontend
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const redirectPath = oauthData.page === 'settings' ? 'settings' : 'setup';
     const redirectUrl = `${frontendUrl}/${redirectPath}?strava_success=true`;
-    
+
     res.redirect(redirectUrl);
   } catch (error) {
     logger.error('Strava OAuth error:', error.response?.data || error.message);
@@ -106,7 +106,7 @@ router.get('/callback', async (req, res) => {
 // Get athlete activities
 router.get('/activities', async (req, res) => {
   const { access_token, before, after, page = 1, per_page = 200, user_id } = req.query;
-  
+
   if (!access_token) {
     return res.status(401).json({ error: 'Access token required' });
   }
@@ -118,30 +118,30 @@ router.get('/activities', async (req, res) => {
       page,
       per_page,
     }, user_id);
-    
+
     res.json(activities);
   } catch (error) {
     logger.error('Error fetching activities:', error.response?.data || error.message);
-    
+
     // Check if it's a rate limit error
     if (error.message && error.message.includes('rate limit')) {
-      return res.status(429).json({ 
+      return res.status(429).json({
         error: error.message,
-        rateLimitExceeded: true 
+        rateLimitExceeded: true
       });
     }
-    
+
     // Check if it's an authentication error
     if (error.response?.status === 401 || error.response?.status === 403) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Invalid or expired access token',
-        requiresReauth: true 
+        requiresReauth: true
       });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Failed to fetch activities',
-      details: error.response?.data?.message || error.message 
+      details: error.response?.data?.message || error.message
     });
   }
 });
@@ -150,7 +150,7 @@ router.get('/activities', async (req, res) => {
 router.get('/activities/:id', async (req, res) => {
   const { id } = req.params;
   const { access_token } = req.query;
-  
+
   if (!access_token) {
     return res.status(401).json({ error: 'Access token required' });
   }
@@ -167,7 +167,7 @@ router.get('/activities/:id', async (req, res) => {
 // Get athlete stats
 router.get('/athlete/stats', async (req, res) => {
   const { access_token, athlete_id } = req.query;
-  
+
   if (!access_token || !athlete_id) {
     return res.status(401).json({ error: 'Access token and athlete ID required' });
   }
@@ -184,7 +184,7 @@ router.get('/athlete/stats', async (req, res) => {
 // Refresh access token
 router.post('/refresh', async (req, res) => {
   const { refresh_token } = req.body;
-  
+
   if (!refresh_token) {
     return res.status(400).json({ error: 'Refresh token required' });
   }
@@ -194,15 +194,15 @@ router.post('/refresh', async (req, res) => {
     res.json({ success: true, tokens });
   } catch (error) {
     logger.error('Error refreshing token:', error.response?.data || error.message);
-    
+
     // Check if it's an authorization error (invalid refresh token)
     if (error.response?.status === 401 || error.response?.status === 403) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Invalid refresh token. Please log in again.',
-        requiresReauth: true 
+        requiresReauth: true
       });
     }
-    
+
     res.status(500).json({ error: 'Failed to refresh token' });
   }
 });

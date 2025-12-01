@@ -12,7 +12,7 @@ export const matchActivitiesToPlan = (plan, activities) => {
     // Handle different date field names from Strava API
     const dateStr = activity.start_date_local || activity.start_date || activity.date;
     if (!dateStr) return;
-    
+
     const activityDate = new Date(dateStr).toISOString().split('T')[0];
     if (!activityMap.has(activityDate)) {
       activityMap.set(activityDate, []);
@@ -31,7 +31,7 @@ export const matchActivitiesToPlan = (plan, activities) => {
       // Check for activities on the planned date and ±2 days
       let dayActivities = activityMap.get(sessionDate) || [];
       let dateOffset = 0;
-      
+
       // If no exact match, check nearby dates (±2 days)
       if (dayActivities.length === 0) {
         for (let offset = 1; offset <= 2; offset++) {
@@ -40,13 +40,13 @@ export const matchActivitiesToPlan = (plan, activities) => {
           dateBefore.setDate(dateBefore.getDate() - offset);
           const beforeStr = dateBefore.toISOString().split('T')[0];
           const activitiesBefore = activityMap.get(beforeStr) || [];
-          
+
           // Check day after
           const dateAfter = new Date(sessionDate);
           dateAfter.setDate(dateAfter.getDate() + offset);
           const afterStr = dateAfter.toISOString().split('T')[0];
           const activitiesAfter = activityMap.get(afterStr) || [];
-          
+
           if (activitiesBefore.length > 0) {
             dayActivities = activitiesBefore;
             dateOffset = -offset;
@@ -58,7 +58,7 @@ export const matchActivitiesToPlan = (plan, activities) => {
           }
         }
       }
-      
+
       if (dayActivities.length === 0) {
         matches[sessionKey] = {
           matched: false,
@@ -85,11 +85,11 @@ export const matchActivitiesToPlan = (plan, activities) => {
       if (bestScore >= 50) {
         let reason = getMatchReason(bestScore);
         if (dateOffset !== 0) {
-          const dayText = dateOffset === 1 ? '1 day later' : dateOffset === -1 ? '1 day earlier' : 
-                         dateOffset > 0 ? `${dateOffset} days later` : `${Math.abs(dateOffset)} days earlier`;
+          const dayText = dateOffset === 1 ? '1 day later' : dateOffset === -1 ? '1 day earlier' :
+            dateOffset > 0 ? `${dateOffset} days later` : `${Math.abs(dateOffset)} days earlier`;
           reason = `${reason} (done ${dayText})`;
         }
-        
+
         matches[sessionKey] = {
           matched: true,
           activity: bestMatch,
@@ -123,7 +123,7 @@ const calculateMatchScore = (session, activity) => {
     const plannedDuration = session.duration * 60; // Convert to seconds
     const actualDuration = activity.duration;
     const durationDiff = Math.abs(plannedDuration - actualDuration) / plannedDuration;
-    
+
     if (durationDiff <= 0.1) score += 30; // Within 10%
     else if (durationDiff <= 0.2) score += 20; // Within 20%
     else if (durationDiff <= 0.3) score += 10; // Within 30%
@@ -151,7 +151,7 @@ const calculateMatchScore = (session, activity) => {
   if (session.type && activity.tss) {
     const expectedTSS = estimateExpectedTSS(session);
     const tssDiff = Math.abs(activity.tss - expectedTSS) / expectedTSS;
-    
+
     if (tssDiff <= 0.2) score += 10;
     else if (tssDiff <= 0.4) score += 5;
   }
@@ -219,7 +219,7 @@ const matchIntensityByHR = (sessionType, activity) => {
 // Estimate expected TSS for a session
 const estimateExpectedTSS = (session) => {
   const durationHours = (session.duration || 60) / 60;
-  
+
   const intensityFactors = {
     'Recovery': 0.5,
     'Endurance': 0.65,
@@ -263,7 +263,7 @@ export const mergeCompletions = (manualCompletions, automaticMatches) => {
 
   Object.keys(automaticMatches).forEach(sessionKey => {
     const match = automaticMatches[sessionKey];
-    
+
     // Only auto-complete if:
     // 1. Not manually marked
     // 2. Has a good match (>= 50%)
@@ -304,7 +304,7 @@ export const calculateQualityAdjustedCompletion = (completedSessions) => {
   Object.values(completedSessions).forEach(session => {
     if (session.completed) {
       totalSessions++;
-      
+
       if (session.automatic && session.alignmentScore) {
         // Automatic matches contribute based on alignment score
         totalQualityScore += session.alignmentScore / 100;
@@ -360,8 +360,8 @@ export const getCompletionStatus = (sessionKey, completedSessions, automaticMatc
   return {
     status: 'manual',
     message: 'Manually completed',
-    color: 'text-purple-600 dark:text-purple-400',
-    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-    borderColor: 'border-purple-300 dark:border-purple-700'
+    color: 'text-indigo-600 dark:text-indigo-400',
+    bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
+    borderColor: 'border-indigo-300 dark:border-indigo-700'
   };
 };

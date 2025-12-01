@@ -50,9 +50,8 @@ const ActivityDetailModal = ({ activity, onClose, showAICoach = false }) => {
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-start justify-between">
           <div className="flex items-start gap-4">
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl ${
-              activity.isRace ? 'bg-yellow-100' : 'bg-blue-100'
-            }`}>
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl ${activity.isRace ? 'bg-yellow-100' : 'bg-blue-100'
+              }`}>
               {activity.isRace ? (
                 <Trophy className="w-6 h-6 text-yellow-600" />
               ) : (
@@ -126,7 +125,7 @@ const ActivityDetailModal = ({ activity, onClose, showAICoach = false }) => {
         {/* Detailed Stats */}
         <div className="px-6 pb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Details</h3>
-          
+
           <div className="grid grid-cols-2 gap-4">
             {/* Power Stats */}
             {activity.avgPower > 0 && (
@@ -210,7 +209,7 @@ const ActivityDetailModal = ({ activity, onClose, showAICoach = false }) => {
             {activity.kilojoules > 0 && (
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <ActivityIcon className="w-4 h-4 text-purple-500" />
+                  <ActivityIcon className="w-4 h-4 text-indigo-500" />
                   <span className="text-sm text-gray-600">Energy</span>
                 </div>
                 <span className="font-semibold text-gray-900">{Math.round(activity.kilojoules)} kJ</span>
@@ -253,7 +252,7 @@ const ActivityDetailModal = ({ activity, onClose, showAICoach = false }) => {
               {activity.type}
             </span>
             {activity.trainer && (
-              <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+              <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-medium rounded-full">
                 Indoor
               </span>
             )}
@@ -269,10 +268,10 @@ const ActivityDetailModal = ({ activity, onClose, showAICoach = false }) => {
         <div className="px-6 pb-6">
           <button
             onClick={() => setShowAI(!showAI)}
-            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg hover:from-purple-100 hover:to-blue-100 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all mb-4 border border-purple-200 dark:border-gray-600"
+            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg hover:from-indigo-100 hover:to-blue-100 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all mb-4 border border-indigo-200 dark:border-gray-600"
           >
             <div className="flex items-center gap-3">
-              <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <Brain className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               <span className="font-semibold text-gray-900 dark:text-white">AI Coach Analysis</span>
             </div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -360,12 +359,12 @@ const ActivityDetailModal = ({ activity, onClose, showAICoach = false }) => {
 
               {/* AI Response */}
               {aiResponse && (
-                <div className="p-4 bg-purple-50 dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-gray-600">
-                  <p className="font-medium text-purple-900 dark:text-white mb-2 flex items-center gap-2">
-                    <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <div className="p-4 bg-indigo-50 dark:bg-gray-800 rounded-lg border border-indigo-200 dark:border-gray-600">
+                  <p className="font-medium text-indigo-900 dark:text-white mb-2 flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     AI Coach Response:
                   </p>
-                  <div className="text-sm text-purple-900 dark:text-gray-100 whitespace-pre-wrap">
+                  <div className="text-sm text-indigo-900 dark:text-gray-100 whitespace-pre-wrap">
                     {aiResponse}
                   </div>
                 </div>

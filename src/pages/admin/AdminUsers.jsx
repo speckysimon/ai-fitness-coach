@@ -122,7 +122,7 @@ const AdminUsers = () => {
         </div>
         <Button
           onClick={() => setShowCreateModal(true)}
-          className="bg-gradient-to-r from-blue-600 to-purple-600"
+          className="bg-gradient-to-r from-blue-600 to-indigo-600"
         >
           <UserPlus className="w-4 h-4 mr-2" />
           Add Admin
@@ -158,14 +158,14 @@ const AdminUsers = () => {
                 className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                     <Shield className="w-6 h-6 text-white" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-gray-900">{admin.name}</p>
                       {admin.isSuperAdmin && (
-                        <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
+                        <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded">
                           SUPER ADMIN
                         </span>
                       )}

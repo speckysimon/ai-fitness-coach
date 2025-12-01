@@ -3,7 +3,7 @@ import { BarChart3, TrendingUp, Zap, AlertTriangle, Calendar, Trophy, Target, In
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import logger from '../lib/logger';
-import { 
+import {
   calculateZoneDistribution,
   generateSmartInsights,
   calculateEfficiencyMetrics
@@ -236,8 +236,8 @@ const WeeklyReport = ({ stravaTokens }) => {
               <p className="text-gray-600 dark:text-gray-400 mb-6">
                 To view your weekly report, please connect your Strava account.
               </p>
-              <a 
-                href="/settings" 
+              <a
+                href="/settings"
                 className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
               >
                 Go to Settings
@@ -319,9 +319,9 @@ const WeeklyReport = ({ stravaTokens }) => {
             </div>
 
             {/* TSS */}
-            <div className="p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-800">
-              <div className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 font-medium mb-1">TSS</div>
-              <div className="text-2xl sm:text-3xl font-bold text-purple-900 dark:text-purple-100">{weeklyMetrics.totalTSS}</div>
+            <div className="p-3 sm:p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/30 dark:to-indigo-900/30 rounded-lg border border-indigo-200 dark:border-indigo-800">
+              <div className="text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 font-medium mb-1">TSS</div>
+              <div className="text-2xl sm:text-3xl font-bold text-indigo-900 dark:text-indigo-100">{weeklyMetrics.totalTSS}</div>
               {lastWeekMetrics && (
                 <div className={`text-xs mt-1 ${getChangeIndicator(weeklyMetrics.totalTSS, lastWeekMetrics.totalTSS).color}`}>
                   {getChangeIndicator(weeklyMetrics.totalTSS, lastWeekMetrics.totalTSS).direction} {getChangeIndicator(weeklyMetrics.totalTSS, lastWeekMetrics.totalTSS).value}% vs last week
@@ -398,8 +398,8 @@ const WeeklyReport = ({ stravaTokens }) => {
                       low: 'border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700'
                     };
                     return (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         className={`p-3 sm:p-4 rounded-lg border-2 ${priorityColors[insight.priority] || priorityColors.low}`}
                       >
                         <div className="flex items-start gap-2 sm:gap-3">
@@ -424,10 +424,10 @@ const WeeklyReport = ({ stravaTokens }) => {
         })()}
 
         {/* Ask Your Coach */}
-        <Card className="border-2 border-purple-200 dark:border-purple-800">
+        <Card className="border-2 border-indigo-200 dark:border-indigo-800">
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
-              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
               Ask Your Coach
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">Have questions about this week's training? Ask your AI coach!</CardDescription>
@@ -443,7 +443,7 @@ const WeeklyReport = ({ stravaTokens }) => {
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
                   placeholder="e.g., Why was my TSS higher this week? Should I add more recovery rides?"
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-sm sm:text-base text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 min-h-[100px]"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-800 text-sm sm:text-base text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 min-h-[100px]"
                   rows="3"
                   disabled={askingCoach}
                 />
@@ -452,7 +452,7 @@ const WeeklyReport = ({ stravaTokens }) => {
               <button
                 type="submit"
                 disabled={!question.trim() || askingCoach}
-                className="w-full flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-lg text-sm sm:text-base font-medium transition-colors disabled:cursor-not-allowed min-h-[44px]"
+                className="w-full flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-lg text-sm sm:text-base font-medium transition-colors disabled:cursor-not-allowed min-h-[44px]"
               >
                 {askingCoach ? (
                   <>
@@ -470,7 +470,7 @@ const WeeklyReport = ({ stravaTokens }) => {
 
             {/* Coach's Answer */}
             {coachAnswer && (
-              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border-2 border-purple-300 dark:border-purple-700 rounded-lg">
+              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 border-2 border-indigo-300 dark:border-indigo-700 rounded-lg">
                 <div className="flex items-start gap-2 sm:gap-3">
                   {(() => {
                     const coachId = getUserCoach();
@@ -479,18 +479,18 @@ const WeeklyReport = ({ stravaTokens }) => {
                       <img
                         src={coach.avatar_url}
                         alt={coach.name}
-                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-purple-400 dark:border-purple-600 flex-shrink-0"
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-indigo-400 dark:border-indigo-600 flex-shrink-0"
                       />
                     ) : (
                       <div className="text-2xl sm:text-3xl flex-shrink-0">{coach.avatar || '👤'}</div>
                     );
                   })()}
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-sm sm:text-base text-purple-900 dark:text-purple-100 mb-2 flex items-center gap-2">
+                    <h4 className="font-semibold text-sm sm:text-base text-indigo-900 dark:text-indigo-100 mb-2 flex items-center gap-2">
                       <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                       Coach's Response
                     </h4>
-                    <p className="text-xs sm:text-sm text-purple-800 dark:text-purple-200 whitespace-pre-wrap">{coachAnswer}</p>
+                    <p className="text-xs sm:text-sm text-indigo-800 dark:text-indigo-200 whitespace-pre-wrap">{coachAnswer}</p>
                   </div>
                 </div>
               </div>
@@ -520,7 +520,7 @@ const WeeklyReport = ({ stravaTokens }) => {
           <Card>
             <CardHeader className="p-4 sm:p-6">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
-                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500 dark:text-purple-400" />
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 dark:text-indigo-400" />
                 Training Zone Distribution
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">Last 7 days - How your training time is distributed</CardDescription>
@@ -528,29 +528,29 @@ const WeeklyReport = ({ stravaTokens }) => {
             <CardContent className="p-4 sm:p-6">
               <div className="h-[250px] sm:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={zoneDistribution}
-                    dataKey="percentage"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label={(entry) => `${entry.name}: ${entry.percentage.toFixed(0)}%`}
-                  >
-                    {zoneDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `${value.toFixed(1)}%`} />
-                </PieChart>
+                  <PieChart>
+                    <Pie
+                      data={zoneDistribution}
+                      dataKey="percentage"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label={(entry) => `${entry.name}: ${entry.percentage.toFixed(0)}%`}
+                    >
+                      {zoneDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => `${value.toFixed(1)}%`} />
+                  </PieChart>
                 </ResponsiveContainer>
               </div>
               <div className="mt-3 sm:mt-4 space-y-2">
                 {zoneDistribution.map((zone, idx) => (
                   <div key={idx} className="flex items-center justify-between text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
-                      <div 
+                      <div
                         className="w-3 h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: zone.color }}
                       />
@@ -591,25 +591,25 @@ const WeeklyReport = ({ stravaTokens }) => {
               </div>
               <div className="h-[150px] sm:h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={efficiencyMetrics.data}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="date" 
-                    tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  />
-                  <YAxis />
-                  <Tooltip 
-                    labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
-                    formatter={(value) => [value.toFixed(2), 'Efficiency']}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="efficiency" 
-                    stroke="#10b981" 
-                    strokeWidth={2}
-                    dot={{ fill: '#10b981', r: 3 }}
-                  />
-                </LineChart>
+                  <LineChart data={efficiencyMetrics.data}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    />
+                    <YAxis />
+                    <Tooltip
+                      labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+                      formatter={(value) => [value.toFixed(2), 'Efficiency']}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="efficiency"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={{ fill: '#10b981', r: 3 }}
+                    />
+                  </LineChart>
                 </ResponsiveContainer>
               </div>
               <div className="mt-3 p-2 sm:p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">

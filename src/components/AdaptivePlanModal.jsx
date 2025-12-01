@@ -34,10 +34,10 @@ const AdaptivePlanModal = ({ isOpen, onClose, onAdjust, plan, activities, comple
     try {
       const sessionToken = localStorage.getItem('session_token');
       const userDateTime = getCurrentDateTime(); // Get user's current date/time with timezone
-      
+
       const response = await fetch('/api/training/plan/adjust', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionToken}`
         },
@@ -87,13 +87,13 @@ const AdaptivePlanModal = ({ isOpen, onClose, onAdjust, plan, activities, comple
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 rounded-t-lg">
+        <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-6 rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Brain className="w-6 h-6" />
               <div>
                 <h2 className="text-2xl font-bold">Adaptive Plan Adjustment</h2>
-                <p className="text-purple-100 text-sm mt-1">
+                <p className="text-indigo-100 text-sm mt-1">
                   Tell your AI coach what needs to change
                 </p>
               </div>
@@ -177,7 +177,7 @@ Note: Your AI coach automatically sees your recent activities and their dates - 
                 <Button
                   onClick={analyzeAndSuggest}
                   disabled={loading || !adjustmentRequest.trim()}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600"
+                  className="bg-gradient-to-r from-indigo-600 to-blue-600"
                 >
                   {loading ? (
                     <>
@@ -220,15 +220,15 @@ Note: Your AI coach automatically sees your recent activities and their dates - 
                     {suggestions.changes.map((change, idx) => (
                       <div
                         key={idx}
-                        className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-sm"
+                        className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-sm"
                       >
                         <div className="flex items-start gap-2">
-                          <span className="text-purple-600 font-bold mt-0.5">•</span>
+                          <span className="text-indigo-600 font-bold mt-0.5">•</span>
                           <div className="flex-1">
-                            <p className="text-purple-900 font-medium">{change.type}</p>
-                            <p className="text-purple-700 mt-1">{change.description}</p>
+                            <p className="text-indigo-900 font-medium">{change.type}</p>
+                            <p className="text-indigo-700 mt-1">{change.description}</p>
                             {change.sessions && (
-                              <p className="text-purple-600 text-xs mt-1">
+                              <p className="text-indigo-600 text-xs mt-1">
                                 Affects: {change.sessions.join(', ')}
                               </p>
                             )}
@@ -269,7 +269,7 @@ Note: Your AI coach automatically sees your recent activities and their dates - 
                 </Button>
                 <Button
                   onClick={applyAdjustments}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600"
+                  className="bg-gradient-to-r from-indigo-600 to-blue-600"
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
                   Apply Adjustments

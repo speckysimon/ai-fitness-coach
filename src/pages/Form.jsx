@@ -50,7 +50,7 @@ const Form = ({ stravaTokens }) => {
 
     setCurrentTokens(newTokens);
     localStorage.setItem('strava_tokens', JSON.stringify(newTokens));
-    
+
     return newTokens;
   };
 
@@ -107,7 +107,7 @@ const Form = ({ stravaTokens }) => {
 
       // Fetch 90 days of activities for proper baseline
       const ninetyDaysAgo = Math.floor(Date.now() / 1000) - (90 * 24 * 60 * 60);
-      
+
       const response = await fetch(
         `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${ninetyDaysAgo}&per_page=200`
       );
@@ -119,11 +119,11 @@ const Form = ({ stravaTokens }) => {
           const retryResponse = await fetch(
             `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${ninetyDaysAgo}&per_page=200`
           );
-          
+
           if (!retryResponse.ok) {
             throw new Error('Failed to fetch activities after token refresh');
           }
-          
+
           const activities = await retryResponse.json();
           await processFormData(activities, tokensToUse);
           return;
@@ -170,7 +170,7 @@ const Form = ({ stravaTokens }) => {
       for (let i = startDay; i >= 0; i--) {
         const date = subDays(today, i);
         const dateStr = format(date, 'yyyy-MM-dd');
-        
+
         // Get activities for this day
         const dayActivities = baselineActivities.filter(a => {
           const activityDate = format(new Date(a.date), 'yyyy-MM-dd');
@@ -210,7 +210,7 @@ const Form = ({ stravaTokens }) => {
       const displayData = allDailyData.slice(-timeRange);
 
       setFormData(displayData);
-      
+
       // Set current metrics (today's values)
       const current = displayData[displayData.length - 1];
       setCurrentMetrics(current);
@@ -325,7 +325,7 @@ const Form = ({ stravaTokens }) => {
               <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Fatigue (ATL)</CardTitle>
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0">
-              <div className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">{currentMetrics.fatigue}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400">{currentMetrics.fatigue}</div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">7-day avg load</p>
             </CardContent>
           </Card>
@@ -360,11 +360,10 @@ const Form = ({ stravaTokens }) => {
             <button
               key={days}
               onClick={() => setTimeRange(days)}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] ${
-                timeRange === days
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors min-h-[44px] ${timeRange === days
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
+                }`}
             >
               {days} days
             </button>
@@ -377,70 +376,70 @@ const Form = ({ stravaTokens }) => {
         <CardHeader className="p-4 sm:p-6">
           <CardTitle className="text-base sm:text-lg md:text-xl">Fitness & Form Chart</CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            Blue: Fitness (CTL) | Purple: Fatigue (ATL) | Form (TSB): Green (optimal), Gray (neutral), Yellow (building), Red (risk)
+            Blue: Fitness (CTL) | Indigo: Fatigue (ATL) | Form (TSB): Green (optimal), Gray (neutral), Yellow (building), Red (risk)
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           <div className="h-[250px] sm:h-[300px] md:h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={formData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="dateLabel" 
-                tick={{ fontSize: 12 }}
-              />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip 
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
-                    const status = getFormStatus(data.form);
-                    return (
-                      <div className="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100">{data.dateLabel}</p>
-                        <div className="mt-2 space-y-1">
-                          <p className="text-sm text-blue-600">Fitness: {data.fitness}</p>
-                          <p className="text-sm text-purple-600">Fatigue: {data.fatigue}</p>
-                          <p className={`text-sm ${status.color}`}>Form: {data.form}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Daily TSS: {data.tss}</p>
+              <LineChart data={formData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="dateLabel"
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const status = getFormStatus(data.form);
+                      return (
+                        <div className="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{data.dateLabel}</p>
+                          <div className="mt-2 space-y-1">
+                            <p className="text-sm text-blue-600">Fitness: {data.fitness}</p>
+                            <p className="text-sm text-indigo-600">Fatigue: {data.fatigue}</p>
+                            <p className={`text-sm ${status.color}`}>Form: {data.form}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Daily TSS: {data.tss}</p>
+                          </div>
+                          <p className={`text-xs mt-2 ${status.color} font-medium`}>{status.status}</p>
                         </div>
-                        <p className={`text-xs mt-2 ${status.color} font-medium`}>{status.status}</p>
-                      </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
+                <ReferenceLine y={5} stroke="#22c55e" strokeDasharray="2 2" label="Optimal" />
+                <ReferenceLine y={25} stroke="#ef4444" strokeDasharray="2 2" label="High Risk" />
+                <Line type="monotone" dataKey="fitness" stroke="#3b82f6" strokeWidth={2} name="Fitness (CTL)" />
+                <Line type="monotone" dataKey="fatigue" stroke="#6366f1" strokeWidth={2} name="Fatigue (ATL)" />
+                {/* Form line with color-coded dots */}
+                <Line
+                  type="monotone"
+                  dataKey="form"
+                  stroke="#6b7280"
+                  strokeWidth={2}
+                  name="Form (TSB)"
+                  dot={(props) => {
+                    const { cx, cy, payload } = props;
+                    if (!payload) return null;
+                    const color = getFormLineColor(payload.form);
+                    return (
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={5}
+                        fill={color}
+                        stroke="white"
+                        strokeWidth={2}
+                      />
                     );
-                  }
-                  return null;
-                }}
-              />
-              <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
-              <ReferenceLine y={5} stroke="#22c55e" strokeDasharray="2 2" label="Optimal" />
-              <ReferenceLine y={25} stroke="#ef4444" strokeDasharray="2 2" label="High Risk" />
-              <Line type="monotone" dataKey="fitness" stroke="#3b82f6" strokeWidth={2} name="Fitness (CTL)" />
-              <Line type="monotone" dataKey="fatigue" stroke="#a855f7" strokeWidth={2} name="Fatigue (ATL)" />
-              {/* Form line with color-coded dots */}
-              <Line 
-                type="monotone" 
-                dataKey="form" 
-                stroke="#6b7280"
-                strokeWidth={2}
-                name="Form (TSB)"
-                dot={(props) => {
-                  const { cx, cy, payload } = props;
-                  if (!payload) return null;
-                  const color = getFormLineColor(payload.form);
-                  return (
-                    <circle
-                      cx={cx}
-                      cy={cy}
-                      r={5}
-                      fill={color}
-                      stroke="white"
-                      strokeWidth={2}
-                    />
-                  );
-                }}
-                activeDot={{ r: 7 }}
-              />
-            </LineChart>
+                  }}
+                  activeDot={{ r: 7 }}
+                />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
@@ -455,13 +454,13 @@ const Form = ({ stravaTokens }) => {
         <CardContent className="p-4 sm:p-6">
           <div className="h-[150px] sm:h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={formData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Area type="monotone" dataKey="tss" stroke="#f59e0b" fill="#fef3c7" />
-            </AreaChart>
+              <AreaChart data={formData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Area type="monotone" dataKey="tss" stroke="#f59e0b" fill="#fef3c7" />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
@@ -484,7 +483,7 @@ const Form = ({ stravaTokens }) => {
                 <span>Chronic Training Load - 42-day exponentially weighted average of daily TSS. Represents your fitness level.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-purple-600 font-bold">ATL (Fatigue):</span>
+                <span className="text-indigo-600 font-bold">ATL (Fatigue):</span>
                 <span>Acute Training Load - 7-day exponentially weighted average of daily TSS. Represents your current fatigue.</span>
               </li>
               <li className="flex items-start gap-2">
@@ -523,8 +522,8 @@ const Form = ({ stravaTokens }) => {
           <div className="border-l-4 border-blue-500 pl-3 sm:pl-4 bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
             <h4 className="font-semibold text-sm sm:text-base text-blue-900 dark:text-blue-300 mb-2">📚 Methodology Source</h4>
             <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-              Based on <strong>Joe Friel's Training Stress Balance</strong> methodology from "The Cyclist's Training Bible" 
-              and his blog post "Managing Training Using TSB". This approach is used by professional coaches worldwide 
+              Based on <strong>Joe Friel's Training Stress Balance</strong> methodology from "The Cyclist's Training Bible"
+              and his blog post "Managing Training Using TSB". This approach is used by professional coaches worldwide
               and implemented in TrainingPeaks, intervals.icu, and other leading platforms.
             </p>
           </div>

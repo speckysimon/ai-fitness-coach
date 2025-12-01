@@ -224,28 +224,26 @@ const WeatherWidget = () => {
 
             {/* Training recommendation */}
             <div
-              className={`mb-4 p-3 rounded-lg ${
-                recommendation.type === 'perfect'
+              className={`mb-4 p-3 rounded-lg ${recommendation.type === 'perfect'
                   ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
                   : recommendation.type === 'good'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                  : recommendation.type === 'caution'
-                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
-                  : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-              }`}
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                    : recommendation.type === 'caution'
+                      ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
+                      : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                }`}
             >
               <div className="flex items-center gap-2">
                 <span className="text-xl">{recommendation.icon}</span>
                 <span
-                  className={`text-sm font-medium ${
-                    recommendation.type === 'perfect'
+                  className={`text-sm font-medium ${recommendation.type === 'perfect'
                       ? 'text-green-700 dark:text-green-300'
                       : recommendation.type === 'good'
-                      ? 'text-blue-700 dark:text-blue-300'
-                      : recommendation.type === 'caution'
-                      ? 'text-yellow-700 dark:text-yellow-300'
-                      : 'text-red-700 dark:text-red-300'
-                  }`}
+                        ? 'text-blue-700 dark:text-blue-300'
+                        : recommendation.type === 'caution'
+                          ? 'text-yellow-700 dark:text-yellow-300'
+                          : 'text-red-700 dark:text-red-300'
+                    }`}
                 >
                   {recommendation.message}
                 </span>
@@ -289,7 +287,7 @@ const WeatherWidget = () => {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Sunset className="w-4 h-4 text-purple-500" />
+                <Sunset className="w-4 h-4 text-indigo-500" />
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   {formatTime(weather.current.sunset)}
                 </span>

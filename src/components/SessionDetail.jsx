@@ -95,7 +95,7 @@ const SessionDetail = ({ session, ftp }) => {
 
     const options = recommendations[type] || recommendations['Endurance'];
     // Find closest duration match
-    return options.reduce((prev, curr) => 
+    return options.reduce((prev, curr) =>
       Math.abs(curr.duration - duration) < Math.abs(prev.duration - duration) ? curr : prev
     );
   };
@@ -131,25 +131,23 @@ const SessionDetail = ({ session, ftp }) => {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 flex-1">
-            <div className={`w-2 h-12 rounded ${
-              session.type === 'Recovery' ? 'bg-green-500' :
-              session.type === 'Endurance' ? 'bg-blue-500' :
-              session.type === 'Tempo' ? 'bg-yellow-500' :
-              session.type === 'Threshold' ? 'bg-orange-500' :
-              session.type === 'VO2Max' ? 'bg-red-500' :
-              'bg-purple-500'
-            }`} />
+            <div className={`w-2 h-12 rounded ${session.type === 'Recovery' ? 'bg-green-500' :
+                session.type === 'Endurance' ? 'bg-blue-500' :
+                  session.type === 'Tempo' ? 'bg-yellow-500' :
+                    session.type === 'Threshold' ? 'bg-orange-500' :
+                      session.type === 'VO2Max' ? 'bg-red-500' :
+                        'bg-indigo-500'
+              }`} />
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h4 className="font-semibold text-gray-900">{session.title}</h4>
-                <span className={`px-2 py-0.5 text-xs rounded font-medium ${
-                  session.type === 'Recovery' ? 'bg-green-100 text-green-700' :
-                  session.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
-                  session.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
-                  session.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
-                  session.type === 'VO2Max' ? 'bg-red-100 text-red-700' :
-                  'bg-purple-100 text-purple-700'
-                }`}>
+                <span className={`px-2 py-0.5 text-xs rounded font-medium ${session.type === 'Recovery' ? 'bg-green-100 text-green-700' :
+                    session.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
+                      session.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
+                        session.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
+                          session.type === 'VO2Max' ? 'bg-red-100 text-red-700' :
+                            'bg-indigo-100 text-indigo-700'
+                  }`}>
                   {session.type}
                 </span>
               </div>
@@ -256,12 +254,12 @@ const SessionDetail = ({ session, ftp }) => {
                   <p className="text-xs text-gray-600 flex items-start gap-1">
                     <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
                     <span>
-                      Search for this workout in Zwift's workout library or use a similar workout 
+                      Search for this workout in Zwift's workout library or use a similar workout
                       that matches the duration and intensity profile.
                     </span>
                   </p>
                   <p className="text-xs text-gray-500 mt-2">
-                    <strong>Disclaimer:</strong> Zwift<sup>®</sup> is a registered trademark of Zwift, Inc. 
+                    <strong>Disclaimer:</strong> Zwift<sup>®</sup> is a registered trademark of Zwift, Inc.
                     RiderLabs is not affiliated with, endorsed by, or sponsored by Zwift, Inc.
                   </p>
                 </div>

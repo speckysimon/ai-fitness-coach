@@ -30,7 +30,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
       // Load activities from cache or API
       let allActivities = [];
       const cachedActivities = localStorage.getItem('cached_activities_recent');
-      
+
       if (cachedActivities) {
         allActivities = JSON.parse(cachedActivities);
       } else {
@@ -38,7 +38,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
         const threeMonthsAgo = new Date();
         threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
         const after = Math.floor(threeMonthsAgo.getTime() / 1000);
-        
+
         const response = await fetch(
           `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${after}&per_page=200`
         );
@@ -71,7 +71,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
   const handleDateChange = (e) => {
     const newDate = e.target.value;
     setSelectedRaceDate(newDate);
-    
+
     if (activities.length > 0) {
       const form = calculateRaceDayForm(activities, ftp, new Date(newDate));
       setFormData(form);
@@ -85,11 +85,11 @@ const RaceDayPredictor = ({ stravaTokens }) => {
     try {
       const parsed = await parseGPX(file);
       setGpxRoute(parsed);
-      
+
       // Generate profile for visualization
       const profile = generateRouteProfile(parsed.points);
       setRouteProfile(profile);
-      
+
       // Clear previous race plan
       setRacePlan(null);
     } catch (error) {
@@ -113,14 +113,14 @@ const RaceDayPredictor = ({ stravaTokens }) => {
       // Get training plan status
       const trainingPlan = localStorage.getItem('training_plan');
       const completedSessions = localStorage.getItem('completed_sessions');
-      
+
       let trainingStatus = null;
       if (trainingPlan && completedSessions) {
         const plan = JSON.parse(trainingPlan);
         const completed = JSON.parse(completedSessions);
         const total = plan.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
         const completedCount = Object.values(completed).filter(c => c && c.completed).length;
-        
+
         trainingStatus = {
           completion: Math.round((completedCount / total) * 100),
           targetRiderType: plan.eventType || 'All Rounder',
@@ -145,7 +145,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.details || data.error || 'Failed to generate race plan');
       }
@@ -332,15 +332,15 @@ const RaceDayPredictor = ({ stravaTokens }) => {
             </div>
 
             {/* Performance Trend */}
-            <div className="p-3 sm:p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
+            <div className="p-3 sm:p-4 bg-indigo-50 rounded-lg border-2 border-indigo-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Performance</span>
-                {formData.metrics.performanceTrend >= 0 ? 
-                  <TrendingUp className="w-5 h-5 text-purple-600" /> : 
-                  <TrendingDown className="w-5 h-5 text-purple-600" />
+                {formData.metrics.performanceTrend >= 0 ?
+                  <TrendingUp className="w-5 h-5 text-indigo-600" /> :
+                  <TrendingDown className="w-5 h-5 text-indigo-600" />
                 }
               </div>
-              <div className="text-2xl sm:text-3xl font-bold text-purple-600">
+              <div className="text-2xl sm:text-3xl font-bold text-indigo-600">
                 {formData.metrics.performanceTrend > 0 ? '+' : ''}{formData.metrics.performanceTrend}%
               </div>
               <div className="text-xs text-gray-500 mt-1">2-week trend</div>
@@ -383,37 +383,37 @@ const RaceDayPredictor = ({ stravaTokens }) => {
             <AreaChart data={formData.chartData.fitnessHistory}>
               <defs>
                 <linearGradient id="colorFitness" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorFatigue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="date" 
+              <XAxis
+                dataKey="date"
                 tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               />
               <YAxis label={{ value: 'Training Load', angle: -90, position: 'insideLeft' }} />
-              <Tooltip 
+              <Tooltip
                 labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
               />
               <Legend />
-              <Area 
-                type="monotone" 
-                dataKey="fitness" 
-                stroke="#3b82f6" 
+              <Area
+                type="monotone"
+                dataKey="fitness"
+                stroke="#3b82f6"
                 strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorFitness)"
                 name="Fitness (CTL)"
               />
-              <Area 
-                type="monotone" 
-                dataKey="fatigue" 
-                stroke="#f97316" 
+              <Area
+                type="monotone"
+                dataKey="fatigue"
+                stroke="#f97316"
                 strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorFatigue)"
@@ -421,7 +421,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
               />
             </AreaChart>
           </ResponsiveContainer>
-          
+
           <div className="mt-4 bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
             <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
               <Info className="w-4 h-4 text-blue-600" />
@@ -452,29 +452,29 @@ const RaceDayPredictor = ({ stravaTokens }) => {
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={formData.chartData.formHistory}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="date" 
+              <XAxis
+                dataKey="date"
                 tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               />
               <YAxis label={{ value: 'Form (TSB)', angle: -90, position: 'insideLeft' }} />
-              <Tooltip 
+              <Tooltip
                 labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
               />
               <Legend />
               <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
               <ReferenceLine y={5} stroke="#10b981" strokeDasharray="2 2" label="Optimal Min" />
               <ReferenceLine y={15} stroke="#10b981" strokeDasharray="2 2" label="Optimal Max" />
-              <Line 
-                type="monotone" 
-                dataKey="form" 
-                stroke="#8b5cf6" 
+              <Line
+                type="monotone"
+                dataKey="form"
+                stroke="#8b5cf6"
                 strokeWidth={3}
                 dot={false}
                 name="Form (TSB)"
               />
             </LineChart>
           </ResponsiveContainer>
-          
+
           <div className="mt-4 bg-green-50 border-2 border-green-200 rounded-lg p-4">
             <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
               <Info className="w-4 h-4 text-green-600" />
@@ -499,7 +499,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-purple-600" />
+            <Target className="w-5 h-5 text-indigo-600" />
             Readiness Score Breakdown
           </CardTitle>
           <CardDescription>How each factor contributes to your overall readiness</CardDescription>
@@ -510,11 +510,11 @@ const RaceDayPredictor = ({ stravaTokens }) => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Form (TSB) - 30% weight</span>
-                <span className="text-sm font-bold text-purple-600">{formData.breakdown.formContribution}%</span>
+                <span className="text-sm font-bold text-indigo-600">{formData.breakdown.formContribution}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
-                <div 
-                  className="bg-purple-600 h-3 rounded-full transition-all"
+                <div
+                  className="bg-indigo-600 h-3 rounded-full transition-all"
                   style={{ width: `${formData.breakdown.formContribution}%` }}
                 />
               </div>
@@ -527,7 +527,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                 <span className="text-sm font-bold text-blue-600">{formData.breakdown.fitnessContribution}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
-                <div 
+                <div
                   className="bg-blue-600 h-3 rounded-full transition-all"
                   style={{ width: `${formData.breakdown.fitnessContribution}%` }}
                 />
@@ -541,7 +541,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                 <span className="text-sm font-bold text-green-600">{formData.breakdown.performanceContribution}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
-                <div 
+                <div
                   className="bg-green-600 h-3 rounded-full transition-all"
                   style={{ width: `${formData.breakdown.performanceContribution}%` }}
                 />
@@ -555,7 +555,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                 <span className="text-sm font-bold text-indigo-600">{formData.breakdown.recoveryContribution}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
-                <div 
+                <div
                   className="bg-indigo-600 h-3 rounded-full transition-all"
                   style={{ width: `${formData.breakdown.recoveryContribution}%` }}
                 />
@@ -569,7 +569,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                 <span className="text-sm font-bold text-teal-600">{formData.breakdown.consistencyContribution}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
-                <div 
+                <div
                   className="bg-teal-600 h-3 rounded-full transition-all"
                   style={{ width: `${formData.breakdown.consistencyContribution}%` }}
                 />
@@ -581,10 +581,10 @@ const RaceDayPredictor = ({ stravaTokens }) => {
 
       {/* Taper Advice */}
       {formData.taperAdvice && (
-        <Card className="border-2 border-purple-200">
+        <Card className="border-2 border-blue-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-purple-600" />
+              <Clock className="w-5 h-5 text-blue-600" />
               Taper Strategy
             </CardTitle>
             <CardDescription>Recommended approach based on days to race</CardDescription>
@@ -600,7 +600,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
               <ul className="space-y-2">
                 {formData.taperAdvice.recommendations.map((rec, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-purple-600 font-bold">✓</span>
+                    <span className="text-blue-600 font-bold">✓</span>
                     <span>{rec}</span>
                   </li>
                 ))}
@@ -646,10 +646,10 @@ const RaceDayPredictor = ({ stravaTokens }) => {
       )}
 
       {/* GPX Route Upload & Race Plan Generator */}
-      <Card className="mt-8 border-2 border-purple-200">
+      <Card className="mt-8 border-2 border-blue-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MapPin className="w-6 h-6 text-purple-600" />
+            <MapPin className="w-6 h-6 text-blue-600" />
             AI Race Plan Generator
           </CardTitle>
           <CardDescription>
@@ -673,7 +673,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                 />
                 <label
                   htmlFor="gpx-upload"
-                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 transition-colors"
+                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors"
                 >
                   <Upload className="w-5 h-5 text-gray-600" />
                   <span className="text-sm font-medium text-gray-700">
@@ -684,7 +684,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                   <Button
                     onClick={generateRacePlan}
                     disabled={generatingPlan || !formData}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-blue-600 hover:bg-blue-700"
                   >
                     {generatingPlan ? (
                       <>
@@ -706,7 +706,7 @@ const RaceDayPredictor = ({ stravaTokens }) => {
             {gpxRoute && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Route Stats */}
-                <Card className="bg-gradient-to-br from-purple-50 to-blue-50">
+                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50">
                   <CardHeader>
                     <CardTitle className="text-lg">Route Analysis</CardTitle>
                   </CardHeader>
@@ -726,13 +726,12 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Difficulty</span>
-                        <span className={`text-lg font-bold ${
-                          gpxRoute.analysis.difficulty.color === 'green' ? 'text-green-600' :
-                          gpxRoute.analysis.difficulty.color === 'yellow' ? 'text-yellow-600' :
-                          gpxRoute.analysis.difficulty.color === 'orange' ? 'text-orange-600' :
-                          gpxRoute.analysis.difficulty.color === 'red' ? 'text-red-600' :
-                          'text-purple-600'
-                        }`}>
+                        <span className={`text-lg font-bold ${gpxRoute.analysis.difficulty.color === 'green' ? 'text-green-600' :
+                            gpxRoute.analysis.difficulty.color === 'yellow' ? 'text-yellow-600' :
+                              gpxRoute.analysis.difficulty.color === 'orange' ? 'text-orange-600' :
+                                gpxRoute.analysis.difficulty.color === 'red' ? 'text-red-600' :
+                                  'text-indigo-600'
+                          }`}>
                           {gpxRoute.analysis.difficulty.level} ({gpxRoute.analysis.difficulty.score}/100)
                         </span>
                       </div>
@@ -761,13 +760,12 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                           <div key={idx} className="p-3 bg-white rounded-lg border border-orange-200">
                             <div className="flex items-center justify-between mb-1">
                               <span className="font-semibold text-gray-900">{climb.name}</span>
-                              <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                                climb.category === 'HC' ? 'bg-red-600 text-white' :
-                                climb.category === '1' ? 'bg-orange-600 text-white' :
-                                climb.category === '2' ? 'bg-yellow-600 text-white' :
-                                climb.category === '3' ? 'bg-green-600 text-white' :
-                                'bg-gray-600 text-white'
-                              }`}>
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold ${climb.category === 'HC' ? 'bg-red-600 text-white' :
+                                  climb.category === '1' ? 'bg-orange-600 text-white' :
+                                    climb.category === '2' ? 'bg-yellow-600 text-white' :
+                                      climb.category === '3' ? 'bg-green-600 text-white' :
+                                        'bg-gray-600 text-white'
+                                }`}>
                                 Cat {climb.category}
                               </span>
                             </div>
@@ -794,19 +792,19 @@ const RaceDayPredictor = ({ stravaTokens }) => {
                   <ResponsiveContainer width="100%" height={250}>
                     <AreaChart data={routeProfile}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="distance" 
+                      <XAxis
+                        dataKey="distance"
                         label={{ value: 'Distance (km)', position: 'insideBottom', offset: -5 }}
                       />
-                      <YAxis 
+                      <YAxis
                         label={{ value: 'Elevation (m)', angle: -90, position: 'insideLeft' }}
                       />
                       <Tooltip />
-                      <Area 
-                        type="monotone" 
-                        dataKey="elevation" 
-                        stroke="#8b5cf6" 
-                        fill="#c4b5fd" 
+                      <Area
+                        type="monotone"
+                        dataKey="elevation"
+                        stroke="#8b5cf6"
+                        fill="#c4b5fd"
                         strokeWidth={2}
                       />
                     </AreaChart>

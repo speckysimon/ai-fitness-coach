@@ -25,7 +25,7 @@ const Methodology = () => {
 
   const CollapsibleCard = ({ id, title, icon: Icon, description, children }) => (
     <Card>
-      <CardHeader 
+      <CardHeader
         className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors p-4 sm:p-6 min-h-[60px]"
         onClick={() => toggleSection(id)}
       >
@@ -71,8 +71,8 @@ const Methodology = () => {
         icon={BookOpen}
       >
         <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-          AI Fitness Coach uses scientifically validated methods developed by leading sports scientists 
-          and adopted by professional coaches worldwide. All calculations are based on peer-reviewed 
+          AI Fitness Coach uses scientifically validated methods developed by leading sports scientists
+          and adopted by professional coaches worldwide. All calculations are based on peer-reviewed
           research and industry-standard protocols.
         </p>
       </CollapsibleCard>
@@ -86,9 +86,9 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">What is the Learning Loop?</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            Our Post-Race Analysis system creates a complete learning loop that transforms race experiences 
-            into actionable insights. By analyzing your race performance, pre-race training load, and subjective 
-            feedback, the AI identifies what worked, what didn't, and automatically integrates these learnings 
+            Our Post-Race Analysis system creates a complete learning loop that transforms race experiences
+            into actionable insights. By analyzing your race performance, pre-race training load, and subjective
+            feedback, the AI identifies what worked, what didn't, and automatically integrates these learnings
             into your future training plans.
           </p>
         </div>
@@ -129,7 +129,7 @@ const Methodology = () => {
         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2 sm:mb-3">Pre-Race Training Load Analysis</h4>
           <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-            Our system examines the 14 days before your race to determine if you arrived fresh or carrying fatigue. 
+            Our system examines the 14 days before your race to determine if you arrived fresh or carrying fatigue.
             This is critical for understanding race performance in context.
           </p>
           <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
@@ -153,14 +153,14 @@ const Methodology = () => {
                 <div>Taper Ratio: 63% ⚠️ (slightly high)</div>
               </div>
               <p className="text-xs mt-2 text-gray-600 dark:text-gray-400">
-                AI Insight: "Your taper ratio was 63% (ideal is 40-60%), meaning you didn't reduce 
+                AI Insight: "Your taper ratio was 63% (ideal is 40-60%), meaning you didn't reduce
                 volume enough in the final week. This likely contributed to the heavy legs you felt."
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2 sm:mb-3">AI Analysis Components</h4>
           <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
             <div>
@@ -206,7 +206,7 @@ const Methodology = () => {
         <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2 sm:mb-3">Automatic Training Plan Integration</h4>
           <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-            When you generate your next training plan, the AI automatically loads your last 3 race analyses 
+            When you generate your next training plan, the AI automatically loads your last 3 race analyses
             and uses them to customize your training:
           </p>
           <div className="space-y-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
@@ -222,16 +222,16 @@ const Methodology = () => {
             <div className="bg-white dark:bg-gray-800 p-3 rounded border border-green-200 dark:border-green-700 mt-2">
               <strong>Example Integration:</strong>
               <p className="text-xs mt-1 dark:text-gray-300">
-                "This plan has been customized based on your recent race analysis. Key focus: 
-                <strong> Pacing Strategy</strong>. We're addressing your pacing score (60/100) and 
-                building on your strength in <strong>sustained power output</strong>. Sessions include 
+                "This plan has been customized based on your recent race analysis. Key focus:
+                <strong> Pacing Strategy</strong>. We're addressing your pacing score (60/100) and
+                building on your strength in <strong>sustained power output</strong>. Sessions include
                 specific pacing drills to improve energy distribution."
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2">🎯 Taper Guidelines</h4>
           <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
             Research-backed taper ratios for optimal race-day freshness:
@@ -264,34 +264,34 @@ const Methodology = () => {
           <h4 className="font-semibold text-sm sm:text-base mb-2">📚 Academic Sources</h4>
           <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
             <li>
-              <strong>Bosquet, L., et al.</strong> (2007). "Effects of tapering on performance: a meta-analysis." 
+              <strong>Bosquet, L., et al.</strong> (2007). "Effects of tapering on performance: a meta-analysis."
               <em>Medicine & Science in Sports & Exercise, 39</em>(8), 1358-1365.
               <br />
-              <a href="https://doi.org/10.1249/mss.0b013e31806010e0" target="_blank" rel="noopener noreferrer" 
+              <a href="https://doi.org/10.1249/mss.0b013e31806010e0" target="_blank" rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs">
                 https://doi.org/10.1249/mss.0b013e31806010e0
               </a>
             </li>
             <li>
-              <strong>Mujika, I., & Padilla, S.</strong> (2003). "Scientific bases for precompetition tapering strategies." 
+              <strong>Mujika, I., & Padilla, S.</strong> (2003). "Scientific bases for precompetition tapering strategies."
               <em>Medicine & Science in Sports & Exercise, 35</em>(7), 1182-1187.
               <br />
-              <a href="https://doi.org/10.1249/01.MSS.0000074448.73931.11" target="_blank" rel="noopener noreferrer" 
+              <a href="https://doi.org/10.1249/01.MSS.0000074448.73931.11" target="_blank" rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs">
                 https://doi.org/10.1249/01.MSS.0000074448.73931.11
               </a>
             </li>
             <li>
-              <strong>Thomas, L., & Busso, T.</strong> (2005). "A theoretical study of taper characteristics to optimize performance." 
+              <strong>Thomas, L., & Busso, T.</strong> (2005). "A theoretical study of taper characteristics to optimize performance."
               <em>Medicine & Science in Sports & Exercise, 37</em>(9), 1615-1621.
               <br />
-              <a href="https://doi.org/10.1249/01.mss.0000177461.94156.4b" target="_blank" rel="noopener noreferrer" 
+              <a href="https://doi.org/10.1249/01.mss.0000177461.94156.4b" target="_blank" rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs">
                 https://doi.org/10.1249/01.mss.0000177461.94156.4b
               </a>
             </li>
             <li>
-              <strong>Banister, E. W., et al.</strong> (1999). "Modeling human performance in running." 
+              <strong>Banister, E. W., et al.</strong> (1999). "Modeling human performance in running."
               <em>Journal of Applied Physiology, 69</em>(3), 1171-1177.
               <br />
               <span className="text-xs text-gray-600">
@@ -305,27 +305,27 @@ const Methodology = () => {
           <h4 className="font-semibold text-sm sm:text-base mb-2">💡 Why This Matters</h4>
           <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-disc list-inside ml-2">
             <li>
-              <strong>Complete Picture:</strong> Understanding performance requires context - race data alone 
+              <strong>Complete Picture:</strong> Understanding performance requires context - race data alone
               isn't enough. Pre-race training load is critical for interpretation.
             </li>
             <li>
-              <strong>Systematic Learning:</strong> Research shows that deliberate reflection and analysis 
+              <strong>Systematic Learning:</strong> Research shows that deliberate reflection and analysis
               accelerates skill acquisition and performance improvement.
             </li>
             <li>
-              <strong>Fatigue Management:</strong> Studies demonstrate that proper tapering can improve 
+              <strong>Fatigue Management:</strong> Studies demonstrate that proper tapering can improve
               performance by 2-6%. Our system helps you optimize this.
             </li>
             <li>
-              <strong>Personalized Insights:</strong> Generic advice doesn't work. AI analysis considers YOUR 
+              <strong>Personalized Insights:</strong> Generic advice doesn't work. AI analysis considers YOUR
               specific data, feedback, and training history.
             </li>
             <li>
-              <strong>Continuous Improvement:</strong> The learning loop ensures each race makes you smarter 
+              <strong>Continuous Improvement:</strong> The learning loop ensures each race makes you smarter
               and better prepared for the next one.
             </li>
             <li>
-              <strong>Competitive Advantage:</strong> No other platform connects pre-race training load, 
+              <strong>Competitive Advantage:</strong> No other platform connects pre-race training load,
               race performance, and future training in an automated learning loop.
             </li>
           </ul>
@@ -341,13 +341,13 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">What is Rider Type Classification?</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            Our AI-powered system analyzes your power curve, activity patterns, and terrain preferences 
-            to automatically classify you into one of six rider types. This helps you understand your 
+            Our AI-powered system analyzes your power curve, activity patterns, and terrain preferences
+            to automatically classify you into one of six rider types. This helps you understand your
             natural strengths and optimize your training focus.
           </p>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2 sm:mb-3">The Six Rider Types</h4>
           <div className="space-y-3">
             <div className="flex items-start gap-3">
@@ -416,19 +416,19 @@ const Methodology = () => {
           </ul>
         </div>
 
-        <div className="border-l-4 border-purple-500 pl-4">
+        <div className="border-l-4 border-indigo-500 pl-4">
           <h4 className="font-semibold text-sm sm:text-base mb-2">📚 Academic Sources</h4>
           <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
             <li>
-              <strong>Pinot, J., & Grappe, F.</strong> (2011). "The record power profile to assess performance 
+              <strong>Pinot, J., & Grappe, F.</strong> (2011). "The record power profile to assess performance
               in elite cyclists." <em>International Journal of Sports Medicine, 32</em>(11), 839-844.
             </li>
             <li>
-              <strong>Quod, M. J., et al.</strong> (2010). "The power profile predicts road race performance." 
+              <strong>Quod, M. J., et al.</strong> (2010). "The power profile predicts road race performance."
               <em>International Journal of Sports Medicine, 31</em>(6), 397-401.
             </li>
             <li>
-              <strong>Lucia, A., et al.</strong> (2001). "Physiological differences between professional and elite 
+              <strong>Lucia, A., et al.</strong> (2001). "Physiological differences between professional and elite
               road cyclists." <em>International Journal of Sports Medicine, 22</em>(5), 321-326.
             </li>
           </ul>
@@ -444,26 +444,26 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">How Automatic Matching Works</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            Our system automatically matches your completed activities to planned training sessions using 
-            a sophisticated multi-factor algorithm. This eliminates manual tracking errors and provides 
+            Our system automatically matches your completed activities to planned training sessions using
+            a sophisticated multi-factor algorithm. This eliminates manual tracking errors and provides
             objective verification that your training aligns with your plan.
           </p>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2 sm:mb-3">Matching Algorithm (4 Factors)</h4>
           <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
             <div className="flex items-start gap-2">
               <span className="font-bold text-blue-600 min-w-[60px]">30 points</span>
               <div>
-                <strong>Duration Match:</strong> Compares planned vs actual duration. Perfect match within 10%, 
+                <strong>Duration Match:</strong> Compares planned vs actual duration. Perfect match within 10%,
                 partial credit up to 30% difference.
               </div>
             </div>
             <div className="flex items-start gap-2">
               <span className="font-bold text-blue-600 min-w-[60px]">40 points</span>
               <div>
-                <strong>Intensity Match:</strong> Analyzes power data (or heart rate) against training zones. 
+                <strong>Intensity Match:</strong> Analyzes power data (or heart rate) against training zones.
                 Verifies you trained at the correct intensity for the session type.
               </div>
             </div>
@@ -544,7 +544,7 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2">💡 Hybrid Approach: Auto + Manual</h4>
           <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
             Our system combines the best of both worlds:
@@ -561,28 +561,28 @@ const Methodology = () => {
           <h4 className="font-semibold text-sm sm:text-base mb-2">📚 Academic Sources</h4>
           <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
             <li>
-              <strong>Jobson, S. A., et al.</strong> (2009). "The analysis and utilization of cycling training data." 
+              <strong>Jobson, S. A., et al.</strong> (2009). "The analysis and utilization of cycling training data."
               <em>Sports Medicine, 39</em>(10), 833-844.
               <br />
-              <a href="https://doi.org/10.2165/11317840-000000000-00000" target="_blank" rel="noopener noreferrer" 
+              <a href="https://doi.org/10.2165/11317840-000000000-00000" target="_blank" rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs">
                 https://doi.org/10.2165/11317840-000000000-00000
               </a>
             </li>
             <li>
-              <strong>Sanders, D., & Heijboer, M.</strong> (2019). "Physical demands and power profile of different stage types 
+              <strong>Sanders, D., & Heijboer, M.</strong> (2019). "Physical demands and power profile of different stage types
               within a cycling grand tour." <em>European Journal of Sport Science, 19</em>(6), 736-744.
               <br />
-              <a href="https://doi.org/10.1080/17461391.2018.1554706" target="_blank" rel="noopener noreferrer" 
+              <a href="https://doi.org/10.1080/17461391.2018.1554706" target="_blank" rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs">
                 https://doi.org/10.1080/17461391.2018.1554706
               </a>
             </li>
             <li>
-              <strong>Passfield, L., et al.</strong> (2017). "Validity of the Training-Load Concept." 
+              <strong>Passfield, L., et al.</strong> (2017). "Validity of the Training-Load Concept."
               <em>International Journal of Sports Physiology and Performance, 12</em>(Suppl 2), S2-42-S2-50.
               <br />
-              <a href="https://doi.org/10.1123/ijspp.2016-0334" target="_blank" rel="noopener noreferrer" 
+              <a href="https://doi.org/10.1123/ijspp.2016-0334" target="_blank" rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs">
                 https://doi.org/10.1123/ijspp.2016-0334
               </a>
@@ -600,11 +600,11 @@ const Methodology = () => {
               <strong>Quality Over Quantity:</strong> Ensures you're not just completing sessions, but doing them correctly
             </li>
             <li>
-              <strong>Training Load Validation:</strong> Research shows that accurate training load monitoring is crucial 
+              <strong>Training Load Validation:</strong> Research shows that accurate training load monitoring is crucial
               for performance and injury prevention
             </li>
             <li>
-              <strong>Intensity Distribution:</strong> Verifies you're training in the correct zones, which studies show 
+              <strong>Intensity Distribution:</strong> Verifies you're training in the correct zones, which studies show
               is more important than total volume
             </li>
             <li>
@@ -623,43 +623,43 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">What is Training Alignment?</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            Training Alignment measures how well you're following your prescribed training plan. It compares 
-            the distribution of completed sessions against the planned distribution to calculate an alignment 
-            score (0-100%). Combined with our automatic activity matching system, this provides an objective, 
+            Training Alignment measures how well you're following your prescribed training plan. It compares
+            the distribution of completed sessions against the planned distribution to calculate an alignment
+            score (0-100%). Combined with our automatic activity matching system, this provides an objective,
             data-driven measure of training adherence and quality.
           </p>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg">
+        <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2 sm:mb-3">How Alignment is Calculated</h4>
           <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
             <div className="flex items-start gap-2">
-              <span className="font-bold text-purple-600">1.</span>
+              <span className="font-bold text-indigo-600">1.</span>
               <div>
-                <strong>Planned Distribution:</strong> The AI generates a plan with specific session types 
+                <strong>Planned Distribution:</strong> The AI generates a plan with specific session types
                 (e.g., 40% Endurance, 30% Threshold, 20% Tempo, 10% Recovery)
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <span className="font-bold text-purple-600">2.</span>
+              <span className="font-bold text-indigo-600">2.</span>
               <div>
-                <strong>Completed Distribution:</strong> As you complete sessions, we track which types 
+                <strong>Completed Distribution:</strong> As you complete sessions, we track which types
                 you've actually completed
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <span className="font-bold text-purple-600">3.</span>
+              <span className="font-bold text-indigo-600">3.</span>
               <div>
-                <strong>Alignment Score:</strong> For each session type, we calculate: 
-                <div className="font-mono text-xs bg-white dark:bg-gray-800 p-2 rounded border border-purple-200 dark:border-purple-700 mt-1">
+                <strong>Alignment Score:</strong> For each session type, we calculate:
+                <div className="font-mono text-xs bg-white dark:bg-gray-800 p-2 rounded border border-indigo-200 dark:border-indigo-700 mt-1">
                   completionRatio = (completed % / planned %) × 100
                 </div>
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <span className="font-bold text-purple-600">4.</span>
+              <span className="font-bold text-indigo-600">4.</span>
               <div>
-                <strong>Weighted Average:</strong> The overall alignment is the weighted average of all 
+                <strong>Weighted Average:</strong> The overall alignment is the weighted average of all
                 session type completion ratios
               </div>
             </div>
@@ -685,7 +685,7 @@ const Methodology = () => {
               <strong>Result:</strong> 100% Alignment Score 🎯
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              Following the plan exactly as prescribed results in optimal alignment and maximizes 
+              Following the plan exactly as prescribed results in optimal alignment and maximizes
               the effectiveness of your training.
             </p>
           </div>
@@ -710,7 +710,7 @@ const Methodology = () => {
               <strong>Result:</strong> 50% Alignment Score
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              Completing sessions proportionally maintains alignment, even if you haven't finished 
+              Completing sessions proportionally maintains alignment, even if you haven't finished
               the entire plan. This shows you're following the prescribed distribution.
             </p>
           </div>
@@ -722,8 +722,8 @@ const Methodology = () => {
             "Working Towards" Rider Type System
           </h4>
           <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-            Each training plan event type maps to a target rider type with specific characteristics. 
-            As you complete your plan, you're developing the physiological adaptations needed to become 
+            Each training plan event type maps to a target rider type with specific characteristics.
+            As you complete your plan, you're developing the physiological adaptations needed to become
             that rider type. The AI uses this mapping to create race-specific workouts tailored to your event goals.
           </p>
           <div className="space-y-2 text-sm dark:text-gray-300">
@@ -754,28 +754,28 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2">🎯 Race-Specific Training Intelligence</h4>
           <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-            Our AI training plan generator uses advanced prompt engineering to create workouts specifically 
-            designed for your target event. Every workout is contextualized to develop the exact physiological 
+            Our AI training plan generator uses advanced prompt engineering to create workouts specifically
+            designed for your target event. Every workout is contextualized to develop the exact physiological
             characteristics needed for race success.
           </p>
           <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
             <div>
-              <strong>Event Type Analysis:</strong> The AI identifies your target rider type based on event 
+              <strong>Event Type Analysis:</strong> The AI identifies your target rider type based on event
               selection and designs all workouts to develop those specific characteristics.
             </div>
             <div>
-              <strong>Contextual Awareness:</strong> Plans consider your current fitness (FTP, training load), 
+              <strong>Contextual Awareness:</strong> Plans consider your current fitness (FTP, training load),
               recent training history, days until event, and available training time.
             </div>
             <div>
-              <strong>Workout Specificity:</strong> Each session includes detailed explanations of HOW it 
+              <strong>Workout Specificity:</strong> Each session includes detailed explanations of HOW it
               develops race-specific abilities, not just WHAT to do.
             </div>
             <div>
-              <strong>Progressive Overload:</strong> Training builds from your current fitness level with 
+              <strong>Progressive Overload:</strong> Training builds from your current fitness level with
               proper periodization (Base → Build → Peak → Taper).
             </div>
             <div>
@@ -791,9 +791,9 @@ const Methodology = () => {
           </div>
         </div>
 
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2">📊 Overall Progress Calculation</h4>
-          <div className="font-mono text-sm bg-white dark:bg-gray-800 p-3 rounded border border-purple-200 dark:border-purple-700 mb-2">
+          <div className="font-mono text-sm bg-white dark:bg-gray-800 p-3 rounded border border-indigo-200 dark:border-indigo-700 mb-2">
             Overall Progress = (Completion Rate × 0.7) + (Alignment Score × 0.3)
           </div>
           <p className="text-sm text-gray-700 dark:text-gray-300">
@@ -804,44 +804,44 @@ const Methodology = () => {
             <li><strong>Alignment Score (30%):</strong> How well you're following the plan distribution</li>
           </ul>
           <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
-            This weighted approach ensures that both quantity and quality of training are considered. 
+            This weighted approach ensures that both quantity and quality of training are considered.
             You can achieve 90-100% progress by completing all sessions as prescribed.
           </p>
         </div>
 
-        <div className="border-l-4 border-purple-500 pl-4">
+        <div className="border-l-4 border-indigo-500 pl-4">
           <h4 className="font-semibold text-sm sm:text-base mb-2">📚 Academic Sources</h4>
           <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
             <li>
-              <strong>Seiler, S., & Kjerland, G. Ø.</strong> (2006). "Quantifying training intensity distribution 
-              in elite endurance athletes: is there evidence for an 'optimal' distribution?" 
+              <strong>Seiler, S., & Kjerland, G. Ø.</strong> (2006). "Quantifying training intensity distribution
+              in elite endurance athletes: is there evidence for an 'optimal' distribution?"
               <em>Scandinavian Journal of Medicine & Science in Sports, 16</em>(1), 49-56.
               <br />
-              <a href="https://doi.org/10.1111/j.1600-0838.2004.00418.x" target="_blank" rel="noopener noreferrer" 
+              <a href="https://doi.org/10.1111/j.1600-0838.2004.00418.x" target="_blank" rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs">
                 https://doi.org/10.1111/j.1600-0838.2004.00418.x
               </a>
             </li>
             <li>
-              <strong>Stöggl, T. L., & Sperlich, B.</strong> (2015). "The training intensity distribution among 
+              <strong>Stöggl, T. L., & Sperlich, B.</strong> (2015). "The training intensity distribution among
               well-trained and elite endurance athletes." <em>Frontiers in Physiology, 6</em>, 295.
               <br />
-              <a href="https://doi.org/10.3389/fphys.2015.00295" target="_blank" rel="noopener noreferrer" 
+              <a href="https://doi.org/10.3389/fphys.2015.00295" target="_blank" rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs">
                 https://doi.org/10.3389/fphys.2015.00295
               </a>
             </li>
             <li>
-              <strong>Esteve-Lanao, J., et al.</strong> (2007). "Impact of training intensity distribution on 
+              <strong>Esteve-Lanao, J., et al.</strong> (2007). "Impact of training intensity distribution on
               performance in endurance athletes." <em>Journal of Strength and Conditioning Research, 21</em>(3), 943-949.
               <br />
-              <a href="https://doi.org/10.1519/R-19725.1" target="_blank" rel="noopener noreferrer" 
+              <a href="https://doi.org/10.1519/R-19725.1" target="_blank" rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs">
                 https://doi.org/10.1519/R-19725.1
               </a>
             </li>
             <li>
-              <strong>Bompa, T. O., & Haff, G. G.</strong> (2009). <em>Periodization: Theory and Methodology of Training</em> (5th ed.). 
+              <strong>Bompa, T. O., & Haff, G. G.</strong> (2009). <em>Periodization: Theory and Methodology of Training</em> (5th ed.).
               Human Kinetics.
               <br />
               <span className="text-xs text-gray-600">
@@ -849,10 +849,10 @@ const Methodology = () => {
               </span>
             </li>
             <li>
-              <strong>Foster, C., et al.</strong> (2001). "A new approach to monitoring exercise training." 
+              <strong>Foster, C., et al.</strong> (2001). "A new approach to monitoring exercise training."
               <em>Journal of Strength and Conditioning Research, 15</em>(1), 109-115.
               <br />
-              <a href="https://doi.org/10.1519/00124278-200102000-00019" target="_blank" rel="noopener noreferrer" 
+              <a href="https://doi.org/10.1519/00124278-200102000-00019" target="_blank" rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs">
                 https://doi.org/10.1519/00124278-200102000-00019
               </a>
@@ -864,24 +864,24 @@ const Methodology = () => {
           <h4 className="font-semibold text-sm sm:text-base mb-2">💡 Why This Matters</h4>
           <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-disc list-inside ml-2">
             <li>
-              <strong>Training Intensity Distribution (TID):</strong> Research shows that elite athletes follow 
-              specific intensity distributions (typically 80/20 or pyramidal). Our alignment system ensures 
+              <strong>Training Intensity Distribution (TID):</strong> Research shows that elite athletes follow
+              specific intensity distributions (typically 80/20 or pyramidal). Our alignment system ensures
               you're following evidence-based distributions.
             </li>
             <li>
-              <strong>Progressive Overload:</strong> By tracking both completion and alignment, we ensure you're 
+              <strong>Progressive Overload:</strong> By tracking both completion and alignment, we ensure you're
               applying progressive overload correctly across all training zones.
             </li>
             <li>
-              <strong>Specificity Principle:</strong> The "Working Towards" system ensures your training is 
+              <strong>Specificity Principle:</strong> The "Working Towards" system ensures your training is
               specific to your event goals, developing the exact physiological adaptations needed.
             </li>
             <li>
-              <strong>Adherence Monitoring:</strong> Studies show that training adherence is one of the strongest 
+              <strong>Adherence Monitoring:</strong> Studies show that training adherence is one of the strongest
               predictors of performance improvement. Our system makes adherence visible and measurable.
             </li>
             <li>
-              <strong>Motivation & Feedback:</strong> Real-time progress tracking provides immediate feedback, 
+              <strong>Motivation & Feedback:</strong> Real-time progress tracking provides immediate feedback,
               which research shows improves training adherence and outcomes.
             </li>
           </ul>
@@ -897,8 +897,8 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">What is TSS?</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            Training Stress Score (TSS) is a composite number that takes into account the duration 
-            and intensity of a workout to arrive at a single estimate of the overall training load 
+            Training Stress Score (TSS) is a composite number that takes into account the duration
+            and intensity of a workout to arrive at a single estimate of the overall training load
             and physiological stress created by that training session.
           </p>
         </div>
@@ -919,9 +919,9 @@ const Methodology = () => {
           </p>
         </div>
 
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2">Heart Rate-Based Estimation (Fallback)</h4>
-          <div className="font-mono text-sm bg-white dark:bg-gray-800 p-3 rounded border border-purple-200 dark:border-purple-700">
+          <div className="font-mono text-sm bg-white dark:bg-gray-800 p-3 rounded border border-indigo-200 dark:border-indigo-700">
             TSS ≈ (Duration in hours) × (Avg HR / Threshold HR)² × 100
           </div>
           <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
@@ -951,7 +951,7 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">What is FTP?</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            FTP is the highest average power you can sustain for approximately one hour. 
+            FTP is the highest average power you can sustain for approximately one hour.
             It represents your lactate threshold and is the cornerstone metric for power-based training.
           </p>
         </div>
@@ -981,8 +981,8 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">What is FTHR?</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            FTHR is the highest average heart rate you can sustain for approximately one hour. 
-            It represents your lactate threshold heart rate and is used to set heart rate training zones 
+            FTHR is the highest average heart rate you can sustain for approximately one hour.
+            It represents your lactate threshold heart rate and is used to set heart rate training zones
             for athletes who train without a power meter.
           </p>
         </div>
@@ -1021,9 +1021,9 @@ const Methodology = () => {
           <p><strong>Reference:</strong></p>
           <p>Friel, J. (2009). <em>The Cyclist's Training Bible</em> (4th ed.). VeloPress.</p>
           <p className="mt-1">
-            <a 
-              href="https://www.trainingpeaks.com/blog/joe-friel-s-quick-guide-to-setting-zones/" 
-              target="_blank" 
+            <a
+              href="https://www.trainingpeaks.com/blog/joe-friel-s-quick-guide-to-setting-zones/"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline"
             >
@@ -1042,8 +1042,8 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">What is Aerobic Efficiency?</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            Aerobic Efficiency, also known as Cardiac Efficiency or the Power-to-Heart Rate (Pw:HR) ratio, 
-            measures how much power you produce per heartbeat. It's calculated as <strong>Average Power ÷ Average Heart Rate</strong> 
+            Aerobic Efficiency, also known as Cardiac Efficiency or the Power-to-Heart Rate (Pw:HR) ratio,
+            measures how much power you produce per heartbeat. It's calculated as <strong>Average Power ÷ Average Heart Rate</strong>
             and expressed in watts per beat per minute (W/bpm).
           </p>
         </div>
@@ -1083,12 +1083,12 @@ const Methodology = () => {
 
         <div className="mt-3 text-xs text-gray-600">
           <p><strong>References:</strong></p>
-          <p>Seiler, S. (2010). "What is best practice for training intensity and duration distribution in endurance athletes?" 
-          <em> International Journal of Sports Physiology and Performance</em>, 5(3), 276-291.</p>
+          <p>Seiler, S. (2010). "What is best practice for training intensity and duration distribution in endurance athletes?"
+            <em> International Journal of Sports Physiology and Performance</em>, 5(3), 276-291.</p>
           <p className="mt-1">
-            <a 
-              href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3912323/" 
-              target="_blank" 
+            <a
+              href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3912323/"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline"
             >
@@ -1096,9 +1096,9 @@ const Methodology = () => {
             </a>
           </p>
           <p className="mt-1">
-            <a 
-              href="https://www.trainingpeaks.com/blog/aerobic-decoupling-in-cycling/" 
-              target="_blank" 
+            <a
+              href="https://www.trainingpeaks.com/blog/aerobic-decoupling-in-cycling/"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline"
             >
@@ -1166,15 +1166,15 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">Why Not Just Average Power?</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            Average power doesn't account for the physiological cost of power variability. 
+            Average power doesn't account for the physiological cost of power variability.
             A ride with many surges is more fatiguing than a steady ride at the same average power.
           </p>
         </div>
 
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2">What is Normalized Power?</h4>
           <p className="text-sm text-gray-700 dark:text-gray-300">
-            Normalized Power is a weighted average that accounts for the variable nature of cycling power. 
+            Normalized Power is a weighted average that accounts for the variable nature of cycling power.
             It represents the "equivalent" steady power that would produce the same physiological stress.
           </p>
         </div>
@@ -1189,7 +1189,7 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">How It Works</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            Our AI planner uses OpenAI's GPT-4 model, combined with your personal training data 
+            Our AI planner uses OpenAI's GPT-4 model, combined with your personal training data
             to generate periodized training plans following established coaching principles.
           </p>
         </div>

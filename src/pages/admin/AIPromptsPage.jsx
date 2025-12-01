@@ -73,8 +73,8 @@ const AIPromptsPage = () => {
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="p-4">
           <p className="text-sm text-blue-800">
-            <strong>Note:</strong> These are the system and user prompts sent to the AI. 
-            They include instructions, context, and data formatting requirements. 
+            <strong>Note:</strong> These are the system and user prompts sent to the AI.
+            They include instructions, context, and data formatting requirements.
             Understanding these prompts helps you see how the AI generates responses.
           </p>
         </CardContent>
@@ -138,13 +138,13 @@ const AIPromptsPage = () => {
                 </div>
               </div>
             </CardHeader>
-            
+
             {expandedPrompts[prompt.name] && (
               <CardContent className="space-y-4">
                 {/* System Prompt */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
+                    <div className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded">
                       SYSTEM PROMPT
                     </div>
                     <span className="text-xs text-gray-500">

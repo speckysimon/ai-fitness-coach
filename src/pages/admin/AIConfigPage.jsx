@@ -146,11 +146,11 @@ const AIConfigPage = () => {
 
   const handleProviderSwitch = async (newProvider) => {
     if (newProvider === activeProvider) return; // Already active
-    
+
     setSaving(true);
     try {
       const token = localStorage.getItem('admin_token');
-      
+
       // Update all configs to switch provider
       for (const config of configs) {
         const shouldBeActive = config.model_provider === newProvider;
@@ -166,7 +166,7 @@ const AIConfigPage = () => {
           }),
         });
       }
-      
+
       setActiveProvider(newProvider);
       setSuccess(`Switched to ${newProvider === 'openai' ? 'ChatGPT' : 'Gemini'} successfully`);
       loadConfigs();
@@ -194,7 +194,7 @@ const AIConfigPage = () => {
 
   const renderProviderColumn = (provider, providerConfigs, title, icon) => {
     const isActive = activeProvider === provider;
-    
+
     return (
       <div className="w-1/2">
         <Card className={`h-full ${isActive ? 'ring-2 ring-blue-500' : 'opacity-60'}`}>
@@ -325,9 +325,9 @@ const AIConfigPage = () => {
           <p className="text-gray-600 mt-1">Choose your AI provider and configure model settings</p>
         </div>
         <div className="flex gap-3">
-          <Button 
+          <Button
             onClick={() => setShowCostModal(true)}
-            className="bg-gradient-to-r from-purple-600 to-blue-600"
+            className="bg-gradient-to-r from-indigo-600 to-blue-600"
           >
             <Calculator className="w-4 h-4 mr-2" />
             Cost Calculator
@@ -380,8 +380,8 @@ const AIConfigPage = () => {
                 </p>
                 <p className="text-xs text-gray-500 mt-1">Weekly usage</p>
               </div>
-              <div className="p-3 rounded-lg bg-purple-50">
-                <Calendar className="w-6 h-6 text-purple-600" />
+              <div className="p-3 rounded-lg bg-indigo-50">
+                <Calendar className="w-6 h-6 text-indigo-600" />
               </div>
             </div>
           </CardContent>
@@ -424,7 +424,7 @@ const AIConfigPage = () => {
 
       <div className="flex gap-6">
         {renderProviderColumn('openai', openaiConfigs, 'ChatGPT (OpenAI)', <Sparkles className="w-5 h-5 text-green-600" />)}
-        {renderProviderColumn('gemini', geminiConfigs, 'Gemini (Google)', <Brain className="w-5 h-5 text-purple-600" />)}
+        {renderProviderColumn('gemini', geminiConfigs, 'Gemini (Google)', <Brain className="w-5 h-5 text-indigo-600" />)}
       </div>
 
       {/* Cost Estimation Modal */}

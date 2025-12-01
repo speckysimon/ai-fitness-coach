@@ -21,7 +21,7 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const updatedProfile = {
       ...userProfile,
       age: formData.age ? parseInt(formData.age) : null,
@@ -33,7 +33,7 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
 
     // Save to localStorage
     localStorage.setItem('current_user', JSON.stringify(updatedProfile));
-    
+
     // Save to backend
     const sessionToken = localStorage.getItem('session_token');
     if (sessionToken) {
@@ -56,7 +56,7 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
         logger.error('Failed to save profile to backend:', err);
       }
     }
-    
+
     onProfileUpdate(updatedProfile);
     navigate('/');
   };
@@ -66,7 +66,7 @@ const ProfileSetup = ({ userProfile, onProfileUpdate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4 sm:p-6 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">

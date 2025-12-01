@@ -41,20 +41,20 @@
   - [x] No more migration failures or runtime errors
   - [x] Schema-first approach: simple, fast, reliable
 
-### 1. Onboarding Modal Testing (Nov 8, 2025)
-- [ ] **Test multi-step onboarding flow end-to-end**
-  - [ ] Test Step 1: Welcome screen displays correctly
-  - [ ] Test Step 2: Strava OAuth flow (connect → authorize → return)
-  - [ ] Verify modal reopens at Step 3 after OAuth
-  - [ ] Test Step 3: Coach selection (all 5 coaches load)
-  - [ ] Test Step 4: Plan generation prompt
-  - [ ] Test Step 5: Success screen and navigation to plan
-  - [ ] Test "Skip" button on Strava step
-  - [ ] Test "Back" button navigation
-  - [ ] Test progress indicator updates
-  - [ ] Verify localStorage flags are cleared properly
-  - [ ] Test on mobile devices (touch interactions)
-  - [ ] Check console for any errors during flow
+### 1. Onboarding Modal Testing ✅ COMPLETED (Nov 26, 2025)
+- [x] **Test multi-step onboarding flow end-to-end**
+  - [x] Test Step 1: Welcome screen displays correctly
+  - [x] Test Step 2: Strava OAuth flow (connect → authorize → return)
+  - [x] Verify modal reopens at Step 3 after OAuth
+  - [x] Test Step 3: Coach selection (all 5 coaches load)
+  - [x] Test Step 4: Plan generation prompt
+  - [x] Test Step 5: Success screen and navigation to plan
+  - [x] Test "Skip" button on Strava step
+  - [x] Test "Back" button navigation
+  - [x] Test progress indicator updates
+  - [x] Verify localStorage flags are cleared properly
+  - [x] Test on mobile devices (touch interactions)
+  - [x] Check console for any errors during flow
 
 ### 2. Branding - Light/Dark Mode Support
 - [ ] **Create dark mode variants of logo and favicon**
@@ -375,7 +375,13 @@
 ## 🐛 Known Bugs & Fixes Needed
 
 ### Critical
+- **Persistent Login Error in Plan Generator** - "You are not logged in" popup appears even when authenticated.
+  - *Symptoms*: Occurs when generating a plan. User is logged in, `userProfile` has `id`, but check still fails or race condition exists.
+  - *Attempts*: Fixed port mismatch, added `id` to `Login.jsx` profile creation.
+  - *Next Steps*: Investigate `PlanGenerator.jsx` state updates, race conditions in `useEffect`, or `localStorage` sync issues.
 - Manual activity edit not saving (Oct 29, 2025) - needs investigation
+- **Service Worker Issues** - Troubleshoot service worker registration, caching, and update mechanisms
+- **Cross-Device Sync** - Investigate if/why cross-device sync is not working properly
 
 ### Minor
 - Dark mode has some inconsistencies (quick fix applied, needs proper audit)

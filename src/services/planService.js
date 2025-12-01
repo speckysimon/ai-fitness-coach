@@ -3,7 +3,8 @@
  * Handles saving/loading plans from backend with localStorage fallback
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+// Use relative path - Vite proxy will handle routing to backend
+const API_BASE = '';
 
 export const planService = {
   /**
@@ -13,7 +14,7 @@ export const planService = {
     try {
       // Save to localStorage first (immediate)
       localStorage.setItem('training_plan', JSON.stringify(planData));
-      
+
       // Then save to backend
       const response = await fetch(`${API_BASE}/api/training/plan`, {
         method: 'POST',
@@ -29,17 +30,17 @@ export const planService = {
           generatedAt: planData.generatedAt || new Date().toISOString(),
         }),
       });
-      
+
       if (!response.ok) {
         console.error('Failed to save plan to backend');
         return { success: false, source: 'localStorage' };
       }
-      
+
       const result = await response.json();
-      
+
       // Store plan ID for future updates
       localStorage.setItem('current_plan_id', result.planId);
-      
+
       return { success: true, planId: result.planId, source: 'backend' };
     } catch (error) {
       console.error('Error saving plan:', error);
@@ -56,10 +57,10 @@ export const planService = {
       console.warn('⚠️ No userId provided, loading from localStorage only');
       const localPlan = localStorage.getItem('training_plan');
       if (localPlan) {
-        return { 
-          plan: JSON.parse(localPlan), 
+        return {
+          plan: JSON.parse(localPlan),
           source: 'localStorage',
-          needsMigration: true 
+          needsMigration: true
         };
       }
       return { plan: null, source: null };
@@ -68,55 +69,55 @@ export const planService = {
     try {
       console.log('📡 Loading training plan from backend for user:', userId);
       const response = await fetch(`${API_BASE}/api/training/plan/${userId}`);
-      
+
       if (!response.ok) {
         console.error('❌ Backend fetch failed:', response.status);
         throw new Error(`Failed to load plan from backend: ${response.status}`);
       }
-      
+
       const { plan } = await response.json();
-      
+
       if (plan) {
         console.log('✅ Plan loaded from backend, syncing to localStorage');
         // Save to localStorage as cache for offline access
         localStorage.setItem('training_plan', JSON.stringify(plan.plan_data));
         localStorage.setItem('current_plan_id', plan.id);
-        
-        return { 
-          plan: plan.plan_data, 
+
+        return {
+          plan: plan.plan_data,
           planId: plan.id,
-          source: 'backend' 
+          source: 'backend'
         };
       }
-      
+
       // No plan in backend, check localStorage for migration
       console.log('ℹ️ No plan in backend, checking localStorage');
       const localPlan = localStorage.getItem('training_plan');
       if (localPlan) {
         console.log('📤 Found local plan, needs migration to backend');
-        return { 
-          plan: JSON.parse(localPlan), 
+        return {
+          plan: JSON.parse(localPlan),
           source: 'localStorage',
-          needsMigration: true 
+          needsMigration: true
         };
       }
-      
+
       return { plan: null, source: null };
     } catch (error) {
       console.error('❌ Error loading plan from backend:', error);
-      
+
       // Only fallback to localStorage if backend is completely unreachable
       console.warn('⚠️ Falling back to localStorage due to backend error');
       const localPlan = localStorage.getItem('training_plan');
       if (localPlan) {
-        return { 
-          plan: JSON.parse(localPlan), 
+        return {
+          plan: JSON.parse(localPlan),
           source: 'localStorage',
           error,
           needsBackendSync: true  // Flag that we should try to sync when backend is available
         };
       }
-      
+
       return { plan: null, source: null, error };
     }
   },
@@ -128,19 +129,19 @@ export const planService = {
     try {
       // Update localStorage first (immediate)
       localStorage.setItem('training_plan', JSON.stringify(planData));
-      
+
       // Then update backend
       const response = await fetch(`${API_BASE}/api/training/plan/${planId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planData }),
       });
-      
+
       if (!response.ok) {
         console.error('Failed to update plan in backend');
         return { success: false, source: 'localStorage' };
       }
-      
+
       return { success: true, source: 'backend' };
     } catch (error) {
       console.error('Error updating plan:', error);
@@ -157,15 +158,15 @@ export const planService = {
       if (!localPlan) {
         return { success: false, message: 'No plan to migrate' };
       }
-      
+
       const planData = JSON.parse(localPlan);
       const result = await this.savePlan(userId, planData);
-      
+
       if (result.success) {
         localStorage.setItem('plan_migrated', 'true');
         return { success: true, planId: result.planId };
       }
-      
+
       return { success: false, message: 'Migration failed' };
     } catch (error) {
       console.error('Error migrating plan:', error);

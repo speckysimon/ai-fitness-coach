@@ -450,7 +450,7 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   }
 
   try {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'] || '';
 

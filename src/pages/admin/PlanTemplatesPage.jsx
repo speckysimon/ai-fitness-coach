@@ -54,7 +54,7 @@ const PlanTemplatesPage = () => {
 
   const deleteTemplate = async (id) => {
     if (!confirm('Are you sure you want to delete this template?')) return;
-    
+
     try {
       const token = localStorage.getItem('admin_token');
       const response = await fetch(`/api/plan-templates/admin/templates/${id}`, {
@@ -76,7 +76,7 @@ const PlanTemplatesPage = () => {
     const colors = {
       Beginner: 'bg-green-100 text-green-800',
       Intermediate: 'bg-blue-100 text-blue-800',
-      Advanced: 'bg-purple-100 text-purple-800',
+      Advanced: 'bg-indigo-100 text-indigo-800',
     };
     return colors[level] || 'bg-gray-100 text-gray-800';
   };
@@ -132,9 +132,9 @@ const PlanTemplatesPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Featured</p>
-                <p className="text-3xl font-bold text-purple-600">{stats.featured}</p>
+                <p className="text-3xl font-bold text-indigo-600">{stats.featured}</p>
               </div>
-              <TrendingUp className="w-8 h-8 text-purple-600" />
+              <TrendingUp className="w-8 h-8 text-indigo-600" />
             </div>
           </CardContent>
         </Card>

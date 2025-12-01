@@ -17,7 +17,7 @@ const TodaysWorkout = () => {
     if (storedPlan) {
       const parsedPlan = JSON.parse(storedPlan);
       setPlan(parsedPlan);
-      
+
       // Flatten all sessions with their dates
       const sessions = [];
       parsedPlan.weeks.forEach((week) => {
@@ -30,21 +30,21 @@ const TodaysWorkout = () => {
           });
         });
       });
-      
+
       // Sort by date
       sessions.sort((a, b) => new Date(a.date) - new Date(b.date));
       setAllSessions(sessions);
-      
+
       // Find today's session or next upcoming session
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       let foundIndex = sessions.findIndex(s => {
         const sessionDate = new Date(s.date);
         sessionDate.setHours(0, 0, 0, 0);
         return sessionDate.getTime() === today.getTime();
       });
-      
+
       // If no session today, find next upcoming session
       if (foundIndex === -1) {
         foundIndex = sessions.findIndex(s => {
@@ -53,14 +53,14 @@ const TodaysWorkout = () => {
           return sessionDate > today;
         });
       }
-      
+
       // If still not found, default to first session
       if (foundIndex === -1) foundIndex = 0;
-      
+
       setSessionIndex(foundIndex);
       setCurrentSession(sessions[foundIndex]);
     }
-    
+
     // Load FTP for power calculations
     const cachedMetrics = localStorage.getItem('cached_metrics');
     if (cachedMetrics) {
@@ -90,7 +90,7 @@ const TodaysWorkout = () => {
       'Tempo': 'bg-yellow-100 text-yellow-800 border-yellow-300',
       'Threshold': 'bg-orange-100 text-orange-800 border-orange-300',
       'VO2Max': 'bg-red-100 text-red-800 border-red-300',
-      'Intervals': 'bg-purple-100 text-purple-800 border-purple-300'
+      'Intervals': 'bg-indigo-100 text-indigo-800 border-indigo-300'
     };
     return colors[type] || 'bg-gray-100 text-gray-800 border-gray-300';
   };
@@ -183,7 +183,7 @@ const TodaysWorkout = () => {
       ],
     };
     const options = recommendations[type] || recommendations['Endurance'];
-    return options.reduce((prev, curr) => 
+    return options.reduce((prev, curr) =>
       Math.abs(curr.duration - duration) < Math.abs(prev.duration - duration) ? curr : prev
     );
   };
@@ -209,7 +209,7 @@ const TodaysWorkout = () => {
 
   if (!plan || !currentSession) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 flex items-center justify-center p-4">
         <div className="text-center">
           <Calendar className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">No Training Plan Found</h2>
@@ -223,7 +223,7 @@ const TodaysWorkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
@@ -255,13 +255,13 @@ const TodaysWorkout = () => {
             <span className="hidden sm:inline">Previous</span>
             <span className="sm:hidden">Prev</span>
           </Button>
-          
+
           <div className="text-center flex-1">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Session {sessionIndex + 1} of {allSessions.length}
             </p>
           </div>
-          
+
           <Button
             onClick={goToNext}
             disabled={sessionIndex === allSessions.length - 1}
@@ -276,16 +276,16 @@ const TodaysWorkout = () => {
         {/* Workout Card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
           {/* Header Section */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 sm:p-6">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4">
               <div className="flex items-center gap-2 sm:gap-3">
                 <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
                 <div>
                   <p className="text-xs sm:text-sm opacity-90">
-                    {new Date(currentSession.date).toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      month: 'long', 
-                      day: 'numeric' 
+                    {new Date(currentSession.date).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric'
                     })}
                   </p>
                   {isToday(currentSession.date) && (
@@ -299,9 +299,9 @@ const TodaysWorkout = () => {
                 {currentSession.type}
               </span>
             </div>
-            
+
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">{currentSession.title}</h2>
-            
+
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
@@ -408,13 +408,13 @@ const TodaysWorkout = () => {
                 <p className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
                   <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>
-                    Search for this workout in Zwift's workout library or use a similar workout 
+                    Search for this workout in Zwift's workout library or use a similar workout
                     that matches the duration and intensity profile.
                   </span>
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 pt-3 border-t border-orange-200 dark:border-orange-700">
-                  <strong>Disclaimer:</strong> Zwift® is a registered trademark of Zwift, Inc. 
-                  RiderLabs is not affiliated with, endorsed by, or sponsored by Zwift, Inc. 
+                  <strong>Disclaimer:</strong> Zwift® is a registered trademark of Zwift, Inc.
+                  RiderLabs is not affiliated with, endorsed by, or sponsored by Zwift, Inc.
                   Workout recommendations are suggestions only.
                 </p>
               </div>
@@ -437,7 +437,7 @@ const TodaysWorkout = () => {
         <div className="text-center pb-4 sm:pb-6">
           <Button
             onClick={() => navigate('/plan')}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg min-h-[44px] w-full sm:w-auto"
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg min-h-[44px] w-full sm:w-auto"
           >
             View Full Training Plan
           </Button>

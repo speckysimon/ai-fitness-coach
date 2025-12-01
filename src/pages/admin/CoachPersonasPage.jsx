@@ -44,7 +44,7 @@ const CoachPersonasPage = () => {
         }
       });
       const data = await response.json();
-      
+
       if (data.success) {
         setPersonas(data.personas);
         setStats(data.stats);
@@ -66,14 +66,14 @@ const CoachPersonasPage = () => {
         setError('Avatar file must be less than 5MB');
         return;
       }
-      
+
       if (!file.type.startsWith('image/')) {
         setError('Avatar must be an image file');
         return;
       }
-      
+
       setAvatarFile(file);
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -94,10 +94,10 @@ const CoachPersonasPage = () => {
 
     try {
       const token = localStorage.getItem('admin_token');
-      
+
       // Always add "photo realistic" to the prompt
       const enhancedPrompt = `${aiPrompt}. Photo realistic, high quality portrait photography.`;
-      
+
       const response = await fetch('/api/image-generation/generate', {
         method: 'POST',
         headers: {
@@ -145,7 +145,7 @@ const CoachPersonasPage = () => {
       const blob = await response.blob();
       const filename = avatarPreview.split('/').pop();
       const file = new File([blob], filename, { type: 'image/png' });
-      
+
       setAvatarFile(file);
       setShowAIGenerator(false);
       setSuccess('AI-generated image set as avatar. Save the form to apply.');
@@ -183,11 +183,11 @@ const CoachPersonasPage = () => {
     try {
       const token = localStorage.getItem('admin_token');
       const formDataToSend = new FormData();
-      
+
       Object.keys(formData).forEach(key => {
         formDataToSend.append(key, formData[key]);
       });
-      
+
       if (avatarFile) {
         formDataToSend.append('avatar', avatarFile);
       }
@@ -201,7 +201,7 @@ const CoachPersonasPage = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess('Persona created successfully');
         resetForm();
@@ -222,13 +222,13 @@ const CoachPersonasPage = () => {
     try {
       const token = localStorage.getItem('admin_token');
       const formDataToSend = new FormData();
-      
+
       Object.keys(formData).forEach(key => {
         if (formData[key] !== undefined && formData[key] !== null) {
           formDataToSend.append(key, formData[key]);
         }
       });
-      
+
       if (avatarFile) {
         formDataToSend.append('avatar', avatarFile);
       }
@@ -242,7 +242,7 @@ const CoachPersonasPage = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess('Persona updated successfully');
         resetForm();
@@ -274,7 +274,7 @@ const CoachPersonasPage = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess('Persona deleted successfully');
         loadPersonas();
@@ -319,7 +319,7 @@ const CoachPersonasPage = () => {
     { value: 'from-orange-400 to-red-500', label: 'Orange to Red' },
     { value: 'from-blue-400 to-indigo-600', label: 'Blue to Indigo' },
     { value: 'from-green-400 to-emerald-600', label: 'Green to Emerald' },
-    { value: 'from-purple-400 to-pink-500', label: 'Purple to Pink' },
+    { value: 'from-indigo-400 to-pink-500', label: 'Indigo to Pink' },
     { value: 'from-yellow-400 to-amber-600', label: 'Yellow to Amber' },
     { value: 'from-cyan-400 to-blue-500', label: 'Cyan to Blue' },
     { value: 'from-rose-400 to-red-600', label: 'Rose to Red' }
@@ -567,7 +567,7 @@ const CoachPersonasPage = () => {
                           e.target.nextSibling.style.display = 'flex';
                         }}
                       />
-                      <div 
+                      <div
                         className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-3xl"
                         style={{ display: 'none' }}
                       >
@@ -579,7 +579,7 @@ const CoachPersonasPage = () => {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Max 5MB. Recommended: 200x200px square image
                 </p>
-                
+
                 {/* AI Image Generator */}
                 <div className="mt-4">
                   <Button
@@ -592,9 +592,9 @@ const CoachPersonasPage = () => {
                     <Sparkles className="w-4 h-4 mr-2" />
                     {showAIGenerator ? 'Hide' : 'Generate with AI (DALL-E 3)'}
                   </Button>
-                  
+
                   {showAIGenerator && (
-                    <div className="mt-3 p-4 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+                    <div className="mt-3 p-4 border border-indigo-200 dark:border-indigo-800 rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Describe the coach avatar
                       </label>
@@ -611,7 +611,7 @@ const CoachPersonasPage = () => {
                           onClick={handleGenerateImage}
                           disabled={generatingImage || !aiPrompt.trim()}
                           size="sm"
-                          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white"
+                          className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white"
                         >
                           {generatingImage ? (
                             <>
@@ -632,7 +632,7 @@ const CoachPersonasPage = () => {
                               onClick={handleGenerateImage}
                               size="sm"
                               variant="outline"
-                              className="border-purple-600 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                              className="border-indigo-600 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
                             >
                               <Sparkles className="w-4 h-4 mr-2" />
                               Regenerate
@@ -648,22 +648,22 @@ const CoachPersonasPage = () => {
                           </>
                         )}
                       </div>
-                      
+
                       {/* Large Preview Box */}
                       {avatarPreview && (
-                        <div className="mt-4 p-3 border-2 border-purple-300 dark:border-purple-700 rounded-lg bg-white dark:bg-gray-800">
+                        <div className="mt-4 p-3 border-2 border-indigo-300 dark:border-indigo-700 rounded-lg bg-white dark:bg-gray-800">
                           <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Generated Preview:</p>
                           <div className="flex justify-center">
-                            <img 
-                              src={avatarPreview} 
-                              alt="Generated avatar preview" 
+                            <img
+                              src={avatarPreview}
+                              alt="Generated avatar preview"
                               className="w-64 h-64 object-cover rounded-lg shadow-lg"
                             />
                           </div>
                         </div>
                       )}
-                      
-                      <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+
+                      <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2">
                         💡 Tip: Be specific! "Photo realistic" is automatically added. Try: "Professional cycling coach, friendly smile, athletic build"
                       </p>
                     </div>
@@ -845,7 +845,7 @@ const CoachPersonasPage = () => {
                               e.target.nextSibling.style.display = 'flex';
                             }}
                           />
-                          <div 
+                          <div
                             className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-3xl"
                             style={{ display: 'none' }}
                           >
@@ -857,7 +857,7 @@ const CoachPersonasPage = () => {
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Max 5MB. Recommended: 200x200px square image
                     </p>
-                    
+
                     {/* AI Image Generator */}
                     <div className="mt-4">
                       <Button
@@ -870,9 +870,9 @@ const CoachPersonasPage = () => {
                         <Sparkles className="w-4 h-4 mr-2" />
                         {showAIGenerator ? 'Hide' : 'Generate with AI (DALL-E 3)'}
                       </Button>
-                      
+
                       {showAIGenerator && (
-                        <div className="mt-3 p-4 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+                        <div className="mt-3 p-4 border border-indigo-200 dark:border-indigo-800 rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Describe the coach avatar
                           </label>
@@ -889,7 +889,7 @@ const CoachPersonasPage = () => {
                               onClick={handleGenerateImage}
                               disabled={generatingImage || !aiPrompt.trim()}
                               size="sm"
-                              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white"
+                              className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white"
                             >
                               {generatingImage ? (
                                 <>
@@ -910,7 +910,7 @@ const CoachPersonasPage = () => {
                                   onClick={handleGenerateImage}
                                   size="sm"
                                   variant="outline"
-                                  className="border-purple-600 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                                  className="border-indigo-600 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
                                 >
                                   <Sparkles className="w-4 h-4 mr-2" />
                                   Regenerate
@@ -926,22 +926,22 @@ const CoachPersonasPage = () => {
                               </>
                             )}
                           </div>
-                          
+
                           {/* Large Preview Box */}
                           {avatarPreview && (
-                            <div className="mt-4 p-3 border-2 border-purple-300 dark:border-purple-700 rounded-lg bg-white dark:bg-gray-800">
+                            <div className="mt-4 p-3 border-2 border-indigo-300 dark:border-indigo-700 rounded-lg bg-white dark:bg-gray-800">
                               <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Generated Preview:</p>
                               <div className="flex justify-center">
-                                <img 
-                                  src={avatarPreview} 
-                                  alt="Generated avatar preview" 
+                                <img
+                                  src={avatarPreview}
+                                  alt="Generated avatar preview"
                                   className="w-64 h-64 object-cover rounded-lg shadow-lg"
                                 />
                               </div>
                             </div>
                           )}
-                          
-                          <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+
+                          <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2">
                             💡 Tip: Be specific! "Photo realistic" is automatically added. Try: "Professional cycling coach, friendly smile, athletic build"
                           </p>
                         </div>
@@ -987,14 +987,14 @@ const CoachPersonasPage = () => {
                         }}
                       />
                     ) : null}
-                    <div 
+                    <div
                       className="rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-4xl"
                       style={{ display: persona.avatar_url ? 'none' : 'flex', width: '120px', height: '120px' }}
                     >
                       {persona.avatar || <ImageIcon className="w-8 h-8 text-gray-400 dark:text-gray-500" />}
                     </div>
                   </div>
-                  
+
                   <div className="flex-1">
                     <div className="flex items-start justify-between">
                       <div>
@@ -1026,17 +1026,17 @@ const CoachPersonasPage = () => {
                         </Button>
                       </div>
                     </div>
-                    
+
                     <p className="text-sm text-gray-700 mt-2">
                       {persona.description}
                     </p>
-                    
+
                     <div className={`mt-2 inline-block px-3 py-1 rounded-lg bg-gradient-to-r ${persona.color} text-white text-xs font-semibold`}>
                       "{persona.catchphrase}"
                     </div>
-                    
+
                     <div className="mt-2 text-xs text-gray-500">
-                      <span className="font-medium">Tone:</span> {persona.tone} • 
+                      <span className="font-medium">Tone:</span> {persona.tone} •
                       <span className="font-medium ml-2">ID:</span> {persona.id}
                     </div>
                   </div>

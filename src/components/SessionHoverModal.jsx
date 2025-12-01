@@ -86,7 +86,7 @@ const SessionHoverModal = ({ session, ftp, position, onClose }) => {
     };
 
     const options = recommendations[type] || recommendations['Endurance'];
-    return options.reduce((prev, curr) => 
+    return options.reduce((prev, curr) =>
       Math.abs(curr.duration - duration) < Math.abs(prev.duration - duration) ? curr : prev
     );
   };
@@ -117,11 +117,11 @@ const SessionHoverModal = ({ session, ftp, position, onClose }) => {
   const isModified = session.modified;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
@@ -151,20 +151,19 @@ const SessionHoverModal = ({ session, ftp, position, onClose }) => {
             </div>
           </div>
         )}
-        
+
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <h3 className="text-2xl font-bold text-gray-900">{session.title}</h3>
-              <span className={`px-3 py-1 text-sm rounded font-medium ${
-                session.type === 'Recovery' ? 'bg-green-100 text-green-700' :
-                session.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
-                session.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
-                session.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
-                session.type === 'VO2Max' ? 'bg-red-100 text-red-700' :
-                'bg-purple-100 text-purple-700'
-              }`}>
+              <span className={`px-3 py-1 text-sm rounded font-medium ${session.type === 'Recovery' ? 'bg-green-100 text-green-700' :
+                  session.type === 'Endurance' ? 'bg-blue-100 text-blue-700' :
+                    session.type === 'Tempo' ? 'bg-yellow-100 text-yellow-700' :
+                      session.type === 'Threshold' ? 'bg-orange-100 text-orange-700' :
+                        session.type === 'VO2Max' ? 'bg-red-100 text-red-700' :
+                          'bg-indigo-100 text-indigo-700'
+                }`}>
                 {session.type}
               </span>
             </div>
@@ -258,12 +257,12 @@ const SessionHoverModal = ({ session, ftp, position, onClose }) => {
                 <p className="text-sm text-gray-600 flex items-start gap-2">
                   <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>
-                    Search for this workout in Zwift's workout library or use a similar workout 
+                    Search for this workout in Zwift's workout library or use a similar workout
                     that matches the duration and intensity profile.
                   </span>
                 </p>
                 <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-orange-200">
-                  <strong>Disclaimer:</strong> Zwift® is a registered trademark of Zwift, Inc. 
+                  <strong>Disclaimer:</strong> Zwift® is a registered trademark of Zwift, Inc.
                   RiderLabs is not affiliated with, endorsed by, or sponsored by Zwift, Inc.
                 </p>
               </div>
