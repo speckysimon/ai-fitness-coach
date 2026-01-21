@@ -178,6 +178,15 @@ function getEnvOAuthConfig(provider) {
         redirectUri: process.env.GOOGLE_REDIRECT_URI
       };
     }
+  } else if (provider === 'intervals') {
+    if (process.env.INTERVALS_CLIENT_ID && process.env.INTERVALS_CLIENT_SECRET) {
+      return {
+        provider: 'intervals',
+        clientId: process.env.INTERVALS_CLIENT_ID,
+        clientSecret: process.env.INTERVALS_CLIENT_SECRET,
+        redirectUri: process.env.INTERVALS_REDIRECT_URI
+      };
+    }
   }
   
   return null;

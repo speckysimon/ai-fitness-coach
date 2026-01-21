@@ -247,6 +247,70 @@ export const googleTokenDb = {
   }
 };
 
+// Intervals.icu token operations
+export const intervalsTokenDb = {
+  // Save or update Intervals.icu tokens (NO refresh tokens - they don't expire!)
+  upsert: ({ userId, accessToken, scopes, athleteId, athleteName }) => {
+    const now = new Date().toISOString();
+
+    const stmt = db.prepare(`
+      INSERT INTO intervals_tokens (user_id, access_token, scopes, athlete_id, athlete_name, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        access_token = excluded.access_token,
+        scopes = excluded.scopes,
+        athlete_id = excluded.athlete_id,
+        athlete_name = excluded.athlete_name,
+        updated_at = excluded.updated_at
+    `);
+
+    return stmt.run(userId, accessToken, scopes, athleteId, athleteName, now, now);
+  },
+
+  // Get Intervals.icu tokens for user
+  findByUserId: (userId) => {
+    const stmt = db.prepare('SELECT * FROM intervals_tokens WHERE user_id = ?');
+    return stmt.get(userId);
+  },
+
+  // Delete Intervals.icu tokens
+  delete: (userId) => {
+    const stmt = db.prepare('DELETE FROM intervals_tokens WHERE user_id = ?');
+    return stmt.run(userId);
+  }
+};
+
+// Intervals.icu sync state operations
+export const intervalsSyncStateDb = {
+  // Update sync state
+  upsert: ({ userId, lastSyncedDate, backfillComplete }) => {
+    const now = new Date().toISOString();
+
+    const stmt = db.prepare(`
+      INSERT INTO intervals_sync_state (user_id, last_synced_date, backfill_complete, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        last_synced_date = excluded.last_synced_date,
+        backfill_complete = excluded.backfill_complete,
+        updated_at = excluded.updated_at
+    `);
+
+    return stmt.run(userId, lastSyncedDate, backfillComplete ? 1 : 0, now, now);
+  },
+
+  // Get sync state for user
+  findByUserId: (userId) => {
+    const stmt = db.prepare('SELECT * FROM intervals_sync_state WHERE user_id = ?');
+    return stmt.get(userId);
+  },
+
+  // Delete sync state
+  delete: (userId) => {
+    const stmt = db.prepare('DELETE FROM intervals_sync_state WHERE user_id = ?');
+    return stmt.run(userId);
+  }
+};
+
 // Race tag operations
 export const raceTagDb = {
   // Set race tag for an activity

@@ -53,7 +53,7 @@ const APIKeysPage = () => {
       return;
     }
 
-    const requiresOAuth = ['strava', 'google'].includes(formData.provider);
+    const requiresOAuth = ['strava', 'google', 'intervals'].includes(formData.provider);
     if (requiresOAuth) {
       if (!formData.clientId || !formData.clientSecret || !formData.redirectUri) {
         setError('Client ID, Client Secret, and Redirect URI are required for OAuth providers');
@@ -295,7 +295,7 @@ const APIKeysPage = () => {
             <CardHeader>
               <CardTitle>Add API Credentials</CardTitle>
               <CardDescription>
-                {['strava', 'google'].includes(formData.provider)
+                {['strava', 'google', 'intervals'].includes(formData.provider)
                   ? 'Store OAuth credentials (Client ID, Secret, Redirect URI)'
                   : 'Store a new API key for a service provider'
                 }
@@ -334,14 +334,15 @@ const APIKeysPage = () => {
                     <optgroup label="Third-Party Services">
                       <option value="strava">Strava</option>
                       <option value="google">Google (OAuth & Calendar)</option>
+                      <option value="intervals">Intervals.icu</option>
                       <option value="openweather">OpenWeather</option>
                     </optgroup>
                   </select>
                 </div>
 
                 {/* Conditional Fields Based on Provider */}
-                {['strava', 'google'].includes(formData.provider) ? (
-                  // OAuth Providers (Strava, Google)
+                {['strava', 'google', 'intervals'].includes(formData.provider) ? (
+                  // OAuth Providers (Strava, Google, Intervals.icu)
                   <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">

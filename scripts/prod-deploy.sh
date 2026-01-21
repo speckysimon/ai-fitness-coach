@@ -23,6 +23,44 @@ log() {
     echo -e "$1" | tee -a "$LOG_FILE"
 }
 
+# Rollback function
+rollback() {
+    log "${RED}❌ Deployment failed! Initiating automatic rollback...${NC}"
+    
+    # Restore code
+    log "${BLUE}🔄 Restoring code to commit: $CURRENT_COMMIT${NC}"
+    git reset --hard $CURRENT_COMMIT
+    npm install --production 2>&1 | tee -a "$LOG_FILE"
+    npm run build 2>&1 | tee -a "$LOG_FILE"
+    
+    # Restore databases from backup
+    LATEST_MAIN_BACKUP=$(ls -t backups/fitness-coach_*.db 2>/dev/null | head -1)
+    LATEST_ADMIN_BACKUP=$(ls -t backups/database_*.db 2>/dev/null | head -1)
+    
+    if [ -n "$LATEST_MAIN_BACKUP" ]; then
+        cp "$LATEST_MAIN_BACKUP" server/fitness-coach.db
+        log "${GREEN}✅ Main database restored${NC}"
+    fi
+    
+    if [ -n "$LATEST_ADMIN_BACKUP" ]; then
+        cp "$LATEST_ADMIN_BACKUP" server/database.sqlite
+        log "${GREEN}✅ Admin database restored${NC}"
+    fi
+    
+    # Restart PM2
+    pm2 restart riderlabs 2>&1 | tee -a "$LOG_FILE"
+    
+    log "${RED}╔════════════════════════════════════════════╗${NC}"
+    log "${RED}║   ❌ Rollback Complete                     ║${NC}"
+    log "${RED}╚════════════════════════════════════════════╝${NC}\n"
+    log "${YELLOW}Check logs: pm2 logs riderlabs${NC}"
+    log "${YELLOW}Deployment log: $LOG_FILE${NC}\n"
+    exit 1
+}
+
+# Set trap to rollback on error
+trap rollback ERR
+
 log "${BLUE}╔════════════════════════════════════════════╗${NC}"
 log "${BLUE}║   RiderLabs Production Deployment         ║${NC}"
 log "${BLUE}║   $(date)                  ║${NC}"
@@ -50,6 +88,25 @@ if ! command -v sqlite3 &> /dev/null; then
 fi
 
 log "${GREEN}✅ All prerequisites met${NC}\n"
+
+# Step 1.5: Check database integrity before deployment
+log "${BLUE}🔍 Step 1.5: Checking database integrity${NC}"
+MAIN_INTEGRITY=$(sqlite3 server/fitness-coach.db "PRAGMA integrity_check;" 2>/dev/null || echo "error")
+ADMIN_INTEGRITY=$(sqlite3 server/database.sqlite "PRAGMA integrity_check;" 2>/dev/null || echo "error")
+
+if [ "$MAIN_INTEGRITY" != "ok" ]; then
+    log "${RED}❌ Main database integrity check failed: $MAIN_INTEGRITY${NC}"
+    log "${YELLOW}Fix database issues before deploying${NC}"
+    exit 1
+fi
+
+if [ "$ADMIN_INTEGRITY" != "ok" ]; then
+    log "${RED}❌ Admin database integrity check failed: $ADMIN_INTEGRITY${NC}"
+    log "${YELLOW}Fix database issues before deploying${NC}"
+    exit 1
+fi
+
+log "${GREEN}✅ Database integrity verified${NC}\n"
 
 # Step 2: Backup databases
 log "${BLUE}📦 Step 2: Backing up databases${NC}"
@@ -115,24 +172,46 @@ log "${BLUE}✅ Step 8: Verifying deployment${NC}"
 PM2_STATUS=$(pm2 list | grep riderlabs | grep online || echo "")
 if [ -z "$PM2_STATUS" ]; then
     log "${RED}❌ PM2 process not running!${NC}"
-    log "${RED}Deployment may have failed. Check logs: pm2 logs riderlabs${NC}"
-    exit 1
+    rollback
 fi
+log "${GREEN}✅ PM2 process running${NC}"
+
+# Give server time to start
+sleep 3
 
 # Check if server responds
-sleep 2  # Give server time to start
-if curl -f http://localhost:5001/api/health &> /dev/null; then
-    log "${GREEN}✅ Server is responding${NC}"
-else
-    log "${YELLOW}⚠️  Health check endpoint not responding (may not exist yet)${NC}"
-fi
+HEALTH_CHECK_ATTEMPTS=0
+HEALTH_CHECK_MAX=5
+while [ $HEALTH_CHECK_ATTEMPTS -lt $HEALTH_CHECK_MAX ]; do
+    if curl -f http://localhost:5001/api/health &> /dev/null; then
+        log "${GREEN}✅ Server is responding${NC}"
+        break
+    fi
+    HEALTH_CHECK_ATTEMPTS=$((HEALTH_CHECK_ATTEMPTS + 1))
+    if [ $HEALTH_CHECK_ATTEMPTS -lt $HEALTH_CHECK_MAX ]; then
+        log "${YELLOW}⏳ Waiting for server... (attempt $HEALTH_CHECK_ATTEMPTS/$HEALTH_CHECK_MAX)${NC}"
+        sleep 2
+    else
+        log "${RED}❌ Health check failed after $HEALTH_CHECK_MAX attempts${NC}"
+        rollback
+    fi
+done
 
-# Check for errors in PM2 logs
-RECENT_ERRORS=$(pm2 logs riderlabs --lines 50 --nostream 2>/dev/null | grep -i "error" | head -5 || echo "")
+# Verify database integrity after deployment
+log "${BLUE}🔍 Verifying database integrity post-deployment${NC}"
+MAIN_INTEGRITY_POST=$(sqlite3 server/fitness-coach.db "PRAGMA integrity_check;" 2>/dev/null || echo "error")
+if [ "$MAIN_INTEGRITY_POST" != "ok" ]; then
+    log "${RED}❌ Database integrity check failed after deployment!${NC}"
+    rollback
+fi
+log "${GREEN}✅ Database integrity verified${NC}"
+
+# Check for critical errors in PM2 logs
+RECENT_ERRORS=$(pm2 logs riderlabs --lines 50 --nostream 2>/dev/null | grep -iE "(SQLITE_ERROR|SQLITE_CORRUPT|Cannot read properties of undefined)" | head -5 || echo "")
 if [ -n "$RECENT_ERRORS" ]; then
-    log "${YELLOW}⚠️  Recent errors found in logs:${NC}"
+    log "${RED}❌ Critical errors found in logs:${NC}"
     log "$RECENT_ERRORS"
-    log "${YELLOW}Check full logs with: pm2 logs riderlabs${NC}"
+    rollback
 fi
 
 log "\n${GREEN}╔════════════════════════════════════════════╗${NC}"
@@ -142,11 +221,12 @@ log "${GREEN}╚═════════════════════�
 log "${BLUE}📝 Deployment log saved to: $LOG_FILE${NC}"
 log "${BLUE}🔍 Check logs: pm2 logs riderlabs${NC}"
 log "${BLUE}📊 Check status: pm2 status riderlabs${NC}"
-log "${BLUE}🔄 Restart if needed: pm2 restart riderlabs${NC}\n"
+log "${BLUE}🌐 Check app: https://riderlabs.io${NC}"
+log "${BLUE}🔧 Check admin: https://riderlabs.io/admin${NC}\n"
 
-# Rollback instructions
-log "${YELLOW}📌 If deployment failed, rollback with:${NC}"
-log "${YELLOW}   git reset --hard $CURRENT_COMMIT${NC}"
-log "${YELLOW}   npm install${NC}"
-log "${YELLOW}   npm run build${NC}"
-log "${YELLOW}   pm2 restart riderlabs${NC}\n"
+# Manual rollback instructions (if needed later)
+log "${YELLOW}📌 Manual rollback (if needed):${NC}"
+log "${YELLOW}   ./scripts/rollback.sh${NC}\n"
+
+# Disable error trap now that deployment succeeded
+trap - ERR

@@ -17,6 +17,8 @@ import manualActivityRoutes from './routes/manualActivities.js';
 import seasonRacesRoutes from './routes/seasonRaces.js';
 import coachRoutes from './routes/coach.js';
 import demoRoutes from './routes/demo.js';
+import healthRoutes from './routes/health.js';
+import intervalsRoutes from './routes/intervals.js';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
@@ -46,6 +48,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/strava', stravaRoutes);
+app.use('/api/intervals', intervalsRoutes);
 app.use('/api/google', googleRoutes);
 app.use('/api/training', trainingRoutes);
 app.use('/api/analytics', analyticsRoutes);
@@ -64,14 +67,10 @@ app.use('/api/admin/theme-configs', themeConfigRoutes);
 app.use('/api/admin/ideas', ideasRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/demo', demoRoutes);
+app.use('/api', healthRoutes);
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // Serve static files in production
 if (isProduction) {

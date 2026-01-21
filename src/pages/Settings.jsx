@@ -25,11 +25,38 @@ const Settings = ({ stravaTokens, googleTokens, userProfile, onLogout, onStravaA
   const [coachSectionExpanded, setCoachSectionExpanded] = useState(false);
   const [remindersSectionExpanded, setRemindersSectionExpanded] = useState(false);
   const [showStravaWelcomeModal, setShowStravaWelcomeModal] = useState(false);
+  const [intervalsConnected, setIntervalsConnected] = useState(false);
+  const [intervalsStatus, setIntervalsStatus] = useState(null);
+
+  // Check Intervals.icu connection status on mount
+  useEffect(() => {
+    const checkIntervalsStatus = async () => {
+      try {
+        const sessionToken = localStorage.getItem('session_token');
+        if (!sessionToken) return;
+        
+        const response = await fetch('/api/intervals/status', {
+          headers: { 'Authorization': `Bearer ${sessionToken}` }
+        });
+        const data = await response.json();
+        
+        if (data.connected) {
+          setIntervalsConnected(true);
+          setIntervalsStatus(data);
+        }
+      } catch (err) {
+        console.error('Error checking Intervals.icu status:', err);
+      }
+    };
+    
+    checkIntervalsStatus();
+  }, []);
 
   // Handle OAuth callbacks
   useEffect(() => {
     const stravaSuccess = searchParams.get('strava_success');
     const googleSuccess = searchParams.get('google_success');
+    const intervalsSuccess = searchParams.get('success');
     const error = searchParams.get('error');
 
     // Show error if present
@@ -88,6 +115,30 @@ const Settings = ({ stravaTokens, googleTokens, userProfile, onLogout, onStravaA
           navigate('/settings', { replace: true });
         } catch (err) {
           console.error('Error processing Google auth:', err);
+        }
+      })();
+    }
+
+    if (intervalsSuccess === 'intervals_connected' && !processedRef.current.has('intervals_success')) {
+      processedRef.current.add('intervals_success');
+      (async () => {
+        try {
+          console.log('✅ Intervals.icu OAuth callback received');
+          setIntervalsConnected(true);
+          alert('Intervals.icu connected successfully!');
+          // Fetch status
+          const sessionToken = localStorage.getItem('session_token');
+          const response = await fetch('/api/intervals/status', {
+            headers: { 'Authorization': `Bearer ${sessionToken}` }
+          });
+          const data = await response.json();
+          if (data.connected) {
+            setIntervalsStatus(data);
+          }
+          // Clear URL params
+          navigate('/settings', { replace: true });
+        } catch (err) {
+          console.error('Error processing Intervals.icu auth:', err);
         }
       })();
     }
@@ -289,6 +340,61 @@ const Settings = ({ stravaTokens, googleTokens, userProfile, onLogout, onStravaA
     }
   };
 
+  const connectIntervals = async () => {
+    setConnecting(true);
+    try {
+      const sessionToken = localStorage.getItem('session_token');
+      if (!sessionToken) {
+        alert('Session expired. Please login again.');
+        navigate('/login');
+        return;
+      }
+      const response = await fetch(`/api/intervals/auth?session_token=${sessionToken}`);
+      const data = await response.json();
+      if (data.error) {
+        alert(data.error);
+        setConnecting(false);
+        return;
+      }
+      window.location.href = data.authUrl;
+    } catch (err) {
+      alert('Failed to initiate Intervals.icu authentication');
+      setConnecting(false);
+    }
+  };
+
+  const disconnectIntervals = async () => {
+    if (!confirm('Are you sure you want to disconnect Intervals.icu? Your activities will no longer sync.')) {
+      return;
+    }
+
+    setConnecting(true);
+    try {
+      const sessionToken = localStorage.getItem('session_token');
+      const response = await fetch('/api/intervals/disconnect', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sessionToken}`
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setIntervalsConnected(false);
+        setIntervalsStatus(null);
+        alert('Intervals.icu disconnected successfully');
+        window.location.reload();
+      } else {
+        alert('Failed to disconnect Intervals.icu');
+      }
+    } catch (err) {
+      console.error('Disconnect error:', err);
+      alert('Failed to disconnect Intervals.icu');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {/* Header */}
@@ -405,6 +511,50 @@ const Settings = ({ stravaTokens, googleTokens, userProfile, onLogout, onStravaA
                 variant="outline"
                 size="sm"
                 onClick={connectGoogle}
+                disabled={connecting}
+                className="min-h-[44px] w-full sm:w-auto"
+              >
+                {connecting ? 'Connecting...' : 'Connect'}
+              </Button>
+            )}
+          </div>
+
+          {/* Intervals.icu */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex items-center gap-3 sm:gap-4 flex-1">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Activity className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Intervals.icu</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                  {intervalsConnected && intervalsStatus?.athleteName 
+                    ? `Connected as ${intervalsStatus.athleteName}`
+                    : 'Activity tracking and training analytics'}
+                </p>
+              </div>
+            </div>
+            {intervalsConnected ? (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span className="text-sm font-medium">Connected</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={disconnectIntervals}
+                  disabled={connecting}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 min-h-[44px] w-full sm:w-auto"
+                >
+                  Disconnect
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={connectIntervals}
                 disabled={connecting}
                 className="min-h-[44px] w-full sm:w-auto"
               >

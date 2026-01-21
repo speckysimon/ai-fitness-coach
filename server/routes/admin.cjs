@@ -429,7 +429,7 @@ router.post('/api-keys', verifyAdminToken, verifySuperAdmin, async (req, res) =>
     }
 
     // Validate based on provider type
-    const requiresOAuth = ['strava', 'google'].includes(provider);
+    const requiresOAuth = ['strava', 'google', 'intervals'].includes(provider);
     if (requiresOAuth) {
       if (!clientId || !clientSecret || !redirectUri) {
         return res.status(400).json({ error: 'Client ID, Client Secret, and Redirect URI are required for OAuth providers' });

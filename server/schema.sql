@@ -62,6 +62,34 @@ CREATE TABLE IF NOT EXISTS google_tokens (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Intervals.icu OAuth tokens (NO refresh tokens - tokens don't expire!)
+CREATE TABLE IF NOT EXISTS intervals_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER UNIQUE NOT NULL,
+  access_token TEXT NOT NULL,
+  scopes TEXT,
+  athlete_id TEXT,
+  athlete_name TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_intervals_tokens_user ON intervals_tokens(user_id);
+
+-- Intervals.icu sync state tracking
+CREATE TABLE IF NOT EXISTS intervals_sync_state (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER UNIQUE NOT NULL,
+  last_synced_date TEXT,
+  backfill_complete INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_intervals_sync_state_user ON intervals_sync_state(user_id);
+
 -- ============================================================================
 -- TRAINING & ACTIVITIES
 -- ============================================================================
