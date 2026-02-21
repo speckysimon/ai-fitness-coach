@@ -470,6 +470,19 @@ CREATE INDEX IF NOT EXISTS idx_ideas_priority ON ideas(priority);
 CREATE INDEX IF NOT EXISTS idx_ideas_category ON ideas(category);
 CREATE INDEX IF NOT EXISTS idx_ideas_created_at ON ideas(created_at DESC);
 
+-- Provider sync state (server-side sync timestamps)
+CREATE TABLE IF NOT EXISTS provider_sync_state (
+  user_id INTEGER NOT NULL,
+  provider TEXT NOT NULL,  -- 'strava', 'intervals'
+  last_incremental_sync_at TEXT,
+  last_full_sync_at TEXT,
+  last_full_sync_activities_fetched INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, provider),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- ============================================================================
 -- SEED DATA - Default Coach Personas
 -- ============================================================================

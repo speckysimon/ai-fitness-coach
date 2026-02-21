@@ -7,7 +7,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const dbPath = path.join(__dirname, '../database.sqlite');
+const dbPath = path.join(__dirname, '../fitness-coach-admin.db');
 
 // Default Light Theme Configuration
 const lightTheme = {

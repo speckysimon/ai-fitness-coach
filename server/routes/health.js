@@ -30,7 +30,7 @@ router.get('/health', (req, res) => {
 
   try {
     // Check admin database connectivity
-    const adminDbPath = path.join(__dirname, '../database.sqlite');
+    const adminDbPath = path.join(__dirname, '../fitness-coach-admin.db');
     const adminDb = new Database(adminDbPath, { readonly: true });
     adminDb.prepare('SELECT 1').get();
     adminDb.close();

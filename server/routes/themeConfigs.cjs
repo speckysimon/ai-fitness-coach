@@ -4,7 +4,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const adminService = require('../services/adminService.cjs');
 
-const dbPath = path.join(__dirname, '../database.sqlite');
+const dbPath = path.join(__dirname, '../fitness-coach-admin.db');
 
 // Middleware to verify admin authentication
 const verifyAdmin = (req, res, next) => {

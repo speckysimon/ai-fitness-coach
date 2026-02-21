@@ -133,7 +133,47 @@
 - [ ] Test plan adjustments on production
 - [ ] Add better error messages to frontend if issues found
 
-### 6. AI Coach Enhancements - Post-Training Chat Experience
+### 6. Improved Coach Personas - Behavioral Logic System
+**Goal:** Add behavioral fields to coach personas so coaches make different decisions, not just sound different. See `improved_coach_personas.md` for full implementation plan.
+
+- [ ] **Add behavioral fields to database and admin UI**
+  - [ ] Add enums: bias (push|balance|protect|contextual)
+  - [ ] Add loadTolerance (low|med|high)
+  - [ ] Add fatigueSensitivity (high|med|low)
+  - [ ] Add planAdherence (strict|flexible|adaptive)
+  - [ ] Keep existing tone/personality as "voice"
+  
+- [ ] **Create backend coach profile loader**
+  - [ ] Implement `getCoachProfile(coachId)` with caching
+  - [ ] Returns name, tone, personalityText, behaviour object
+  
+- [ ] **Implement `buildCoachRules()` function**
+  - [ ] Convert behavior enums to deterministic instructions
+  - [ ] Output priorities, red flags, conflict resolution
+  
+- [ ] **Create common prompt wrapper**
+  - [ ] Implement `wrapWithCoachContext({ coachProfile, taskPrompt })`
+  - [ ] Order: Coach Rules → Voice/Tone → Athlete Context → Task
+  
+- [ ] **Update AI services to use coach rules**
+  - [ ] Update `generateTrainingPlan()` - inject coach rules
+  - [ ] Update `adjustPlanFromRequest()` - replace "ABSOLUTE PRIORITY" with planAdherence style
+  - [ ] Update `analyzeWorkout()` - use coach wrapper
+  
+- [ ] **Add week assessment helper (optional)**
+  - [ ] Implement `assessWeek(metrics)` returning labels
+  - [ ] Feed labels into prompts for consistent facts
+  
+- [ ] **Regression testing**
+  - [ ] Test same inputs across 3 coaches
+  - [ ] Verify decisions diverge, not just tone
+  - [ ] Lock as repeatable test case
+  
+- [ ] **Update UI copy**
+  - [ ] Weekly Report / Dashboard text
+  - [ ] Now consistent with underlying behavior
+
+### 7. AI Coach Enhancements - Post-Training Chat Experience
 **Goal:** Replicate the post-training conversation experience with GPT (where user shares Strava screenshots and discusses workout) but integrated seamlessly into RiderLabs with coach persona consistency.
 
 - [ ] **Make "Talk to AI Coach" more general purpose**
@@ -375,10 +415,30 @@
 ## 🐛 Known Bugs & Fixes Needed
 
 ### Critical
+- **Rider Profile Calculations Not Working** (Jan 25, 2026)
+  - FTP showing N/A despite power data available
+  - FTHR showing 135 BPM (questionable value)
+  - W/kg showing N/A (dependent on FTP)
+  - BMI showing 27.3 instead of expected 23.7 (weight/height mismatch in localStorage)
+  - User profile save to database failing (401 Unauthorized - backend endpoint not loaded)
+  - Backend server needs restart to load new `/api/user/profile` endpoint
+  - After restart: re-save profile in Settings (weight: 67, height: 168)
+  
+- **Intervals.icu Routes Not Showing** (Jan 25, 2026)
+  - Routes from Intervals.icu integration turned off
+  - Need to investigate and re-enable
+
+- **Intervals.icu Activities Not Importing** (Feb 9, 2026)
+  - Activities from Intervals.icu are not being imported again
+  - Need to investigate sync process and enrichment stage
+  - Check if API calls are failing or if database import is broken
+  - Related to previous enrichment failures (Jan 28, 2026 - 0 enriched, 50 failed)
+  
 - **Persistent Login Error in Plan Generator** - "You are not logged in" popup appears even when authenticated.
   - *Symptoms*: Occurs when generating a plan. User is logged in, `userProfile` has `id`, but check still fails or race condition exists.
   - *Attempts*: Fixed port mismatch, added `id` to `Login.jsx` profile creation.
   - *Next Steps*: Investigate `PlanGenerator.jsx` state updates, race conditions in `useEffect`, or `localStorage` sync issues.
+  
 - Manual activity edit not saving (Oct 29, 2025) - needs investigation
 - **Service Worker Issues** - Troubleshoot service worker registration, caching, and update mechanisms
 - **Cross-Device Sync** - Investigate if/why cross-device sync is not working properly
@@ -433,6 +493,6 @@
 
 ---
 
-**Last Updated:** November 2, 2025, 7:55pm  
+**Last Updated:** January 25, 2026, 7:58pm  
 **Status:** Production Live 🚀 | v2.9.0 Released  
-**Next Session:** Theme system integration + mobile responsiveness + production testing
+**Next Session:** Fix Rider Profile calculations + Intervals.icu routes + Improved Coach Personas implementation

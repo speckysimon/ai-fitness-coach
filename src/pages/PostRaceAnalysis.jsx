@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { raceAnalysisService } from '../services/raceAnalysisService';
-import { Trophy, TrendingUp, CheckCircle, AlertCircle, Brain, Loader2, Calendar, Clock, Zap, Heart, Target, Award, ArrowRight } from 'lucide-react';
+import { Trophy, TrendingUp, CheckCircle, AlertCircle, Brain, Loader2, Calendar, Clock, Zap, Heart, Target, Award, ArrowRight, Activity, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
+import { getUserCoach, getCoachPersona } from '../lib/coachPersonas';
 
-const PostRaceAnalysis = ({ stravaTokens }) => {
+const PostRaceAnalysis = () => {
   const [activities, setActivities] = useState([]);
   const [raceActivities, setRaceActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,61 +54,35 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
     whatDidntGoWell: '',
     lessons: '',
     placement: '',
-    totalRiders: ''
+    totalRiders: '',
+    racePriority: 'B',
+    racePlatform: 'road'
   });
 
   useEffect(() => {
-    if (stravaTokens) {
-      loadActivities();
-    } else {
-      setLoading(false);
-    }
-  }, [stravaTokens]);
+    // Load from Dashboard cache (already includes Strava + Intervals + Manual)
+    loadActivities();
+  }, []);
 
   const loadActivities = async () => {
     setLoading(true);
     try {
-      // Try to use cached activities first
+      // Load from Dashboard cache (multi-source: Strava + Intervals + Manual)
       const cachedActivities = localStorage.getItem('cached_activities_recent');
-      let data = [];
-
-      if (cachedActivities) {
-        console.log('Using cached activities for post-race analysis');
-        data = JSON.parse(cachedActivities);
-      } else {
-        // Load recent activities (last 3 months)
-        const threeMonthsAgo = Math.floor(Date.now() / 1000) - (90 * 24 * 60 * 60);
-        const response = await fetch(
-          `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${threeMonthsAgo}&per_page=100`
-        );
-
-        if (!response.ok) {
-          // Handle 401 Unauthorized - token expired
-          if (response.status === 401) {
-            throw new Error('Your Strava session has expired. Please refresh the page or log in again.');
-          }
-          throw new Error('Failed to fetch activities');
-        }
-
-        data = await response.json();
-
-        // Check if response is an error object BEFORE using it
-        if (data.error || !Array.isArray(data)) {
-          throw new Error(data.error || 'Invalid response from Strava');
-        }
+      
+      if (!cachedActivities) {
+        console.warn('[Post Race Analysis] No cached activities. Please visit Dashboard first.');
+        setLoading(false);
+        return;
       }
 
-      // Only set activities if data is valid array
-      if (Array.isArray(data)) {
-        setActivities(data);
-      } else {
-        console.error('Data is not an array:', data);
-        setActivities([]);
-        throw new Error('Invalid data format received');
-      }
+      const data = JSON.parse(cachedActivities);
+      console.log('Using cached activities for post-race analysis');
 
-      // Load race tags - only if data is valid
-      if (Array.isArray(data) && data.length > 0) {
+      setActivities(data);
+
+      // Load race tags
+      if (data.length > 0) {
         const sessionToken = localStorage.getItem('session_token');
         if (sessionToken) {
           const raceTagsResponse = await fetch('/api/race-tags', {
@@ -238,12 +213,31 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
           avgPower: activity.avgPower,
           normalizedPower: activity.normalizedPower,
           avgHeartRate: activity.avgHeartRate,
-          tss: calculateTSS(activity, ftp)
+          // Prefer existing TSS from Intervals.icu (stored as 'tss' or 'icu_training_load')
+          // Only calculate if not available
+          tss: activity.tss || activity.icu_training_load || calculateTSS(activity, ftp)
         }))
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
       console.log('Pre-race activities (14 days):', preRaceActivities);
+      console.log('Pre-race TSS breakdown:', preRaceActivities.map(a => ({
+        date: a.date,
+        name: a.name,
+        tss: a.tss,
+        originalTss: activities.find(act => act.date === a.date)?.tss,
+        icuLoad: activities.find(act => act.date === a.date)?.icu_training_load
+      })));
 
+      // Get coach persona for tone
+      const coachId = getUserCoach();
+      const coach = getCoachPersona(coachId);
+
+      // Get user profile for name
+      const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      const athleteName = userProfile.name || riderProfile?.name || 'Athlete';
+
+      console.log('Sending analysis request with coach:', coach);
+      
       const response = await fetch('/api/race/analysis/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -254,20 +248,25 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
             tss: calculateTSS(selectedActivity, ftp)
           },
           racePlan,
-          riderProfile: riderProfile ? {
+          riderProfile: {
             ...riderProfile,
-            ftp
-          } : null,
+            ftp,
+            name: athleteName
+          },
           feedback,
-          preRaceActivities
+          preRaceActivities,
+          coachPersona: coach
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate analysis');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API error:', errorData);
+        throw new Error(errorData.details || errorData.error || 'Failed to generate analysis');
       }
 
       const analysisData = await response.json();
+      console.log('Analysis received:', analysisData);
 
       // Store analysis with dual-write (localStorage + backend)
       const fullAnalysisData = {
@@ -288,7 +287,6 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
       };
 
       // Save to backend (with localStorage fallback)
-      const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
       if (userProfile.id) {
         await raceAnalysisService.saveAnalysis(
           userProfile.id,
@@ -331,8 +329,8 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
     );
   }
 
-  // Show empty state if Strava not connected
-  if (!stravaTokens) {
+  // Show empty state if no activities
+  if (activities.length === 0 && !loading) {
     return (
       <div className="space-y-6">
         <div>
@@ -489,9 +487,26 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
                 Post-Race Feedback
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
                 {selectedActivity.name} • {new Date(selectedActivity.date).toLocaleDateString()}
               </p>
+
+              {/* Info Banner - Ride Data Loaded */}
+              <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">
+                      ✓ Ride data loaded successfully
+                    </p>
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      We've loaded your activity metrics (power, heart rate, duration, etc.). 
+                      The fields below are <span className="font-medium">optional</span> but will help our AI provide 
+                      more personalized and actionable insights.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               <div className="space-y-6">
                 {/* Overall Feeling */}
@@ -596,6 +611,47 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                     />
                   </div>
                 </div>
+
+                {/* Race Context */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Race Priority
+                    </label>
+                    <select
+                      value={feedback.racePriority}
+                      onChange={(e) => handleFeedbackChange('racePriority', e.target.value)}
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="A">A - Key Season Goal</option>
+                      <option value="B">B - Important Race</option>
+                      <option value="C">C - Training/Fun Race</option>
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Helps AI understand taper expectations
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Race Platform
+                    </label>
+                    <select
+                      value={feedback.racePlatform}
+                      onChange={(e) => handleFeedbackChange('racePlatform', e.target.value)}
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="road">Road Race</option>
+                      <option value="zwift">Zwift/Virtual</option>
+                      <option value="gravel">Gravel</option>
+                      <option value="mtb">Mountain Bike</option>
+                      <option value="track">Track</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Context for race dynamics
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Actions */}
@@ -679,13 +735,165 @@ const PostRaceAnalysis = ({ stravaTokens }) => {
                 </div>
               </div>
 
+              {/* Data-Backed Metrics */}
+              {analysis.detailedMetrics && (
+                <div className="mb-6 space-y-4">
+                  <h3 className="font-semibold text-lg text-gray-900 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-blue-600" />
+                    Performance Data
+                  </h3>
+
+                  {/* Power Metrics */}
+                  {analysis.detailedMetrics.power.average && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-yellow-600" />
+                        Power Analysis
+                      </h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">Avg Power</div>
+                          <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{analysis.detailedMetrics.power.average}W</div>
+                          <div className="text-xs text-gray-500">{analysis.detailedMetrics.power.percentOfFTP}% FTP</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">Normalized</div>
+                          <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{analysis.detailedMetrics.power.normalized}W</div>
+                          <div className="text-xs text-gray-500">IF: {analysis.detailedMetrics.power.intensityFactor}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">Variability</div>
+                          <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{analysis.detailedMetrics.power.variabilityIndex}</div>
+                          <div className="text-xs text-gray-500">VI Index</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">Pacing</div>
+                          <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{analysis.detailedMetrics.pacing.score}/100</div>
+                          <div className="text-xs text-gray-500">{analysis.detailedMetrics.pacing.quality.split(' - ')[0]}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pre-Race Fatigue */}
+                  {analysis.detailedMetrics.preRace.totalTSS && (
+                    <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-orange-600" />
+                        Pre-Race Training Load
+                      </h4>
+                      
+                      {/* Low Taper Relevance Note */}
+                      {analysis.detailedMetrics.preRace.taperRelevance === 'Low' && (
+                        <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                          <p className="text-sm text-blue-900 dark:text-blue-100">
+                            <strong>Note:</strong> Taper analysis is informational only for this race type. 
+                            Short/training races don't require significant taper - focus on tactical execution and race-specific skills.
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Race Context */}
+                      {analysis.detailedMetrics.preRace.raceCategory && (
+                        <div className="mb-3 p-2 bg-white dark:bg-gray-900 rounded flex items-center justify-between">
+                          <div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">Race Type</div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {analysis.detailedMetrics.preRace.raceCategory}
+                              {analysis.detailedMetrics.preRace.raceDurationMinutes && (
+                                <span className="text-gray-500 ml-1">({analysis.detailedMetrics.preRace.raceDurationMinutes} min)</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className={`px-2 py-1 rounded text-xs font-medium ${
+                            analysis.detailedMetrics.preRace.taperRelevance === 'Low' 
+                              ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                              : analysis.detailedMetrics.preRace.taperRelevance === 'Moderate'
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                              : analysis.detailedMetrics.preRace.taperRelevance === 'High'
+                              ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                          }`}>
+                            Taper: {analysis.detailedMetrics.preRace.taperRelevance} importance
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+                        <div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">14-Day TSS</div>
+                          <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{analysis.detailedMetrics.preRace.totalTSS}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">Taper Ratio</div>
+                          <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{analysis.detailedMetrics.preRace.taperRatio}%</div>
+                          <div className="text-xs text-gray-500">
+                            {analysis.detailedMetrics.preRace.optimalTaperRange || '40-60%'} optimal
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">Freshness</div>
+                          <div className="text-sm font-bold text-gray-900 dark:text-gray-100">{analysis.detailedMetrics.preRace.freshnessLevel}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 rounded">
+                        <div className="flex-1">
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Week 2 → Week 1 Taper</div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{analysis.detailedMetrics.preRace.secondWeekTSS} TSS</div>
+                            <ArrowRight className="w-4 h-4 text-gray-400" />
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{analysis.detailedMetrics.preRace.lastWeekTSS} TSS</div>
+                          </div>
+                        </div>
+                        <div className={`px-3 py-1 rounded text-xs font-medium ${
+                          analysis.detailedMetrics.preRace.taperQuality === 'Optimal' || analysis.detailedMetrics.preRace.taperQuality?.includes('Good')
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                            : analysis.detailedMetrics.preRace.taperQuality?.includes('Poor')
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                            : analysis.detailedMetrics.preRace.taperQuality?.includes('Acceptable')
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                        }`}>
+                          {analysis.detailedMetrics.preRace.taperQuality}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Zone Distribution */}
+                  {analysis.detailedMetrics.zones.primary && (
+                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                        <Target className="w-4 h-4 text-purple-600" />
+                        Effort Distribution
+                      </h4>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">Primary Zone</div>
+                          <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{analysis.detailedMetrics.zones.primary}</div>
+                        </div>
+                        <div className={`px-4 py-2 rounded-lg font-medium ${
+                          analysis.detailedMetrics.zones.intensity === 'Very Hard' || analysis.detailedMetrics.zones.intensity === 'Maximum'
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                            : analysis.detailedMetrics.zones.intensity === 'Hard'
+                            ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                        }`}>
+                          {analysis.detailedMetrics.zones.intensity}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* AI Assessment */}
-              <div className="mb-6 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-lg">
+              <div className="mb-6 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border-2 border-indigo-200 dark:border-indigo-800 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <Brain className="w-5 h-5 text-indigo-600 mt-0.5" />
+                  <Brain className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-0.5" />
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">AI Coach Assessment</h3>
-                    <p className="text-gray-700 leading-relaxed">{analysis.overallAssessment}</p>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">AI Coach Assessment</h3>
+                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{analysis.overallAssessment}</p>
                   </div>
                 </div>
               </div>

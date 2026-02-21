@@ -213,7 +213,8 @@ router.post('/analysis/generate', async (req, res) => {
       racePlan, 
       riderProfile, 
       feedback,
-      preRaceActivities 
+      preRaceActivities,
+      coachPersona
     } = req.body;
 
     if (!raceActivity) {
@@ -234,19 +235,62 @@ router.post('/analysis/generate', async (req, res) => {
       });
     }
 
-    // Build analysis prompt
-    const prompt = buildAnalysisPrompt(raceActivity, racePlan, riderProfile, feedback, preRaceActivities);
+    // Log request data for debugging
+    console.log('Race analysis request received');
+    console.log('Coach persona:', coachPersona);
+    console.log('Race activity:', raceActivity?.name);
+    console.log('Rider profile:', riderProfile?.name);
+
+    // Calculate detailed metrics for data-backed analysis
+    let detailedMetrics;
+    try {
+      detailedMetrics = calculateDetailedMetrics(raceActivity, riderProfile, preRaceActivities);
+      console.log('Detailed metrics calculated successfully');
+    } catch (metricsError) {
+      console.error('Error calculating detailed metrics:', metricsError);
+      return res.status(500).json({ 
+        error: 'Failed to calculate performance metrics',
+        details: metricsError.message
+      });
+    }
+
+    // Build analysis prompt with coach persona
+    let prompt;
+    try {
+      prompt = buildAnalysisPrompt(raceActivity, racePlan, riderProfile, feedback, preRaceActivities, detailedMetrics, coachPersona);
+      console.log('Prompt built successfully, length:', prompt.length);
+    } catch (promptError) {
+      console.error('Error building prompt:', promptError);
+      return res.status(500).json({ 
+        error: 'Failed to build analysis prompt',
+        details: promptError.message
+      });
+    }
+
+    // Build system prompt with coach persona - safely handle missing fields
+    const coachTone = coachPersona && coachPersona.name ? `
+COACH PERSONA - ${coachPersona.name}:
+- Tone: ${coachPersona.tone || 'professional'}
+- Communication Style: ${coachPersona.description || coachPersona.personality || 'supportive and data-driven'}
+- Use this coaching style throughout your analysis` : '';
 
     const completion = await client.chat.completions.create({
       model: 'gpt-4-turbo-preview',
       messages: [
         {
           role: 'system',
-          content: `You are a friendly, supportive cycling coach analyzing race performance. 
-Write like you're talking to a friend over coffee - warm, encouraging, and conversational.
-Use the athlete's name to make it personal. Keep bullet points SHORT and punchy (10-12 words max).
-Be specific with data, but keep the tone light and easy to read. Focus on actionable insights.
-Always respond with valid JSON only.`
+          content: `You are a professional cycling coach analyzing race performance.${coachTone}
+
+IMPORTANT RULES:
+1. ALWAYS back up your statements with specific data from the metrics provided
+2. When mentioning fatigue, cite the actual TSS numbers and taper ratio
+3. When discussing pacing, reference the power variability and intensity factor
+4. When talking about effort distribution, cite the zone distribution percentages
+5. DO NOT repeat what the athlete told you - analyze the DATA and provide NEW insights
+6. Keep bullet points SHORT (10-12 words max) but DATA-RICH
+7. Always respond with valid JSON only
+
+Your analysis should reveal insights the athlete might not have noticed by looking at the raw data.`
         },
         {
           role: 'user',
@@ -265,6 +309,9 @@ Always respond with valid JSON only.`
     try {
       const jsonText = analysisText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       analysis = JSON.parse(jsonText);
+      
+      // Add detailed metrics for frontend visualization
+      analysis.detailedMetrics = detailedMetrics;
     } catch (parseError) {
       console.error('Failed to parse AI response:', analysisText);
       // Fallback response
@@ -278,21 +325,214 @@ Always respond with valid JSON only.`
         performanceScore: 75,
         pacingScore: 75,
         executionScore: 75,
-        tacticalScore: 75
+        tacticalScore: 75,
+        detailedMetrics
       };
     }
 
     res.status(200).json(analysis);
   } catch (error) {
     console.error('Error generating race analysis:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       error: 'Failed to generate analysis',
-      details: error.message
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
 
-function buildAnalysisPrompt(raceActivity, racePlan, riderProfile, feedback, preRaceActivities) {
+// Calculate detailed metrics for data-backed analysis
+function calculateDetailedMetrics(raceActivity, riderProfile, preRaceActivities) {
+  const metrics = {
+    power: {},
+    pacing: {},
+    zones: {},
+    preRace: {}
+  };
+
+  const ftp = riderProfile?.ftp || 250;
+
+  // Power Analysis
+  if (raceActivity.avgPower && raceActivity.normalizedPower) {
+    metrics.power.average = Math.round(raceActivity.avgPower);
+    metrics.power.normalized = Math.round(raceActivity.normalizedPower);
+    metrics.power.intensityFactor = (raceActivity.normalizedPower / ftp).toFixed(2);
+    metrics.power.variabilityIndex = (raceActivity.normalizedPower / raceActivity.avgPower).toFixed(2);
+    metrics.power.percentOfFTP = Math.round((raceActivity.avgPower / ftp) * 100);
+  }
+
+  // Pacing Analysis
+  if (raceActivity.avgPower && raceActivity.normalizedPower) {
+    const vi = raceActivity.normalizedPower / raceActivity.avgPower;
+    if (vi < 1.05) {
+      metrics.pacing.quality = 'Excellent - Very steady effort';
+      metrics.pacing.score = 95;
+    } else if (vi < 1.10) {
+      metrics.pacing.quality = 'Good - Mostly consistent';
+      metrics.pacing.score = 80;
+    } else if (vi < 1.15) {
+      metrics.pacing.quality = 'Fair - Some surges';
+      metrics.pacing.score = 65;
+    } else {
+      metrics.pacing.quality = 'Poor - Very variable effort';
+      metrics.pacing.score = 45;
+    }
+  }
+
+  // Zone Distribution (estimated from power data)
+  if (raceActivity.avgPower && ftp) {
+    const avgPercent = (raceActivity.avgPower / ftp) * 100;
+    // Simplified zone estimation based on average power
+    if (avgPercent < 55) {
+      metrics.zones.primary = 'Zone 2 (Endurance)';
+      metrics.zones.intensity = 'Easy';
+    } else if (avgPercent < 75) {
+      metrics.zones.primary = 'Zone 3 (Tempo)';
+      metrics.zones.intensity = 'Moderate';
+    } else if (avgPercent < 90) {
+      metrics.zones.primary = 'Zone 4 (Threshold)';
+      metrics.zones.intensity = 'Hard';
+    } else if (avgPercent < 105) {
+      metrics.zones.primary = 'Zone 5 (VO2 Max)';
+      metrics.zones.intensity = 'Very Hard';
+    } else {
+      metrics.zones.primary = 'Zone 6+ (Anaerobic)';
+      metrics.zones.intensity = 'Maximum';
+    }
+  }
+
+  // Pre-Race Analysis
+  if (preRaceActivities && preRaceActivities.length > 0) {
+    const raceDate = new Date(raceActivity.date);
+    raceDate.setHours(0, 0, 0, 0); // Normalize to start of day
+    
+    // Determine race category based on duration
+    // Research basis: See TAPER_ANALYSIS_METHODOLOGY.md
+    // 
+    // Key sources:
+    // - Li et al. (2023) PLOS ONE meta-analysis: 41-60% volume reduction optimal for endurance
+    // - High North Performance: Shorter events need less taper due to peripheral vs central fatigue
+    // - CTS/Rutberg: Criteriums need sharpness maintenance, not deep rest
+    // - Bosquet et al. meta-analysis: 8-14 day tapers most effective for cycling
+    //
+    // Rationale: Longer events cause more central fatigue (takes longer to recover)
+    // Shorter events limited by peripheral fatigue (glycogen) which recovers quickly
+    
+    const raceDurationMinutes = raceActivity.duration ? raceActivity.duration / 60 : 60;
+    let raceCategory, taperRelevance, optimalTaperRange;
+    
+    if (raceDurationMinutes < 45) {
+      // Short race: Crits, short TTs, sprints
+      // "For shorter or higher intensity events, a taper lasting a week or less is likely 
+      // to be more appropriate" - High North Performance
+      raceCategory = 'Short (< 45 min)';
+      taperRelevance = 'Low';
+      optimalTaperRange = { min: 70, max: 100 }; // Minimal taper needed - maintain sharpness
+    } else if (raceDurationMinutes < 90) {
+      // Medium race: Road races, longer crits
+      // Mixed fatigue profile - moderate taper beneficial
+      raceCategory = 'Medium (45-90 min)';
+      taperRelevance = 'Moderate';
+      optimalTaperRange = { min: 60, max: 85 }; // Some taper helpful
+    } else if (raceDurationMinutes < 180) {
+      // Long race: Gran fondos, stage races
+      // "For longer endurance events, athletes will often benefit from a slightly longer 
+      // taper of perhaps 12 days" - High North Performance
+      raceCategory = 'Long (1.5-3 hours)';
+      taperRelevance = 'High';
+      optimalTaperRange = { min: 50, max: 70 }; // Significant taper beneficial
+    } else {
+      // Ultra race: Sportives, ultra-endurance
+      // Li et al. meta-analysis: 41-60% volume reduction optimal for endurance events
+      // Full taper essential for glycogen supercompensation
+      raceCategory = 'Ultra (3+ hours)';
+      taperRelevance = 'Critical';
+      optimalTaperRange = { min: 40, max: 60 }; // Full taper essential
+    }
+    
+    const totalTSS = preRaceActivities.reduce((sum, a) => sum + (a.tss || 0), 0);
+    
+    // Week 1 = days 1-7 before race (the week immediately before)
+    // Week 2 = days 8-14 before race (two weeks before)
+    const week1Activities = preRaceActivities.filter(a => {
+      const activityDate = new Date(a.date);
+      activityDate.setHours(0, 0, 0, 0);
+      const daysBefore = Math.floor((raceDate - activityDate) / (1000 * 60 * 60 * 24));
+      return daysBefore >= 1 && daysBefore <= 7;
+    });
+    
+    const week2Activities = preRaceActivities.filter(a => {
+      const activityDate = new Date(a.date);
+      activityDate.setHours(0, 0, 0, 0);
+      const daysBefore = Math.floor((raceDate - activityDate) / (1000 * 60 * 60 * 24));
+      return daysBefore >= 8 && daysBefore <= 14;
+    });
+    
+    const lastWeekTSS = week1Activities.reduce((sum, a) => sum + (a.tss || 0), 0);
+    const secondWeekTSS = week2Activities.reduce((sum, a) => sum + (a.tss || 0), 0);
+    
+    // Debug logging
+    console.log('Race date:', raceActivity.date);
+    console.log('Race duration:', raceDurationMinutes, 'min, Category:', raceCategory);
+    console.log('Week 1 activities (days 1-7):', week1Activities.map(a => ({ date: a.date, tss: a.tss })));
+    console.log('Week 2 activities (days 8-14):', week2Activities.map(a => ({ date: a.date, tss: a.tss })));
+    console.log('Week 1 TSS:', lastWeekTSS, 'Week 2 TSS:', secondWeekTSS);
+
+    metrics.preRace.totalTSS = Math.round(totalTSS);
+    metrics.preRace.lastWeekTSS = Math.round(lastWeekTSS);
+    metrics.preRace.secondWeekTSS = Math.round(secondWeekTSS);
+    // Taper ratio: Week 1 / Week 2 - optimal range depends on race duration
+    metrics.preRace.taperRatio = secondWeekTSS > 0 ? Math.round((lastWeekTSS / secondWeekTSS) * 100) : 0;
+    metrics.preRace.avgDailyTSS = Math.round(totalTSS / 14);
+    
+    // Race context
+    metrics.preRace.raceCategory = raceCategory;
+    metrics.preRace.raceDurationMinutes = Math.round(raceDurationMinutes);
+    metrics.preRace.taperRelevance = taperRelevance;
+    metrics.preRace.optimalTaperRange = `${optimalTaperRange.min}-${optimalTaperRange.max}%`;
+
+    // Assess taper quality based on race duration context
+    const taperRatio = metrics.preRace.taperRatio;
+    
+    if (taperRatio >= optimalTaperRange.min && taperRatio <= optimalTaperRange.max) {
+      metrics.preRace.taperQuality = 'Optimal';
+      metrics.preRace.freshnessLevel = 'Fresh';
+    } else if (taperRatio < optimalTaperRange.min) {
+      // More taper than needed
+      if (taperRelevance === 'Low') {
+        metrics.preRace.taperQuality = 'Excessive for race type';
+        metrics.preRace.freshnessLevel = 'Very Fresh (may lose sharpness)';
+      } else {
+        metrics.preRace.taperQuality = 'Good - Well Rested';
+        metrics.preRace.freshnessLevel = 'Very Fresh';
+      }
+    } else if (taperRatio <= optimalTaperRange.max + 20) {
+      metrics.preRace.taperQuality = 'Moderate';
+      metrics.preRace.freshnessLevel = 'Slightly Fatigued';
+    } else {
+      // Much higher than optimal
+      if (taperRelevance === 'Low' || taperRelevance === 'Moderate') {
+        metrics.preRace.taperQuality = 'Acceptable for short race';
+        metrics.preRace.freshnessLevel = 'Normal training load';
+      } else {
+        metrics.preRace.taperQuality = 'Poor - Insufficient Taper';
+        metrics.preRace.freshnessLevel = 'Fatigued';
+      }
+    }
+
+    // Last 3 days analysis
+    const last3Days = preRaceActivities.filter(a => {
+      const daysBefore = Math.floor((new Date(raceActivity.date) - new Date(a.date)) / (1000 * 60 * 60 * 24));
+      return daysBefore <= 3 && daysBefore >= 1;
+    });
+    metrics.preRace.last3DaysTSS = Math.round(last3Days.reduce((sum, a) => sum + (a.tss || 0), 0));
+  }
+
+  return metrics;
+}
+
+function buildAnalysisPrompt(raceActivity, racePlan, riderProfile, feedback, preRaceActivities, detailedMetrics, coachPersona) {
   // Get rider's first name for personalization
   const riderName = riderProfile?.name?.split(' ')[0] || 'Athlete';
   
@@ -376,9 +616,64 @@ function buildAnalysisPrompt(raceActivity, racePlan, riderProfile, feedback, pre
     prompt += `\n`;
   }
 
+  // Detailed Metrics Analysis
+  prompt += `DETAILED PERFORMANCE METRICS:\n`;
+  
+  if (detailedMetrics.power.average) {
+    prompt += `\nPower Analysis:\n`;
+    prompt += `- Average Power: ${detailedMetrics.power.average}W (${detailedMetrics.power.percentOfFTP}% of FTP)\n`;
+    prompt += `- Normalized Power: ${detailedMetrics.power.normalized}W\n`;
+    prompt += `- Intensity Factor (IF): ${detailedMetrics.power.intensityFactor}\n`;
+    prompt += `- Variability Index (VI): ${detailedMetrics.power.variabilityIndex}\n`;
+  }
+  
+  if (detailedMetrics.pacing.quality) {
+    prompt += `\nPacing Analysis:\n`;
+    prompt += `- Pacing Quality: ${detailedMetrics.pacing.quality}\n`;
+    prompt += `- Pacing Score: ${detailedMetrics.pacing.score}/100\n`;
+  }
+  
+  if (detailedMetrics.zones.primary) {
+    prompt += `\nEffort Distribution:\n`;
+    prompt += `- Primary Zone: ${detailedMetrics.zones.primary}\n`;
+    prompt += `- Overall Intensity: ${detailedMetrics.zones.intensity}\n`;
+  }
+  
+  if (detailedMetrics.preRace.totalTSS) {
+    prompt += `\nPre-Race Fatigue Analysis:\n`;
+    prompt += `- 14-Day Total TSS: ${detailedMetrics.preRace.totalTSS}\n`;
+    prompt += `- Week 2 TSS (days 14-8): ${detailedMetrics.preRace.secondWeekTSS}\n`;
+    prompt += `- Week 1 TSS (days 7-1): ${detailedMetrics.preRace.lastWeekTSS}\n`;
+    prompt += `- Taper Ratio: ${detailedMetrics.preRace.taperRatio}% (40-60% is optimal)\n`;
+    prompt += `- Taper Quality: ${detailedMetrics.preRace.taperQuality}\n`;
+    prompt += `- Freshness Level: ${detailedMetrics.preRace.freshnessLevel}\n`;
+    prompt += `- Last 3 Days TSS: ${detailedMetrics.preRace.last3DaysTSS}\n`;
+  }
+  prompt += `\n`;
+
+  // Race Context
+  prompt += `RACE CONTEXT:\n`;
+  const racePriority = feedback?.racePriority || 'B';
+  const racePlatform = feedback?.racePlatform || 'road';
+  const raceDuration = Math.floor(raceActivity.duration / 60);
+  
+  prompt += `- Priority: ${racePriority} (A=key goal, B=important, C=training)\n`;
+  prompt += `- Platform: ${racePlatform}\n`;
+  prompt += `- Duration: ${raceDuration} minutes (${detailedMetrics.preRace.raceCategory || 'Medium'})\n`;
+  
+  // Determine taper relevance based on priority and platform
+  let taperRelevance = detailedMetrics.preRace.taperRelevance || 'Moderate';
+  if (racePriority === 'C' || (racePlatform === 'zwift' && racePriority !== 'A')) {
+    taperRelevance = 'Low';
+  } else if (racePriority === 'A' && raceDuration > 90) {
+    taperRelevance = 'Critical';
+  }
+  
+  prompt += `- Taper Relevance: ${taperRelevance}\n\n`;
+
   // Rider Feedback
   if (feedback) {
-    prompt += `ATHLETE'S FEEDBACK:\n`;
+    prompt += `ATHLETE'S SUBJECTIVE FEEDBACK:\n`;
     prompt += `- Overall Feeling: ${feedback.overallFeeling}/5 stars\n`;
     if (feedback.planAdherence) {
       prompt += `- Plan Adherence: ${feedback.planAdherence}\n`;
@@ -419,13 +714,48 @@ function buildAnalysisPrompt(raceActivity, racePlan, riderProfile, feedback, pre
 - Be specific with numbers and data, but conversational in tone
 - Focus on actionable insights that feel helpful, not overwhelming
 
-CRITICAL ANALYSIS REQUIREMENTS:
-- ANALYZE PRE-RACE TRAINING LOAD: Look at the TSS data from the 14 days before the race
-- ASSESS FATIGUE STATE: Was the athlete properly rested (taper ratio 40-60% is ideal) or carrying fatigue?
-- CONNECT DOTS: If performance was poor and training load was high, mention fatigue as a likely factor
-- TAPER QUALITY: Comment on whether the taper was appropriate (gradual reduction in volume, maintaining intensity)
-- FRESHNESS: Did they arrive at the race fresh or tired? Use TSS patterns to determine this
-- RECOMMENDATIONS: If taper was poor, recommend better pre-race preparation for next time`;
+CRITICAL ANALYSIS REQUIREMENTS - TAPER CONTEXT:
+${taperRelevance === 'Low' ? `
+- TAPER NOT CRITICAL: This is a ${racePriority}-priority ${racePlatform} race (${raceDuration} min)
+- DO NOT attribute performance issues to taper/freshness unless athlete explicitly felt flat
+- Focus on tactical execution, pacing decisions, and race-specific skills
+- Training load is INFORMATIONAL ONLY - not a causal factor for short/training races
+- If athlete went too hard early, that's tactical impatience, NOT fatigue
+` : taperRelevance === 'Moderate' ? `
+- TAPER MODERATELY RELEVANT: ${racePriority}-priority race, ${raceDuration} minutes
+- Consider taper as ONE factor among many, not the primary explanation
+- Balance taper discussion with tactical and execution factors
+- If taper was poor AND athlete felt flat, mention it; otherwise focus on race execution
+` : `
+- TAPER HIGHLY RELEVANT: This is an ${racePriority}-priority race (${raceDuration} min)
+- Analyze pre-race training load carefully - taper quality matters significantly
+- Assess fatigue state: Was athlete properly rested (taper ratio ${detailedMetrics.preRace.optimalTaperRange} optimal)?
+- Connect dots: If performance was poor and training load was high, mention fatigue as likely factor
+- Freshness: Did they arrive fresh or tired? Use TSS patterns to determine this
+`}
+
+PLATFORM-SPECIFIC CONTEXT:
+${racePlatform === 'zwift' ? `
+- ZWIFT DYNAMICS: Acknowledge category mixing, aggressive starts, unrealistic early demands
+- Example: "Early race dynamics were distorted by category overlap, increasing cost of initial positioning"
+- Overcooked starts are EXPECTED in Zwift - this is tactical, not fitness-related
+` : racePlatform === 'gravel' ? `
+- GRAVEL RACING: Variable terrain, technical skills, equipment choices matter significantly
+- Pacing is less about watts, more about terrain management and recovery between efforts
+` : ''}
+
+PACING ANALYSIS - BE SPECIFIC:
+- Don't just say "IF 0.76 shows solid effort" - that's descriptive, not evaluative
+- Instead: "Overall intensity appropriate, but timing of work distribution more critical than total IF"
+- Focus on WHEN power was applied, not just average metrics
+- Distinguish between tactical pacing (when to go hard) vs physiological pacing (power distribution)
+
+RECOMMENDATIONS - BE SPECIFIC:
+- NOT generic: "Practice pacing strategies"
+- INSTEAD specific: "Practice delayed engagement in first 3-5 minutes of ${racePlatform} races"
+- NOT generic: "Incorporate race-specific intervals"
+- INSTEAD specific: "Train over-under blocks that start below threshold before spikes"
+- Link recommendations directly to observed issues in THIS race`;
 
   return prompt;
 }

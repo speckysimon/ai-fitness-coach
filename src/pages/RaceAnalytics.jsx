@@ -6,19 +6,16 @@ import { formatDuration, formatDistance } from '../lib/utils';
 import { getRaceTypeLabel } from '../lib/raceUtils';
 import ActivityDetailModal from '../components/ActivityDetailModal';
 
-const RaceAnalytics = ({ stravaTokens }) => {
+const RaceAnalytics = () => {
   const [races, setRaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [ftp, setFtp] = useState(null);
 
   useEffect(() => {
-    if (stravaTokens) {
-      loadRaceData();
-    } else {
-      setLoading(false);
-    }
-  }, [stravaTokens]);
+    // Load from Dashboard cache (already includes Strava + Intervals + Manual)
+    loadRaceData();
+  }, []);
 
   const loadRaceData = async () => {
     setLoading(true);
@@ -59,29 +56,10 @@ const RaceAnalytics = ({ stravaTokens }) => {
         console.log('Using cached activities for race analytics');
         allActivities = JSON.parse(cachedActivities);
       } else {
-        // Fetch activities from Strava (no date filter to ensure we get all tagged races)
-        console.log('Fetching all activities to find tagged races...');
-        
-        const response = await fetch(
-          `/api/strava/activities?access_token=${stravaTokens.access_token}&per_page=200`
-        );
-        
-        if (!response.ok) {
-          // Handle 401 Unauthorized - token expired
-          if (response.status === 401) {
-            throw new Error('Your Strava session has expired. Please refresh the page or log in again.');
-          }
-          throw new Error('Failed to fetch activities');
-        }
-        
-        const data = await response.json();
-        
-        // Check if response is an error object BEFORE using it
-        if (data.error || !Array.isArray(data)) {
-          throw new Error(data.error || 'Invalid response from Strava');
-        }
-        
-        allActivities = data;
+        console.log('⚠️ [Race Analytics] No cached activities. Please visit Dashboard first.');
+        setRaces([]);
+        setLoading(false);
+        return;
       }
       
       // Ensure allActivities is an array before using it

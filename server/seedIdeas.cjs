@@ -6,8 +6,8 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-// Use admin database for ideas (database.sqlite)
-const dbPath = path.join(__dirname, 'database.sqlite');
+// Use admin database for ideas (fitness-coach-admin.db)
+const dbPath = path.join(__dirname, 'fitness-coach-admin.db');
 const db = new Database(dbPath);
 
 console.log(`📂 Using admin database: ${dbPath}`);

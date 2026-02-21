@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const router = express.Router();
-const db = new Database(path.join(__dirname, '../database.sqlite'));
+const db = new Database(path.join(__dirname, '../fitness-coach.db'));
 
 // Middleware to verify session token
 const verifyToken = (req, res, next) => {
@@ -45,7 +45,7 @@ router.get('/', verifyToken, (req, res) => {
 // POST create new race
 router.post('/', verifyToken, (req, res) => {
   try {
-    const { name, date, location, distance, raceType, status, priority, notes } = req.body;
+    const { name, date, location, distance, elevation, url, registrationDeadline, entryFee, raceType, status, priority, isTeamRace, notes } = req.body;
     
     if (!name || !date) {
       return res.status(400).json({ error: 'Name and date are required' });
@@ -53,17 +53,22 @@ router.post('/', verifyToken, (req, res) => {
     
     const result = db.prepare(`
       INSERT INTO season_races 
-      (user_id, name, date, location, distance, race_type, status, priority, notes, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      (user_id, name, date, location, distance, elevation, url, registration_deadline, entry_fee, race_type, status, priority, is_team_race, notes, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `).run(
       req.userId,
       name,
       date,
       location || null,
       distance || null,
+      elevation || null,
+      url || null,
+      registrationDeadline || null,
+      entryFee || null,
       raceType || 'road_race',
       status || 'provisional',
       priority || 'B',
+      isTeamRace ? 1 : 0,
       notes || null
     );
     
@@ -80,7 +85,7 @@ router.post('/', verifyToken, (req, res) => {
 router.put('/:id', verifyToken, (req, res) => {
   try {
     const { id } = req.params;
-    const { name, date, location, distance, raceType, status, priority, notes } = req.body;
+    const { name, date, location, distance, elevation, url, registrationDeadline, entryFee, raceType, status, priority, isTeamRace, notes } = req.body;
     
     // Verify race belongs to user
     const race = db.prepare('SELECT * FROM season_races WHERE id = ? AND user_id = ?').get(id, req.userId);
@@ -90,17 +95,23 @@ router.put('/:id', verifyToken, (req, res) => {
     
     db.prepare(`
       UPDATE season_races 
-      SET name = ?, date = ?, location = ?, distance = ?, race_type = ?, 
-          status = ?, priority = ?, notes = ?, updated_at = datetime('now')
+      SET name = ?, date = ?, location = ?, distance = ?, elevation = ?, url = ?, 
+          registration_deadline = ?, entry_fee = ?, race_type = ?, 
+          status = ?, priority = ?, is_team_race = ?, notes = ?, updated_at = datetime('now')
       WHERE id = ? AND user_id = ?
     `).run(
       name,
       date,
       location || null,
       distance || null,
+      elevation || null,
+      url || null,
+      registrationDeadline || null,
+      entryFee || null,
       raceType || 'road_race',
       status || 'provisional',
       priority || 'B',
+      isTeamRace ? 1 : 0,
       notes || null,
       id,
       req.userId

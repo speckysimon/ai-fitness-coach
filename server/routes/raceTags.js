@@ -34,15 +34,19 @@ router.get('/', verifySession, (req, res) => {
 // Set race tag for an activity
 router.post('/', verifySession, (req, res) => {
   try {
-    const { activityId, isRace, raceType } = req.body;
+    const { activityId, isRace, raceType, activitySource = 'strava' } = req.body;
 
     if (!activityId) {
       return res.status(400).json({ error: 'Activity ID required' });
     }
 
-    raceTagDb.setRaceTag(req.userId, activityId, isRace, raceType);
+    // Validate activity source
+    const validSources = ['strava', 'intervals', 'manual'];
+    const source = validSources.includes(activitySource) ? activitySource : 'strava';
+
+    raceTagDb.setRaceTag(req.userId, activityId, isRace, raceType, source);
     
-    res.json({ success: true, message: 'Race tag updated' });
+    res.json({ success: true, message: 'Race tag updated', source });
   } catch (error) {
     console.error('Error setting race tag:', error);
     res.status(500).json({ error: 'Failed to set race tag' });
@@ -59,8 +63,13 @@ router.post('/bulk', verifySession, (req, res) => {
     }
 
     // Update each race tag
-    Object.entries(raceTags).forEach(([activityId, isRace]) => {
-      raceTagDb.setRaceTag(req.userId, activityId, isRace);
+    // Expected format: { "activityId": { isRace: true, source: "strava", raceType: "..." }, ... }
+    Object.entries(raceTags).forEach(([activityId, tagData]) => {
+      const isRace = typeof tagData === 'boolean' ? tagData : tagData.isRace;
+      const source = tagData.source || 'strava';
+      const raceType = tagData.raceType || null;
+      
+      raceTagDb.setRaceTag(req.userId, activityId, isRace, raceType, source);
     });
 
     res.json({ success: true, message: 'Race tags updated' });

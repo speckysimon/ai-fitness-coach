@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Key, Plus, Trash2, Eye, EyeOff, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Key, Plus, Trash2, Eye, EyeOff, AlertCircle, CheckCircle, RefreshCw, Edit2 } from 'lucide-react';
 import { AdminCard as Card, AdminCardContent as CardContent, AdminCardHeader as CardHeader, AdminCardTitle as CardTitle, AdminCardDescription as CardDescription } from '../../components/ui/AdminCard';
 import { AdminButton as Button } from '../../components/ui/AdminButton';
 
@@ -7,6 +7,7 @@ const APIKeysPage = () => {
   const [apiKeys, setApiKeys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingKey, setEditingKey] = useState(null);
   const [visibleKeys, setVisibleKeys] = useState({});
   const [formData, setFormData] = useState({
     keyName: '',
@@ -91,6 +92,64 @@ const APIKeysPage = () => {
     } catch (error) {
       console.error('Error creating API key:', error);
       setError('Failed to store API key');
+    }
+  };
+
+  const handleEditKey = (key) => {
+    setEditingKey(key.provider);
+    setFormData({
+      keyName: key.key_name || key.provider,
+      provider: key.provider,
+      apiKey: key.api_key || '',
+      clientId: key.client_id || '',
+      clientSecret: '', // Don't pre-fill for security
+      redirectUri: key.redirect_uri || '',
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleUpdateKey = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    const requiresOAuth = ['strava', 'google', 'intervals'].includes(formData.provider);
+    if (requiresOAuth) {
+      if (!formData.clientId || !formData.redirectUri) {
+        setError('Client ID and Redirect URI are required for OAuth providers');
+        return;
+      }
+      // Client secret is optional for updates (only if changing)
+    } else {
+      // API key is optional for updates (only if changing)
+    }
+
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch(`/api/admin/api-keys/${editingKey}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSuccess('API credentials updated successfully');
+        setFormData({ keyName: '', provider: 'openai', apiKey: '', clientId: '', clientSecret: '', redirectUri: '' });
+        setShowCreateModal(false);
+        setEditingKey(null);
+        loadApiKeys();
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(data.error || 'Failed to update API key');
+      }
+    } catch (error) {
+      console.error('Error updating API key:', error);
+      setError('Failed to update API key');
     }
   };
 
@@ -272,14 +331,26 @@ const APIKeysPage = () => {
                         Created: {new Date(key.created_at).toLocaleString()}
                       </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteKey(key.provider)}
-                      className="text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditKey(key)}
+                        className="text-blue-600 hover:bg-blue-50"
+                        title="Edit credentials"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteKey(key.provider)}
+                        className="text-red-600 hover:bg-red-50"
+                        title="Delete key"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -291,18 +362,38 @@ const APIKeysPage = () => {
       {/* Create API Key Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md relative">
             <CardHeader>
-              <CardTitle>Add API Credentials</CardTitle>
-              <CardDescription>
-                {['strava', 'google', 'intervals'].includes(formData.provider)
-                  ? 'Store OAuth credentials (Client ID, Secret, Redirect URI)'
-                  : 'Store a new API key for a service provider'
-                }
-              </CardDescription>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle>{editingKey ? 'Edit API Credentials' : 'Add API Credentials'}</CardTitle>
+                  <CardDescription>
+                    {editingKey
+                      ? 'Update credentials (leave Client Secret/API Key empty to keep existing)'
+                      : ['strava', 'google', 'intervals'].includes(formData.provider)
+                      ? 'Store OAuth credentials (Client ID, Secret, Redirect URI)'
+                      : 'Store a new API key for a service provider'
+                    }
+                  </CardDescription>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setEditingKey(null);
+                    setFormData({ keyName: '', provider: 'openai', apiKey: '', clientId: '', clientSecret: '', redirectUri: '' });
+                    setError('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors ml-4"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleCreateKey} className="space-y-4">
+              <form onSubmit={editingKey ? handleUpdateKey : handleCreateKey} className="space-y-4">
                 {/* Key Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -369,10 +460,10 @@ const APIKeysPage = () => {
                         value={formData.clientSecret}
                         onChange={(e) => setFormData({ ...formData, clientSecret: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                        placeholder="Your client secret"
+                        placeholder={editingKey ? "Leave empty to keep existing" : "Your client secret"}
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Will be encrypted before storage
+                        {editingKey ? 'Leave empty to keep existing secret' : 'Will be encrypted before storage'}
                       </p>
                     </div>
 
@@ -403,10 +494,10 @@ const APIKeysPage = () => {
                       value={formData.apiKey}
                       onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                      placeholder="sk-..."
+                      placeholder={editingKey ? "Leave empty to keep existing" : "sk-..."}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Your API key will be encrypted before storage
+                      {editingKey ? 'Leave empty to keep existing key' : 'Your API key will be encrypted before storage'}
                     </p>
                   </div>
                 )}
@@ -415,13 +506,14 @@ const APIKeysPage = () => {
                 <div className="flex gap-3">
                   <Button type="submit" className="flex-1">
                     <Key className="w-4 h-4 mr-2" />
-                    Add Key
+                    {editingKey ? 'Update Key' : 'Add Key'}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => {
                       setShowCreateModal(false);
+                      setEditingKey(null);
                       setFormData({ keyName: '', provider: 'openai', apiKey: '', clientId: '', clientSecret: '', redirectUri: '' });
                       setError('');
                     }}

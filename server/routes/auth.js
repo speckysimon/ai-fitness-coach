@@ -75,28 +75,49 @@ router.post('/register', (req, res) => {
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
 
+  // Structured logging for debugging
+  console.log('[AUTH] Login attempt:', { email, timestamp: new Date().toISOString() });
+
   if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
+    console.log('[AUTH] Login failed: Missing credentials');
+    return res.status(400).json({ 
+      ok: false,
+      error: { code: 'MISSING_CREDENTIALS', message: 'Email and password are required' }
+    });
   }
 
   try {
+    // Check if user exists
+    const userExists = userDb.findByEmail(email);
+    console.log('[AUTH] User lookup:', { email, found: !!userExists });
+
     const user = userDb.verifyPassword(email, password);
+    console.log('[AUTH] Password verification:', { email, match: !!user });
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      console.log('[AUTH] Login failed: Invalid credentials');
+      return res.status(401).json({ 
+        ok: false,
+        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' }
+      });
     }
 
     // Create session
     const sessionToken = sessionDb.create(user.id);
+    console.log('[AUTH] Session created:', { userId: user.id, tokenLength: sessionToken.length });
 
     // Get OAuth tokens
     const stravaTokens = stravaTokenDb.findByUserId(user.id);
     const googleTokens = googleTokenDb.findByUserId(user.id);
 
+    console.log('[AUTH] Login successful:', { userId: user.id, email: user.email });
+
     res.json({
+      ok: true,
       success: true,
       sessionToken,
       user: {
+        id: user.id,
         email: user.email,
         name: user.name,
         is_demo: !!user.is_demo,
@@ -120,8 +141,12 @@ router.post('/login', (req, res) => {
       },
     });
   } catch (error) {
+    console.error('[AUTH] Login error:', error);
     logger.error('Login error:', error);
-    res.status(500).json({ error: 'Failed to login' });
+    res.status(500).json({ 
+      ok: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to login' }
+    });
   }
 });
 

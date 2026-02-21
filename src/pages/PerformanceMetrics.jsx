@@ -5,6 +5,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { format, subWeeks, startOfWeek, endOfWeek, isWithinInterval, startOfYear, differenceInWeeks } from 'date-fns';
 import logger from '../lib/logger';
 import { calculateEfficiencyMetrics } from '../lib/riderAnalytics';
+import { MetricTooltip } from '../components/MetricTooltip';
+import { fetchUnifiedActivities } from '../lib/activitySync';
 
 const PerformanceMetrics = ({ stravaTokens }) => {
   const [ftpHistory, setFtpHistory] = useState([]);
@@ -30,168 +32,13 @@ const PerformanceMetrics = ({ stravaTokens }) => {
   };
 
   useEffect(() => {
-    if (stravaTokens && stravaTokens.access_token) {
-      loadFTPHistory();
-    } else {
-      setLoading(false);
-    }
-  }, [stravaTokens]); // Only reload when tokens change, not when timeRange changes
+    loadFTPHistory();
+  }, []); // Only reload when tokens change, not when timeRange changes
 
-  const calculateWeeklyFTP = (activities, weekStart) => {
-    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-    
-    // Filter activities for this week with power data
-    const weekActivities = activities.filter(a => {
-      if (!a.date) return false;
-      const activityDate = new Date(a.date);
-      const inInterval = isWithinInterval(activityDate, { start: weekStart, end: weekEnd });
-      const hasPower = a.avgPower && a.avgPower > 0;
-      const longEnough = a.duration >= 1200; // At least 20 min
-      
-      return inInterval && hasPower && longEnough;
-    });
+  // REMOVED: calculateWeeklyFTP - all FTP calculations now done by backend
+  // REMOVED: calculateWeeklyFTHR - all FTHR calculations now done by backend
+  // Frontend only displays backend results (single source of truth)
 
-    if (weekActivities.length === 0) return null;
-
-    // Find best effort for the week (20-60 min activities)
-    const sortedByPower = [...weekActivities].sort((a, b) => 
-      (b.normalizedPower || b.avgPower) - (a.normalizedPower || a.avgPower)
-    );
-
-    // Look for activities between 20-60 minutes
-    const bestEffort = sortedByPower.find(a => a.duration >= 1200 && a.duration <= 3600);
-    
-    if (bestEffort) {
-      const power = bestEffort.normalizedPower || bestEffort.avgPower;
-      const durationMin = bestEffort.duration / 60;
-      
-      // 20-30 min efforts: use 95% of power
-      if (durationMin <= 30) {
-        return Math.round(power * 0.95);
-      } else {
-        // 30-60 min efforts: use 100% of power
-        return Math.round(power);
-      }
-    }
-
-    // If no ideal effort found, use the longest effort available
-    if (sortedByPower.length > 0) {
-      const longestEffort = [...weekActivities].sort((a, b) => b.duration - a.duration)[0];
-      if (longestEffort && longestEffort.duration >= 1200) {
-        const power = longestEffort.normalizedPower || longestEffort.avgPower;
-        const durationMin = longestEffort.duration / 60;
-        
-        // Adjust based on duration
-        if (durationMin <= 20) {
-          return Math.round(power * 0.90); // Very short, more conservative
-        } else if (durationMin <= 30) {
-          return Math.round(power * 0.95);
-        } else if (durationMin <= 60) {
-          return Math.round(power);
-        } else {
-          return Math.round(power * 1.0); // Longer efforts, assume it's close to FTP
-        }
-      }
-    }
-
-    return null;
-  };
-
-  const calculateWeeklyFTHR = (activities, weekStart) => {
-    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-    
-    // Filter activities for this week with HR data
-    const weekActivities = activities.filter(a => {
-      if (!a.date) return false;
-      const activityDate = new Date(a.date);
-      const inInterval = isWithinInterval(activityDate, { start: weekStart, end: weekEnd });
-      const hasHR = a.avgHeartRate && a.avgHeartRate > 0;
-      const longEnough = a.duration >= 1200; // At least 20 min
-      
-      return inInterval && hasHR && longEnough;
-    });
-
-    if (weekActivities.length === 0) return null;
-
-    // Find best effort for the week (20-60 min activities)
-    const sortedByHR = [...weekActivities].sort((a, b) => 
-      b.avgHeartRate - a.avgHeartRate
-    );
-
-    // Look for activities between 20-60 minutes
-    const bestEffort = sortedByHR.find(a => a.duration >= 1200 && a.duration <= 3600);
-    
-    if (bestEffort) {
-      const hr = bestEffort.avgHeartRate;
-      const durationMin = bestEffort.duration / 60;
-      
-      // 20-30 min efforts: use 95% of HR
-      if (durationMin <= 30) {
-        return Math.round(hr * 0.95);
-      } else {
-        // 30-60 min efforts: use 100% of HR
-        return Math.round(hr);
-      }
-    }
-
-    // If no ideal effort found, use the longest effort available
-    if (sortedByHR.length > 0) {
-      const longestEffort = [...weekActivities].sort((a, b) => b.duration - a.duration)[0];
-      if (longestEffort && longestEffort.duration >= 1200) {
-        const hr = longestEffort.avgHeartRate;
-        const durationMin = longestEffort.duration / 60;
-        
-        // Adjust based on duration
-        if (durationMin <= 20) {
-          return Math.round(hr * 0.90);
-        } else if (durationMin <= 30) {
-          return Math.round(hr * 0.95);
-        } else if (durationMin <= 60) {
-          return Math.round(hr);
-        } else {
-          return Math.round(hr * 1.0);
-        }
-      }
-    }
-
-    return null;
-  };
-
-  const refreshAccessToken = async () => {
-    if (!stravaTokens?.refresh_token) {
-      throw new Error('No refresh token available');
-    }
-
-    try {
-      const response = await fetch('/api/strava/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: stravaTokens.refresh_token }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.requiresReauth) {
-          throw new Error('REAUTH_REQUIRED');
-        }
-        throw new Error(errorData.error || 'Failed to refresh token');
-      }
-
-      const data = await response.json();
-      const newTokens = {
-        ...stravaTokens,
-        ...data.tokens,
-      };
-
-      // Update tokens in localStorage
-      localStorage.setItem('strava_tokens', JSON.stringify(newTokens));
-
-      return newTokens;
-    } catch (error) {
-      logger.error('Token refresh error:', error);
-      throw error;
-    }
-  };
 
   const loadFTPHistory = async () => {
     setLoading(true);
@@ -204,234 +51,125 @@ const PerformanceMetrics = ({ stravaTokens }) => {
       const weeksFromYearStart = differenceInWeeks(now, yearStart) + 1;
       const maxWeeks = Math.max(24, weeksFromYearStart);
       
-      let activities = [];
-
-      if (stravaTokens && stravaTokens.access_token) {
-        let tokensToUse = stravaTokens;
-
-        // Check if token is expired (expires_at is in seconds)
-        const nowSeconds = Math.floor(Date.now() / 1000);
-        if (tokensToUse.expires_at && tokensToUse.expires_at < nowSeconds) {
-          try {
-            tokensToUse = await refreshAccessToken();
-          } catch (refreshError) {
-            if (refreshError.message === 'REAUTH_REQUIRED') {
-              throw new Error('Your Strava session has expired. Please reconnect Strava in Settings.');
-            }
-            throw refreshError;
-          }
-        }
-
-        // Fetch from Jan 1st or 24 weeks ago, whichever is earlier
-        const fetchFrom = Math.min(
-          Math.floor(yearStart.getTime() / 1000),
-          Math.floor(Date.now() / 1000) - (24 * 7 * 24 * 60 * 60)
-        );
-        
-        const userId = localStorage.getItem('current_user') ? JSON.parse(localStorage.getItem('current_user')).email : 'anonymous';
-        const response = await fetch(
-          `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${fetchFrom}&per_page=200&user_id=${encodeURIComponent(userId)}`
-        );
-        
-        // Handle 401/403 by attempting token refresh
-        if (response.status === 401 || response.status === 403) {
-          try {
-            tokensToUse = await refreshAccessToken();
-            // Retry the request with new token
-            const retryResponse = await fetch(
-              `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${fetchFrom}&per_page=200`
-            );
-            
-            if (!retryResponse.ok) {
-              const errorData = await retryResponse.json().catch(() => ({}));
-              throw new Error(errorData.details || errorData.error || 'Failed to fetch activities after token refresh');
-            }
-            
-            const retryData = await retryResponse.json();
-            if (retryData.error) {
-              throw new Error(retryData.error);
-            }
-            activities = retryData;
-          } catch (refreshError) {
-            if (refreshError.message === 'REAUTH_REQUIRED') {
-              throw new Error('Your Strava session has expired. Please reconnect Strava in Settings.');
-            }
-            throw new Error('Failed to refresh your Strava connection. Please try reconnecting in Settings.');
-          }
-        } else if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          logger.error('FTP History API Error:', response.status, errorData);
-          throw new Error(errorData.details || errorData.error || `HTTP ${response.status}: Failed to fetch activities`);
-        } else {
-          const data = await response.json();
-          
-          // Check if response is an error object
-          if (data.error) {
-            throw new Error(data.error);
-          }
-          
-          activities = data;
-        }
-        
-        // Collect debug info
-        const debug = {
-          totalActivities: activities.length,
-          withPower: 0,
-          longEnough: 0,
-          suitable: 0,
-        };
-        
-        // Collect debug info for display
-        if (activities.length > 0) {
-          const withPower = activities.filter(a => a.avgPower && a.avgPower > 0);
-          debug.withPower = withPower.length;
-          
-          const longEnough = activities.filter(a => a.duration >= 1200);
-          debug.longEnough = longEnough.length;
-          
-          const suitable = activities.filter(a => a.avgPower && a.avgPower > 0 && a.duration >= 1200);
-          debug.suitable = suitable.length;
-        }
-        
-        setDebugInfo(debug);
+      logger.info('[Performance Metrics] Fetching activities from unified database...');
+      
+      // Fetch from unified database (365 days for full history)
+      const result = await fetchUnifiedActivities({ windowDays: 365 });
+      
+      if (!result.ok) {
+        logger.error('[Performance Metrics] Failed to fetch from database:', result.error);
+        setLoading(false);
+        return;
       }
 
-      // Calculate current FTP using the same backend service as Dashboard
-      let currentFTPValue = null;
+      const activities = result.data || [];
+      logger.info('[Performance Metrics] Loaded activities from database:', activities.length);
+      
+      // Collect debug info
+      const debug = {
+        totalActivities: activities.length,
+        withPower: 0,
+        longEnough: 0,
+        suitable: 0,
+      };
+      
+      // Collect debug info for display
       if (activities.length > 0) {
+        const withPower = activities.filter(a => a.avgPower && a.avgPower > 0);
+        debug.withPower = withPower.length;
+        
+        const longEnough = activities.filter(a => a.duration >= 1200);
+        debug.longEnough = longEnough.length;
+        
+        const suitable = activities.filter(a => a.avgPower && a.avgPower > 0 && a.duration >= 1200);
+        debug.suitable = suitable.length;
+      }
+      
+      setDebugInfo(debug);
+
+      // Use backend /ftp-history and /fthr-history endpoints - single source of truth
+      // No frontend calculation, no gap-filling (honest data)
+      let currentFTPValue = null;
+      let currentFTHRValue = null;
+      let ftpHistoryData = [];
+      let fthrHistoryData = [];
+      
+      if (activities.length > 0) {
+        // Fetch FTP history from backend
         try {
-          // Log activities with power data for debugging
-          const powerActivities = activities.filter(a => a.avgPower && a.avgPower > 0 && a.duration >= 1200);
-          const recentPowerActivities = powerActivities.filter(a => {
-            const activityDate = new Date(a.date);
-            const sixWeeksAgo = new Date();
-            sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
-            return activityDate >= sixWeeksAgo;
-          });
-          logger.debug('FTP History - Total activities:', activities.length);
-          logger.debug('FTP History - Power activities (>=20min):', powerActivities.length);
-          logger.debug('FTP History - Recent power activities (last 6 weeks):', recentPowerActivities.length);
-          if (recentPowerActivities.length > 0) {
-            const best = recentPowerActivities.sort((a, b) => 
-              (b.normalizedPower || b.avgPower) - (a.normalizedPower || a.avgPower)
-            )[0];
-            logger.debug('FTP History - Best recent effort:', {
-              date: best.date,
-              power: best.normalizedPower || best.avgPower,
-              duration: best.duration,
-              durationMin: Math.round(best.duration / 60)
-            });
-          }
-          
-          const ftpResponse = await fetch('/api/analytics/ftp', {
+          const ftpHistoryResponse = await fetch('/api/analytics/ftp-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ activities }),
+            body: JSON.stringify({ activities, weeks: maxWeeks }),
           });
           
-          if (ftpResponse.ok) {
-            const ftpData = await ftpResponse.json();
-            currentFTPValue = ftpData.ftp;
+          if (ftpHistoryResponse.ok) {
+            const data = await ftpHistoryResponse.json();
+            currentFTPValue = data.currentFTP?.ftp || null;
+            
+            // Transform backend history to display format
+            // NO gap-filling - show honest data
+            ftpHistoryData = data.history
+              .filter(h => h.ftp !== null)
+              .map(h => ({
+                week: format(new Date(h.weekStart), 'MMM d'),
+                weekFull: format(new Date(h.weekStart), 'MMM d, yyyy'),
+                ftp: h.ftp,
+                confidence: h.confidence,
+                confidenceLevel: h.confidenceLevel,
+                date: h.weekStart,
+              }));
+            
+            logger.info('[Performance Metrics] Loaded', ftpHistoryData.length, 'weeks FTP data from backend');
           } else {
-            logger.error('FTP History - Backend FTP request failed:', ftpResponse.status);
+            logger.error('Performance Metrics - Backend FTP history request failed:', ftpHistoryResponse.status);
           }
         } catch (error) {
-          logger.error('Error fetching FTP from backend:', error);
+          logger.error('Error fetching FTP history from backend:', error);
         }
-      }
-
-      // Calculate FTP for each week
-      const history = [];
-
-      for (let i = 0; i < maxWeeks; i++) {
-        const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
-        const ftp = calculateWeeklyFTP(activities, weekStart);
         
-        if (ftp) {
-          history.unshift({
-            week: format(weekStart, 'MMM d'),
-            weekFull: format(weekStart, 'MMM d, yyyy'),
-            ftp: ftp,
-            date: weekStart.toISOString(),
+        // Fetch FTHR history from backend
+        try {
+          const fthrHistoryResponse = await fetch('/api/analytics/fthr-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ activities, weeks: maxWeeks }),
           });
-        }
-      }
-      
-      // Fill in gaps with previous FTP value (carry forward)
-      const filledHistory = [];
-      let lastFTP = null;
-      
-      for (let i = 0; i < maxWeeks; i++) {
-        const weekStart = startOfWeek(subWeeks(now, maxWeeks - 1 - i), { weekStartsOn: 1 });
-        const existingWeek = history.find(h => h.date === weekStart.toISOString());
-        
-        if (existingWeek) {
-          lastFTP = existingWeek.ftp;
-          filledHistory.push(existingWeek);
-        } else if (lastFTP) {
-          filledHistory.push({
-            week: format(weekStart, 'MMM d'),
-            weekFull: format(weekStart, 'MMM d, yyyy'),
-            ftp: lastFTP,
-            date: weekStart.toISOString(),
-            estimated: true,
-          });
-        }
-      }
-
-      setFtpHistory(filledHistory);
-      // Use backend FTP value if available, otherwise fall back to history
-      const fallbackFTP = filledHistory.length > 0 ? filledHistory[filledHistory.length - 1].ftp : null;
-      const finalFTP = currentFTPValue !== null && currentFTPValue !== undefined ? currentFTPValue : fallbackFTP;
-      setCurrentFTP(finalFTP);
-
-      // Calculate FTHR for each week
-      const fthrHist = [];
-      let currentFTHRValue = null;
-
-      for (let i = 0; i < maxWeeks; i++) {
-        const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
-        const fthr = calculateWeeklyFTHR(activities, weekStart);
-        
-        if (fthr) {
-          fthrHist.unshift({
-            week: format(weekStart, 'MMM d'),
-            weekFull: format(weekStart, 'MMM d, yyyy'),
-            fthr: fthr,
-            date: weekStart.toISOString(),
-          });
-        }
-      }
-      
-      // Fill in gaps with previous FTHR value (carry forward)
-      const filledFTHRHistory = [];
-      let lastFTHR = null;
-      
-      for (let i = 0; i < maxWeeks; i++) {
-        const weekStart = startOfWeek(subWeeks(now, maxWeeks - 1 - i), { weekStartsOn: 1 });
-        const existingWeek = fthrHist.find(h => h.date === weekStart.toISOString());
-        
-        if (existingWeek) {
-          lastFTHR = existingWeek.fthr;
-          filledFTHRHistory.push(existingWeek);
-        } else if (lastFTHR) {
-          filledFTHRHistory.push({
-            week: format(weekStart, 'MMM d'),
-            weekFull: format(weekStart, 'MMM d, yyyy'),
-            fthr: lastFTHR,
-            date: weekStart.toISOString(),
-            estimated: true,
-          });
+          
+          if (fthrHistoryResponse.ok) {
+            const data = await fthrHistoryResponse.json();
+            currentFTHRValue = data.currentFTHR?.fthr || null;
+            
+            // Transform backend history to display format
+            // NO gap-filling, NO 120 bpm guard - show honest data
+            fthrHistoryData = data.history
+              .filter(h => h.fthr !== null)
+              .map(h => ({
+                week: format(new Date(h.weekStart), 'MMM d'),
+                weekFull: format(new Date(h.weekStart), 'MMM d, yyyy'),
+                fthr: h.fthr,
+                confidence: h.confidence,
+                confidenceLevel: h.confidenceLevel,
+                date: h.weekStart,
+              }));
+            
+            logger.info('[Performance Metrics] Loaded', fthrHistoryData.length, 'weeks FTHR data from backend');
+          } else {
+            logger.error('Performance Metrics - Backend FTHR history request failed:', fthrHistoryResponse.status);
+          }
+        } catch (error) {
+          logger.error('Error fetching FTHR history from backend:', error);
         }
       }
 
-      setFthrHistory(filledFTHRHistory);
-      const fallbackFTHR = filledFTHRHistory.length > 0 ? filledFTHRHistory[filledFTHRHistory.length - 1].fthr : null;
-      setCurrentFTHR(fallbackFTHR);
+      setFtpHistory(ftpHistoryData);
+      setCurrentFTP(currentFTPValue);
+      setFthrHistory(fthrHistoryData);
+      setCurrentFTHR(currentFTHRValue);
 
       // Calculate aerobic efficiency metrics
-      if (activities.length > 0 && finalFTP) {
-        const efficiency = calculateEfficiencyMetrics(activities, finalFTP);
+      if (activities.length > 0 && currentFTPValue) {
+        const efficiency = calculateEfficiencyMetrics(activities, currentFTPValue);
         setEfficiencyMetrics(efficiency);
       }
 
@@ -560,15 +298,18 @@ const PerformanceMetrics = ({ stravaTokens }) => {
         {/* Current FTP */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Current FTP</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+              Current FTP
+              <MetricTooltip type="ftp" iconClassName="text-yellow-500 dark:text-yellow-400" />
+            </CardTitle>
             <Zap className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">
-              {currentFTP ? `${currentFTP}W` : 'N/A'}
+              {currentFTP ? `${currentFTP}W` : <span className="text-base text-gray-400 dark:text-gray-500">Insufficient data</span>}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Functional Threshold Power
+              {currentFTP ? 'Functional Threshold Power' : 'Needs 20-60 min steady effort'}
             </p>
           </CardContent>
         </Card>
@@ -576,15 +317,18 @@ const PerformanceMetrics = ({ stravaTokens }) => {
         {/* Current FTHR */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Current FTHR</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+              Current FTHR
+              <MetricTooltip type="fthr" iconClassName="text-red-500 dark:text-red-400" />
+            </CardTitle>
             <Heart className="h-4 w-4 text-red-500 dark:text-red-400" />
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">
-              {currentFTHR ? `${currentFTHR} bpm` : 'N/A'}
+              {currentFTHR ? `${currentFTHR} bpm` : <span className="text-base text-gray-400 dark:text-gray-500">Not established</span>}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Functional Threshold Heart Rate
+              {currentFTHR ? 'Functional Threshold Heart Rate' : 'Needs ≥40 min steady effort'}
             </p>
           </CardContent>
         </Card>
@@ -681,8 +425,10 @@ const PerformanceMetrics = ({ stravaTokens }) => {
                         <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                           <p className="font-semibold text-gray-900 dark:text-white">{data.weekFull}</p>
                           <p className="text-blue-600 dark:text-blue-400 font-bold text-lg">{data.ftp}W</p>
-                          {data.estimated && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 italic">Estimated (no new data)</p>
+                          {data.confidenceLevel && (
+                            <p className={`text-xs ${data.confidenceLevel === 'high' ? 'text-green-600 dark:text-green-400' : data.confidenceLevel === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                              {data.confidenceLevel.charAt(0).toUpperCase() + data.confidenceLevel.slice(1)} confidence
+                            </p>
                           )}
                         </div>
                       );
@@ -757,8 +503,10 @@ const PerformanceMetrics = ({ stravaTokens }) => {
                         <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                           <p className="font-semibold text-gray-900 dark:text-gray-100">{data.weekFull}</p>
                           <p className="text-red-600 dark:text-red-400 font-bold text-lg">{data.fthr} bpm</p>
-                          {data.estimated && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 italic">Estimated (no new data)</p>
+                          {data.confidenceLevel && (
+                            <p className={`text-xs ${data.confidenceLevel === 'high' ? 'text-green-600 dark:text-green-400' : data.confidenceLevel === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                              {data.confidenceLevel.charAt(0).toUpperCase() + data.confidenceLevel.slice(1)} confidence
+                            </p>
                           )}
                         </div>
                       );

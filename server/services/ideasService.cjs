@@ -3,7 +3,7 @@ const adminDb = require('../adminDb.cjs');
 /**
  * Ideas Service
  * Handles CRUD operations for ideas and improvements
- * Uses admin database (database.sqlite) not main app database
+ * Uses admin database (fitness-coach-admin.db) not main app database
  * Uses better-sqlite3 via adminDb helper (migrated from direct connection)
  */
 

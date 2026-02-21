@@ -467,6 +467,43 @@ router.post('/api-keys', verifyAdminToken, verifySuperAdmin, async (req, res) =>
 });
 
 /**
+ * PUT /api/admin/api-keys/:provider
+ * Update API key
+ * Super admin only
+ */
+router.put('/api-keys/:provider', verifyAdminToken, verifySuperAdmin, async (req, res) => {
+  try {
+    const { provider } = req.params;
+    const { keyName, apiKey, clientId, clientSecret, redirectUri } = req.body;
+
+    // Update the API key (only update fields that are provided)
+    const result = await aiConfigService.storeApiKey({
+      keyName: keyName || provider,
+      provider,
+      apiKey: apiKey || undefined,
+      clientId: clientId || undefined,
+      clientSecret: clientSecret || undefined,
+      redirectUri: redirectUri || undefined,
+    });
+
+    // Log activity
+    await adminService.logActivity({
+      adminId: req.admin.id,
+      action: 'update_api_key',
+      resourceType: 'api_key',
+      resourceId: provider,
+      details: { provider },
+      ipAddress: req.ip,
+    });
+
+    res.json({ success: true, key: result });
+  } catch (error) {
+    console.error('Update API key error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
  * DELETE /api/admin/api-keys/:keyName
  * Delete API key
  * Super admin only

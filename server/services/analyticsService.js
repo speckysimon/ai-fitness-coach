@@ -5,62 +5,288 @@ import OpenAI from 'openai';
 const { getApiKey } = apiKeyLoaderModule;
 
 class AnalyticsService {
-  // Calculate estimated FTP from recent power data
-  calculateFTP(activities) {
-    console.log('[FTP Calc] Starting with', activities.length, 'activities');
+  /**
+   * Calculate FTP using the canonical bible methodology
+   * - 42-day analysis window
+   * - Effort qualification: 20-60 min, CV ≤ 0.10, ≥95% power samples
+   * - Duration multipliers: 60min=1.0, 40min=0.98, 30min=0.97, 20min=0.95
+   * - Effort weighting: recency, duration, steadiness
+   * - Final FTP = median of top 3 weighted efforts
+   * - Confidence scoring (0-100)
+   */
+  calculateFTP(activities, options = {}) {
+    console.log('[FTP Bible] Starting with', activities.length, 'activities');
     
-    const powerActivities = activities.filter(a => 
-      a.avgPower && a.avgPower > 0 && a.duration >= 1200 // At least 20 min
-    );
-    console.log('[FTP Calc] Power activities (>=20min):', powerActivities.length);
-
-    if (powerActivities.length === 0) {
-      console.log('[FTP Calc] No power activities found, returning null');
-      return null;
-    }
-
-    // Sort by normalized power (or avg power) descending
-    const sortedByPower = powerActivities
-      .sort((a, b) => (b.normalizedPower || b.avgPower) - (a.normalizedPower || a.avgPower));
-
-    // Take best 20-60 min effort in last 6 weeks
-    const sixWeeksAgo = subWeeks(new Date(), 6);
-    const recentPowerActivities = sortedByPower.filter(a => {
+    // 1. Filter to 42-day window
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 42);
+    
+    const recentActivities = activities.filter(a => {
       const activityDate = new Date(a.date);
-      return activityDate >= sixWeeksAgo;
+      return activityDate >= cutoffDate && a.avgPower && a.avgPower > 0;
     });
-    console.log('[FTP Calc] Recent power activities (last 6 weeks):', recentPowerActivities.length);
+    console.log('[FTP Bible] Activities in 42-day window:', recentActivities.length);
     
-    const recentBest = recentPowerActivities.find(a => a.duration >= 1200 && a.duration <= 3600);
+    if (recentActivities.length === 0) {
+      console.log('[FTP Bible] No power activities in window');
+      return { 
+        ftp: null, 
+        confidence: 0, 
+        method: 'no_data',
+        reasonCodes: ['NO_POWER_ACTIVITIES_IN_WINDOW'],
+        windowDays: 42,
+        updatedAt: new Date().toISOString()
+      };
+    }
+    
+    // 2. Extract candidate efforts (20-60 min with steady power)
+    const candidates = [];
+    const now = new Date();
+    
+    for (const activity of recentActivities) {
+      const durationMin = activity.duration / 60;
+      
+      // Duration must be 20-60 minutes
+      if (durationMin < 20 || durationMin > 60) continue;
+      
+      const power = activity.normalizedPower || activity.avgPower;
+      if (!power || power < 50) continue; // Minimum power threshold
+      
+      // Calculate days ago for recency weighting
+      const activityDate = new Date(activity.date);
+      const daysAgo = Math.floor((now - activityDate) / (1000 * 60 * 60 * 24));
+      
+      // CV (coefficient of variation) - null means unknown, not "acceptable"
+      // In real implementation, this would come from power stream analysis
+      const cv = activity.powerCV !== undefined ? activity.powerCV : null;
+      
+      // Skip if CV is known and too high (not steady effort)
+      // If CV is unknown, we keep the effort but penalize confidence later
+      if (cv !== null && cv > 0.10) {
+        console.log('[FTP Bible] Skipping activity (CV too high):', activity.name, 'CV:', cv);
+        continue;
+      }
+      
+      // 3. Calculate per-effort FTP estimate with duration multipliers
+      let ftpEstimate;
+      if (durationMin >= 60) {
+        ftpEstimate = power * 1.00;
+      } else if (durationMin >= 40) {
+        ftpEstimate = power * 0.98;
+      } else if (durationMin >= 30) {
+        ftpEstimate = power * 0.97;
+      } else {
+        ftpEstimate = power * 0.95; // 20-29 min
+      }
+      
+      // 4. Calculate effort weight (for ranking only, not scaling)
+      const recencyWeight = Math.exp(-daysAgo / 21);
+      const durationWeight = Math.min(durationMin / 60, 1.0);
+      // If CV unknown, use reduced steadiness weight (0.6) - penalize but don't exclude
+      const steadinessWeight = cv !== null 
+        ? Math.max(0, Math.min(1, 1 - (cv / 0.10)))
+        : 0.6; // Unknown CV = reduced confidence
+      const totalWeight = recencyWeight * durationWeight * steadinessWeight;
+      
+      candidates.push({
+        activity,
+        ftpEstimate: Math.round(ftpEstimate),
+        durationMin: Math.round(durationMin),
+        daysAgo,
+        cv,
+        weight: totalWeight,
+        power: Math.round(power)
+      });
+    }
+    
+    console.log('[FTP Bible] Qualifying efforts:', candidates.length);
+    
+    // Collect reason codes for why efforts were rejected
+    const reasonCodes = [];
+    
+    // Check what's missing
+    const activitiesIn20to60 = recentActivities.filter(a => {
+      const durationMin = a.duration / 60;
+      return durationMin >= 20 && durationMin <= 60;
+    });
+    
+    if (activitiesIn20to60.length === 0) {
+      reasonCodes.push('NO_POWER_EFFORTS_20_60');
+    }
+    
+    if (candidates.length === 0) {
+      // If we had 20-60 min activities but none qualified, it's a steadiness issue
+      if (activitiesIn20to60.length > 0) {
+        reasonCodes.push('NO_STEADY_EFFORTS');
+      }
+      
+      console.log('[FTP Bible] No qualifying efforts found, reasons:', reasonCodes);
+      return { 
+        ftp: null, 
+        confidence: 0, 
+        method: 'no_qualifying_efforts',
+        reasonCodes: reasonCodes.length > 0 ? reasonCodes : ['NO_QUALIFYING_EFFORTS'],
+        windowDays: 42,
+        updatedAt: new Date().toISOString()
+      };
+    }
+    
+    // 5. Sort by weight and take top 3
+    candidates.sort((a, b) => b.weight - a.weight);
+    const topEfforts = candidates.slice(0, Math.min(3, candidates.length));
+    
+    console.log('[FTP Bible] Top efforts:', topEfforts.map(e => ({
+      date: e.activity.date,
+      ftp: e.ftpEstimate,
+      duration: e.durationMin,
+      weight: e.weight.toFixed(3)
+    })));
+    
+    // 6. Calculate final FTP as median of top efforts
+    const ftpValues = topEfforts.map(e => e.ftpEstimate).sort((a, b) => a - b);
+    let ftp;
+    if (ftpValues.length === 1) {
+      ftp = ftpValues[0];
+    } else if (ftpValues.length === 2) {
+      ftp = Math.round((ftpValues[0] + ftpValues[1]) / 2);
+    } else {
+      ftp = ftpValues[1]; // Median of 3
+    }
+    
+    // 7. Calculate confidence score (0-100)
+    let confidence = 0;
+    
+    // +40: ≥1 effort ≥40 min
+    if (candidates.some(e => e.durationMin >= 40)) confidence += 40;
+    
+    // +20: ≥2 qualifying efforts
+    if (candidates.length >= 2) confidence += 20;
+    
+    // +20: std dev of top 3 ≤5%
+    if (topEfforts.length >= 2) {
+      const mean = ftpValues.reduce((a, b) => a + b, 0) / ftpValues.length;
+      const variance = ftpValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / ftpValues.length;
+      const stdDev = Math.sqrt(variance);
+      const stdDevPercent = (stdDev / mean) * 100;
+      if (stdDevPercent <= 5) confidence += 20;
+    }
+    
+    // +10: best effort ≤14 days old
+    if (topEfforts[0].daysAgo <= 14) confidence += 10;
+    
+    // +10: ≥1 effort ≥50 min
+    if (candidates.some(e => e.durationMin >= 50)) confidence += 10;
+    
+    // -15: any top effort has unknown CV (can't verify steadiness)
+    if (topEfforts.some(e => e.cv === null)) {
+      confidence -= 15;
+      console.log('[FTP Bible] Confidence penalty: unknown CV on top efforts');
+    }
+    
+    confidence = Math.max(0, Math.min(100, confidence));
+    
+    // Determine confidence level
+    let confidenceLevel;
+    if (confidence >= 40) {
+      confidenceLevel = 'high';
+    } else if (confidence >= 25) {
+      confidenceLevel = 'medium';
+    } else {
+      confidenceLevel = 'low';
+    }
+    
+    console.log('[FTP Bible] Final FTP:', ftp, 'Confidence:', confidence, '(' + confidenceLevel + ')');
+    
+    // Build reason codes for confidence issues
+    const finalReasonCodes = [];
+    if (topEfforts.some(e => e.cv === null)) {
+      finalReasonCodes.push('UNKNOWN_CV_ON_TOP_EFFORTS');
+    }
+    if (!candidates.some(e => e.durationMin >= 40)) {
+      finalReasonCodes.push('NO_EFFORT_40_PLUS');
+    }
+    if (candidates.length < 2) {
+      finalReasonCodes.push('SINGLE_EFFORT_ONLY');
+    }
+    
+    return {
+      ftp,
+      confidence,
+      confidenceLevel,
+      method: 'bible_calculation',
+      effortsUsed: topEfforts.length,
+      totalQualifyingEfforts: candidates.length,
+      reasonCodes: finalReasonCodes,
+      windowDays: 42,
+      updatedAt: new Date().toISOString(),
+      topEfforts: topEfforts.map(e => ({
+        date: e.activity.date,
+        name: e.activity.name,
+        ftpEstimate: e.ftpEstimate,
+        durationMin: e.durationMin,
+        daysAgo: e.daysAgo,
+        power: e.power,
+        cvKnown: e.cv !== null
+      }))
+    };
+  }
 
-    if (recentBest) {
-      // FTP is approximately 95% of 20-min power or 100% of 60-min power
-      const power = recentBest.normalizedPower || recentBest.avgPower;
-      const durationMin = recentBest.duration / 60;
-      console.log('[FTP Calc] Found recent best effort:', {
-        date: recentBest.date,
-        power,
-        durationMin: Math.round(durationMin)
+  /**
+   * Calculate FTP history - weekly snapshots using canonical calculation
+   * @param {Array} activities - All activities
+   * @param {Number} weeks - Number of weeks to calculate (default 24)
+   * @returns {Object} - { history: [...], currentFTP: {...} }
+   */
+  calculateFTPHistory(activities, weeks = 24) {
+    console.log('[FTP History] Calculating', weeks, 'weeks of history');
+    
+    const history = [];
+    const now = new Date();
+    
+    // Calculate FTP for each week going back
+    for (let i = 0; i < weeks; i++) {
+      const weekEnd = new Date(now);
+      weekEnd.setDate(weekEnd.getDate() - (i * 7));
+      
+      const weekStart = new Date(weekEnd);
+      weekStart.setDate(weekStart.getDate() - 7);
+      
+      // Filter activities up to this week's end date (simulate being at that point in time)
+      const activitiesUpToWeek = activities.filter(a => {
+        const activityDate = new Date(a.date);
+        return activityDate <= weekEnd;
       });
       
-      if (durationMin <= 30) {
-        const ftp = Math.round(power * 0.95);
-        console.log('[FTP Calc] Returning FTP (95% of 20-30min):', ftp);
-        return ftp;
-      } else {
-        const ftp = Math.round(power);
-        console.log('[FTP Calc] Returning FTP (100% of 30-60min):', ftp);
-        return ftp;
-      }
+      // Calculate FTP as if we were at that week
+      // Temporarily adjust the 42-day window to end at weekEnd
+      const cutoffDate = new Date(weekEnd);
+      cutoffDate.setDate(cutoffDate.getDate() - 42);
+      
+      const windowActivities = activitiesUpToWeek.filter(a => {
+        const activityDate = new Date(a.date);
+        return activityDate >= cutoffDate && activityDate <= weekEnd;
+      });
+      
+      // Use the main calculation but with filtered activities
+      const result = this.calculateFTP(windowActivities);
+      
+      history.unshift({
+        weekStart: weekStart.toISOString().split('T')[0],
+        weekEnd: weekEnd.toISOString().split('T')[0],
+        ftp: result.ftp,
+        confidence: result.confidence,
+        confidenceLevel: result.confidenceLevel,
+        effortsUsed: result.effortsUsed || 0
+      });
     }
-
-    // Fallback: use average of top 3 normalized powers
-    console.log('[FTP Calc] No recent 20-60min effort, using fallback (top 3 average)');
-    const topThree = sortedByPower.slice(0, 3);
-    const avgPower = topThree.reduce((sum, a) => sum + (a.normalizedPower || a.avgPower), 0) / topThree.length;
-    const ftp = Math.round(avgPower * 0.95);
-    console.log('[FTP Calc] Fallback FTP:', ftp);
-    return ftp;
+    
+    // Current FTP (most recent calculation)
+    const currentResult = this.calculateFTP(activities);
+    
+    return {
+      history,
+      currentFTP: currentResult
+    };
   }
 
   // Calculate TSS (Training Stress Score) for an activity

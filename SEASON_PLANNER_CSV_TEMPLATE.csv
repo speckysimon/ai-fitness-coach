@@ -1,0 +1,7 @@
+name,date,location,distance,elevation,url,registrationDeadline,entryFee,raceType,status,priority,isTeamRace,notes
+Tour de Example,2026-06-15,Nice France,180,3500,https://example.com/race,2026-05-01,€75,gran_fondo,confirmed,A,false,Key season goal - mountainous route
+Local Criterium,2026-04-20,Downtown,45,150,https://localcrit.com,2026-04-10,€25,criterium,provisional,B,false,Fast flat course
+Spring Classic,2026-05-10,Belgium,250,2000,https://springclassic.be,2026-04-15,€100,road_race,confirmed,A,true,Cobbled sections - team tactics important
+Time Trial Championship,2026-07-05,City Center,40,200,https://ttchamp.com,2026-06-20,€50,time_trial,provisional,B,false,Flat TT course
+Mountain Stage Race,2026-08-12,Alps,600,8000,https://alpsstage.com,2026-07-01,€200,stage_race,confirmed,A,true,5-day stage race with team support
+Gravel Grinder,2026-09-18,Countryside,120,1800,https://gravelrace.com,2026-09-01,€60,gravel,provisional,C,false,Mixed terrain

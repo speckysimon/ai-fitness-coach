@@ -8,6 +8,7 @@ import stravaRoutes from './routes/strava.js';
 import googleRoutes from './routes/google.js';
 import trainingRoutes from './routes/training.js';
 import analyticsRoutes from './routes/analytics.js';
+import activitiesRoutes from './routes/activities.js';
 import raceRoutes from './routes/race.js';
 import raceTagRoutes from './routes/raceTags.js';
 import adaptationRoutes from './routes/adaptation.js';
@@ -19,6 +20,12 @@ import coachRoutes from './routes/coach.js';
 import demoRoutes from './routes/demo.js';
 import healthRoutes from './routes/health.js';
 import intervalsRoutes from './routes/intervals.js';
+import retentionRoutes from './routes/retention.js';
+import providersRoutes from './routes/providers.js';
+import limiterRoutes from './routes/limiter.js';
+import trainingQualityRoutes from './routes/trainingQuality.js';
+import streamsRoutes from './routes/streams.js';
+import thresholdsRoutes from './routes/thresholds.js';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
@@ -37,7 +44,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Middleware
@@ -49,9 +56,16 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/strava', stravaRoutes);
 app.use('/api/intervals', intervalsRoutes);
+app.use('/api/retention', retentionRoutes);
+app.use('/api/providers', providersRoutes);
+app.use('/api/limiter', limiterRoutes);
+app.use('/api/training-quality', trainingQualityRoutes);
+app.use('/api/streams', streamsRoutes);
+app.use('/api/thresholds', thresholdsRoutes);
 app.use('/api/google', googleRoutes);
 app.use('/api/training', trainingRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/activities', activitiesRoutes);
 app.use('/api/race', raceRoutes);
 app.use('/api/race-tags', raceTagRoutes);
 app.use('/api/adaptation', adaptationRoutes);

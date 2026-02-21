@@ -394,45 +394,60 @@ export const calculateRaceDayForm = (activities, ftp, raceDate = new Date()) => 
   };
 };
 
+// Helper: Build daily training data with CTL/ATL calculations (optimized - calculate once)
+const buildDailyTrainingData = (activities, targetDate) => {
+  const ninetyDaysAgo = new Date(targetDate);
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  
+  const dailyData = [];
+  const currentDate = new Date(ninetyDaysAgo);
+  
+  while (currentDate <= targetDate) {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    
+    // Get activities for this day
+    const dayActivities = activities.filter(a => {
+      const activityDate = new Date(a.date);
+      return activityDate.toISOString().split('T')[0] === dateStr;
+    });
+    
+    // Calculate daily TSS
+    const dailyTSS = dayActivities.reduce((sum, a) => sum + (a.tss || estimateTSS(a)), 0);
+    
+    // Calculate CTL using exponentially weighted moving average (42-day)
+    const ctlDecay = 2 / (42 + 1);
+    const prevCTL = dailyData.length > 0 ? dailyData[dailyData.length - 1].ctl : 0;
+    const ctl = prevCTL + ctlDecay * (dailyTSS - prevCTL);
+    
+    // Calculate ATL using exponentially weighted moving average (7-day)
+    const atlDecay = 2 / (7 + 1);
+    const prevATL = dailyData.length > 0 ? dailyData[dailyData.length - 1].atl : 0;
+    const atl = prevATL + atlDecay * (dailyTSS - prevATL);
+    
+    dailyData.push({ 
+      date: dateStr, 
+      ctl, 
+      atl, 
+      tsb: ctl - atl,
+      tss: dailyTSS 
+    });
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return dailyData;
+};
+
 // Helper: Calculate CTL (42-day exponentially weighted average)
 const calculateCTL = (activities, targetDate) => {
-  const fortyTwoDaysAgo = new Date(targetDate);
-  fortyTwoDaysAgo.setDate(fortyTwoDaysAgo.getDate() - 42);
-  
-  const recentActivities = activities.filter(a => {
-    const activityDate = new Date(a.date);
-    return activityDate >= fortyTwoDaysAgo && activityDate <= targetDate;
-  });
-  
-  if (recentActivities.length === 0) return 0;
-  
-  // Exponentially weighted average with decay constant
-  const decayConstant = 42;
-  let ctl = 0;
-  
-  recentActivities.forEach((activity, index) => {
-    const tss = activity.tss || estimateTSS(activity);
-    const weight = Math.exp(-index / decayConstant);
-    ctl += tss * weight;
-  });
-  
-  return ctl / recentActivities.length;
+  const dailyData = buildDailyTrainingData(activities, targetDate);
+  return dailyData.length > 0 ? dailyData[dailyData.length - 1].ctl : 0;
 };
 
 // Helper: Calculate ATL (7-day exponentially weighted average)
 const calculateATL = (activities, targetDate) => {
-  const sevenDaysAgo = new Date(targetDate);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  
-  const recentActivities = activities.filter(a => {
-    const activityDate = new Date(a.date);
-    return activityDate >= sevenDaysAgo && activityDate <= targetDate;
-  });
-  
-  if (recentActivities.length === 0) return 0;
-  
-  const totalTSS = recentActivities.reduce((sum, a) => sum + (a.tss || estimateTSS(a)), 0);
-  return totalTSS / 7; // Daily average
+  const dailyData = buildDailyTrainingData(activities, targetDate);
+  return dailyData.length > 0 ? dailyData[dailyData.length - 1].atl : 0;
 };
 
 // Helper: Estimate TSS if not available
@@ -765,50 +780,31 @@ const calculateTaperAdvice = (ctl, atl, tsb, raceDate) => {
   };
 };
 
-// Helper: Calculate fitness history (last 90 days)
+// Helper: Calculate fitness history (last 90 days) - optimized
 const calculateFitnessHistory = (activities, targetDate) => {
-  const ninetyDaysAgo = new Date(targetDate);
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  // Build daily data once
+  const dailyData = buildDailyTrainingData(activities, targetDate);
   
-  const history = [];
-  const currentDate = new Date(ninetyDaysAgo);
-  
-  while (currentDate <= targetDate) {
-    const ctl = calculateCTL(activities, currentDate);
-    const atl = calculateATL(activities, currentDate);
-    
-    history.push({
-      date: new Date(currentDate).toISOString(),
-      fitness: Math.round(ctl),
-      fatigue: Math.round(atl)
-    });
-    
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
+  // Convert to fitness history format
+  const history = dailyData.map(day => ({
+    date: new Date(day.date).toISOString(),
+    fitness: Math.round(day.ctl),
+    fatigue: Math.round(day.atl)
+  }));
   
   return history.filter((_, index) => index % 3 === 0); // Sample every 3 days for performance
 };
 
-// Helper: Calculate form history (TSB over time)
+// Helper: Calculate form history (TSB over time) - optimized
 const calculateFormHistory = (activities, targetDate) => {
-  const ninetyDaysAgo = new Date(targetDate);
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  // Build daily data once
+  const dailyData = buildDailyTrainingData(activities, targetDate);
   
-  const history = [];
-  const currentDate = new Date(ninetyDaysAgo);
-  
-  while (currentDate <= targetDate) {
-    const ctl = calculateCTL(activities, currentDate);
-    const atl = calculateATL(activities, currentDate);
-    const tsb = ctl - atl;
-    
-    history.push({
-      date: new Date(currentDate).toISOString(),
-      form: Math.round(tsb)
-    });
-    
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
+  // Convert to form history format
+  const history = dailyData.map(day => ({
+    date: new Date(day.date).toISOString(),
+    form: Math.round(day.tsb)
+  }));
   
   return history.filter((_, index) => index % 3 === 0); // Sample every 3 days
 };

@@ -23,6 +23,116 @@ const schema = readFileSync(schemaPath, 'utf8');
 db.exec(schema);
 console.log('✅ Database schema loaded successfully');
 
+// ---------------------------------------------------------------------------
+// Safe migrations (idempotent — silently skip if column already exists)
+// ---------------------------------------------------------------------------
+const safeMigrations = [
+  // 2026-02-18: Intervals Strava shell classification
+  `ALTER TABLE activity_sources ADD COLUMN source_kind TEXT DEFAULT NULL`,
+  `ALTER TABLE activity_sources ADD COLUMN ignore_reason TEXT DEFAULT NULL`,
+  `ALTER TABLE activity_sources ADD COLUMN strava_activity_id TEXT DEFAULT NULL`,
+  // 2026-02-18: Stream coverage flags on activity_sources
+  `ALTER TABLE activity_sources ADD COLUMN has_time_stream INTEGER DEFAULT 0`,
+  `ALTER TABLE activity_sources ADD COLUMN has_power_stream INTEGER DEFAULT 0`,
+  `ALTER TABLE activity_sources ADD COLUMN has_hr_stream INTEGER DEFAULT 0`,
+  `ALTER TABLE activity_sources ADD COLUMN has_cadence_stream INTEGER DEFAULT 0`,
+  `ALTER TABLE activity_sources ADD COLUMN has_speed_stream INTEGER DEFAULT 0`,
+  `ALTER TABLE activity_sources ADD COLUMN stream_points INTEGER DEFAULT 0`,
+  `ALTER TABLE activity_sources ADD COLUMN summary_only INTEGER DEFAULT 1`,
+  `ALTER TABLE activity_sources ADD COLUMN streams_unavailable INTEGER DEFAULT 0`,
+  // 2026-02-18: Streams backfill progress tracking on provider_sync_state
+  `ALTER TABLE provider_sync_state ADD COLUMN streams_backfill_enabled INTEGER DEFAULT 0`,
+  `ALTER TABLE provider_sync_state ADD COLUMN streams_backfill_total_candidates INTEGER DEFAULT 0`,
+  `ALTER TABLE provider_sync_state ADD COLUMN streams_backfill_completed INTEGER DEFAULT 0`,
+  `ALTER TABLE provider_sync_state ADD COLUMN streams_backfill_failed INTEGER DEFAULT 0`,
+  `ALTER TABLE provider_sync_state ADD COLUMN streams_backfill_cursor TEXT DEFAULT NULL`,
+  `ALTER TABLE provider_sync_state ADD COLUMN streams_backfill_last_run_at TEXT DEFAULT NULL`,
+  `ALTER TABLE provider_sync_state ADD COLUMN streams_backfill_is_complete INTEGER DEFAULT 0`,
+  `ALTER TABLE provider_sync_state ADD COLUMN streams_backfill_last_error TEXT DEFAULT NULL`,
+];
+
+for (const sql of safeMigrations) {
+  try { db.exec(sql); } catch (e) {
+    if (!e.message.includes('duplicate column')) throw e;
+  }
+}
+
+// Safe index creation (IF NOT EXISTS handles idempotency)
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_sources_strava_shells
+    ON activity_sources(user_id, source_kind)
+    WHERE source_kind = 'intervals_strava_shell';
+`);
+
+// Seed Strava streams config (idempotent)
+db.exec(`
+  INSERT OR IGNORE INTO global_settings (setting_key, setting_value, setting_type, category, description)
+  VALUES
+    ('strava_streams_enabled', 'false', 'boolean', 'sync', 'Enable Strava stream ingestion during sync'),
+    ('strava_streams_allowlist', '', 'string', 'sync', 'Comma-separated email allowlist for Strava streams (empty = all users when enabled)');
+`);
+
+// ── Limiter Engine v1 tables (2026-02-20) ──────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS race_debrief (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id  INTEGER NOT NULL,
+    activity_id TEXT    NOT NULL,
+    answers_json TEXT   NOT NULL DEFAULT '{}',
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(activity_id),
+    FOREIGN KEY (athlete_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS limiter_profile_current (
+    athlete_id   INTEGER PRIMARY KEY,
+    profile_json TEXT    NOT NULL DEFAULT '{}',
+    updated_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (athlete_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS limiter_profile_snapshots (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id         INTEGER NOT NULL,
+    source_activity_id TEXT    NOT NULL,
+    profile_json       TEXT    NOT NULL DEFAULT '{}',
+    created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(source_activity_id),
+    FOREIGN KEY (athlete_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS limiter_race_updates (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id  INTEGER NOT NULL,
+    activity_id TEXT    NOT NULL,
+    update_json TEXT    NOT NULL DEFAULT '{}',
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(activity_id),
+    FOREIGN KEY (athlete_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_race_debrief_athlete    ON race_debrief(athlete_id);
+  CREATE INDEX IF NOT EXISTS idx_limiter_snapshots_athlete ON limiter_profile_snapshots(athlete_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_limiter_race_updates_athlete ON limiter_race_updates(athlete_id, created_at DESC);
+`);
+
+// ── Training Quality v1 table (2026-02-20) ─────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS training_quality_week (
+    athlete_id   INTEGER NOT NULL,
+    week_start   TEXT    NOT NULL,
+    score_json   TEXT    NOT NULL DEFAULT '{}',
+    computed_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    algo_version TEXT    NOT NULL DEFAULT 'tq_v1',
+    PRIMARY KEY (athlete_id, week_start),
+    FOREIGN KEY (athlete_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_tq_week_athlete ON training_quality_week(athlete_id, week_start DESC);
+`);
+
+console.log('✅ Database migrations applied');
+
 // Helper function to hash passwords
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -311,53 +421,62 @@ export const intervalsSyncStateDb = {
   }
 };
 
-// Race tag operations
+// Race tag operations (multi-source support: Strava, Intervals.icu, Manual)
 export const raceTagDb = {
   // Set race tag for an activity
-  setRaceTag: (userId, activityId, isRace, raceType = null) => {
+  setRaceTag: (userId, activityId, isRace, raceType = null, activitySource = 'strava') => {
     const now = new Date().toISOString();
 
     if (isRace) {
       const stmt = db.prepare(`
-        INSERT INTO race_tags (user_id, activity_id, is_race, race_type, created_at)
-        VALUES (?, ?, 1, ?, ?)
-        ON CONFLICT(user_id, activity_id) DO UPDATE SET
+        INSERT INTO race_tags (user_id, activity_id, activity_source, is_race, race_type, created_at)
+        VALUES (?, ?, ?, 1, ?, ?)
+        ON CONFLICT(user_id, activity_id, activity_source) DO UPDATE SET
           is_race = 1,
           race_type = ?
       `);
-      return stmt.run(userId, activityId.toString(), raceType, now, raceType);
+      return stmt.run(userId, activityId.toString(), activitySource, raceType, now, raceType);
     } else {
-      const stmt = db.prepare('DELETE FROM race_tags WHERE user_id = ? AND activity_id = ?');
-      return stmt.run(userId, activityId.toString());
+      const stmt = db.prepare('DELETE FROM race_tags WHERE user_id = ? AND activity_id = ? AND activity_source = ?');
+      return stmt.run(userId, activityId.toString(), activitySource);
     }
   },
 
-  // Get all race tags for a user (with race types)
+  // Get all race tags for a user (with race types and sources)
   getAllForUser: (userId) => {
-    const stmt = db.prepare('SELECT activity_id, race_type FROM race_tags WHERE user_id = ? AND is_race = 1');
+    const stmt = db.prepare('SELECT activity_id, activity_source, race_type FROM race_tags WHERE user_id = ? AND is_race = 1');
     const rows = stmt.all(userId);
 
-    // Return as object with activity_id as keys and race_type as values
+    // Return as object with composite key (activityId_source) and race info
     const raceTags = {};
     rows.forEach(row => {
+      // Use composite key for multi-source support
+      const key = `${row.activity_id}_${row.activity_source}`;
+      raceTags[key] = {
+        isRace: true,
+        raceType: row.race_type,
+        source: row.activity_source
+      };
+      // Also add simple key for backward compatibility
       raceTags[row.activity_id] = {
         isRace: true,
-        raceType: row.race_type
+        raceType: row.race_type,
+        source: row.activity_source
       };
     });
     return raceTags;
   },
 
   // Check if activity is tagged as race
-  isRace: (userId, activityId) => {
-    const stmt = db.prepare('SELECT 1 FROM race_tags WHERE user_id = ? AND activity_id = ? AND is_race = 1');
-    return !!stmt.get(userId, activityId.toString());
+  isRace: (userId, activityId, activitySource = 'strava') => {
+    const stmt = db.prepare('SELECT 1 FROM race_tags WHERE user_id = ? AND activity_id = ? AND activity_source = ? AND is_race = 1');
+    return !!stmt.get(userId, activityId.toString(), activitySource);
   },
 
   // Get race type for an activity
-  getRaceType: (userId, activityId) => {
-    const stmt = db.prepare('SELECT race_type FROM race_tags WHERE user_id = ? AND activity_id = ? AND is_race = 1');
-    const row = stmt.get(userId, activityId.toString());
+  getRaceType: (userId, activityId, activitySource = 'strava') => {
+    const stmt = db.prepare('SELECT race_type FROM race_tags WHERE user_id = ? AND activity_id = ? AND activity_source = ? AND is_race = 1');
+    const row = stmt.get(userId, activityId.toString(), activitySource);
     return row?.race_type || null;
   },
 
@@ -630,6 +749,87 @@ export const workoutComparisonDb = {
       ORDER BY date DESC
     `);
     return stmt.all(userId, days);
+  }
+};
+
+// Provider sync state operations
+export const providerSyncStateDb = {
+  get: (userId, provider) => {
+    const stmt = db.prepare('SELECT * FROM provider_sync_state WHERE user_id = ? AND provider = ?');
+    return stmt.get(userId, provider);
+  },
+
+  upsertIncremental: (userId, provider) => {
+    const now = new Date().toISOString();
+    const stmt = db.prepare(`
+      INSERT INTO provider_sync_state (user_id, provider, last_incremental_sync_at, updated_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(user_id, provider) DO UPDATE SET
+        last_incremental_sync_at = excluded.last_incremental_sync_at,
+        updated_at = excluded.updated_at
+    `);
+    return stmt.run(userId, provider, now, now);
+  },
+
+  upsertFullSync: (userId, provider, activitiesFetched) => {
+    const now = new Date().toISOString();
+    const stmt = db.prepare(`
+      INSERT INTO provider_sync_state (user_id, provider, last_full_sync_at, last_full_sync_activities_fetched, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, provider) DO UPDATE SET
+        last_full_sync_at = excluded.last_full_sync_at,
+        last_full_sync_activities_fetched = excluded.last_full_sync_activities_fetched,
+        updated_at = excluded.updated_at
+    `);
+    return stmt.run(userId, provider, now, activitiesFetched, now);
+  },
+
+  // Initialize streams backfill state (called on first full sync when streams enabled)
+  initStreamsBackfill: (userId, provider, totalCandidates) => {
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO provider_sync_state (user_id, provider, streams_backfill_enabled, streams_backfill_total_candidates, streams_backfill_completed, streams_backfill_failed, streams_backfill_cursor, streams_backfill_is_complete, streams_backfill_last_run_at, updated_at)
+      VALUES (?, ?, 1, ?, 0, 0, NULL, 0, ?, ?)
+      ON CONFLICT(user_id, provider) DO UPDATE SET
+        streams_backfill_enabled = 1,
+        streams_backfill_total_candidates = excluded.streams_backfill_total_candidates,
+        streams_backfill_last_run_at = excluded.streams_backfill_last_run_at,
+        updated_at = excluded.updated_at
+    `).run(userId, provider, totalCandidates, now, now);
+  },
+
+  // Update streams backfill progress (called every N activities)
+  updateStreamsProgress: (userId, provider, { completed, failed, cursor, isComplete, lastError }) => {
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO provider_sync_state (user_id, provider, streams_backfill_completed, streams_backfill_failed, streams_backfill_cursor, streams_backfill_is_complete, streams_backfill_last_run_at, streams_backfill_last_error, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, provider) DO UPDATE SET
+        streams_backfill_completed = excluded.streams_backfill_completed,
+        streams_backfill_failed = excluded.streams_backfill_failed,
+        streams_backfill_cursor = excluded.streams_backfill_cursor,
+        streams_backfill_is_complete = excluded.streams_backfill_is_complete,
+        streams_backfill_last_run_at = excluded.streams_backfill_last_run_at,
+        streams_backfill_last_error = excluded.streams_backfill_last_error,
+        updated_at = excluded.updated_at
+    `).run(userId, provider, completed, failed, cursor || null, isComplete ? 1 : 0, now, lastError || null, now);
+  },
+
+  // Reset streams backfill (force restart from scratch)
+  resetStreamsBackfill: (userId, provider) => {
+    const now = new Date().toISOString();
+    db.prepare(`
+      UPDATE provider_sync_state SET
+        streams_backfill_enabled = 0,
+        streams_backfill_total_candidates = 0,
+        streams_backfill_completed = 0,
+        streams_backfill_failed = 0,
+        streams_backfill_cursor = NULL,
+        streams_backfill_is_complete = 0,
+        streams_backfill_last_error = NULL,
+        updated_at = ?
+      WHERE user_id = ? AND provider = ?
+    `).run(now, userId, provider);
   }
 };
 

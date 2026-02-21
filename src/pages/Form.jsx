@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart } from 'recharts';
 import { format, subDays, startOfDay } from 'date-fns';
 import logger from '../lib/logger';
+import { fetchUnifiedActivities } from '../lib/activitySync';
 
 const Form = ({ stravaTokens }) => {
   const [formData, setFormData] = useState([]);
@@ -13,46 +14,8 @@ const Form = ({ stravaTokens }) => {
   const [currentTokens, setCurrentTokens] = useState(stravaTokens);
 
   useEffect(() => {
-    if (stravaTokens && stravaTokens.access_token) {
-      setCurrentTokens(stravaTokens);
-      loadFormData();
-    } else {
-      setLoading(false);
-    }
-  }, [stravaTokens, timeRange]);
-
-  // Refresh Strava access token if expired
-  const refreshAccessToken = async () => {
-    if (!currentTokens?.refresh_token) {
-      throw new Error('No refresh token available');
-    }
-
-    const response = await fetch('/api/strava/refresh-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: currentTokens.refresh_token }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      if (error.requiresReauth) {
-        throw new Error('REAUTH_REQUIRED');
-      }
-      throw new Error('Failed to refresh token');
-    }
-
-    const data = await response.json();
-    const newTokens = {
-      access_token: data.access_token,
-      refresh_token: data.refresh_token || currentTokens.refresh_token,
-      expires_at: data.expires_at,
-    };
-
-    setCurrentTokens(newTokens);
-    localStorage.setItem('strava_tokens', JSON.stringify(newTokens));
-
-    return newTokens;
-  };
+    loadFormData();
+  }, [timeRange]);
 
   const calculateTSS = (activity, ftp) => {
     if (!activity.duration) return 0;
@@ -78,69 +41,21 @@ const Form = ({ stravaTokens }) => {
   const loadFormData = async () => {
     setLoading(true);
     try {
-      // Try to load from cache first (much faster and avoids API rate limits)
-      const cachedActivities = localStorage.getItem('cached_activities_recent');
-      const cacheTimestamp = localStorage.getItem('cache_timestamp_recent');
-      const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
-      const cacheValid = cacheAge < 30 * 60 * 1000; // 30 minutes
-
-      if (cachedActivities && cacheValid) {
-        const activities = JSON.parse(cachedActivities);
-        await processFormData(activities, currentTokens);
+      logger.info('[Form] Fetching activities from unified database...');
+      
+      // Fetch from unified database (90 days for proper CTL/ATL baseline)
+      const result = await fetchUnifiedActivities({ windowDays: 90 });
+      
+      if (!result.ok) {
+        logger.error('[Form] Failed to fetch from database:', result.error);
+        setLoading(false);
         return;
       }
-
-      let tokensToUse = currentTokens;
-
-      // Check if token is expired
-      const now = Math.floor(Date.now() / 1000);
-      if (tokensToUse.expires_at && tokensToUse.expires_at < now) {
-        try {
-          tokensToUse = await refreshAccessToken();
-        } catch (refreshError) {
-          if (refreshError.message === 'REAUTH_REQUIRED') {
-            throw new Error('Your Strava session has expired. Please reconnect in Settings.');
-          }
-          throw refreshError;
-        }
-      }
-
-      // Fetch 90 days of activities for proper baseline
-      const ninetyDaysAgo = Math.floor(Date.now() / 1000) - (90 * 24 * 60 * 60);
-
-      const response = await fetch(
-        `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${ninetyDaysAgo}&per_page=200`
-      );
-
-      // Handle 401/403
-      if (response.status === 401 || response.status === 403) {
-        try {
-          tokensToUse = await refreshAccessToken();
-          const retryResponse = await fetch(
-            `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${ninetyDaysAgo}&per_page=200`
-          );
-
-          if (!retryResponse.ok) {
-            throw new Error('Failed to fetch activities after token refresh');
-          }
-
-          const activities = await retryResponse.json();
-          await processFormData(activities, tokensToUse);
-          return;
-        } catch (refreshError) {
-          if (refreshError.message === 'REAUTH_REQUIRED') {
-            throw new Error('Your Strava session has expired. Please reconnect in Settings.');
-          }
-          throw new Error('Failed to refresh your Strava connection. Please try reconnecting in Settings.');
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch activities: ${response.statusText}`);
-      }
-
-      const activities = await response.json();
-      await processFormData(activities, tokensToUse);
+      
+      const activities = result.data || [];
+      logger.info(`[Form] Loaded ${activities.length} activities from database`);
+      
+      await processFormData(activities);
     } catch (error) {
       logger.error('Form - Error loading data:', error);
     } finally {
@@ -148,7 +63,7 @@ const Form = ({ stravaTokens }) => {
     }
   };
 
-  const processFormData = async (activities, tokensToUse) => {
+  const processFormData = async (activities) => {
     try {
       // Get FTP
       const ftpResponse = await fetch('/api/analytics/ftp', {

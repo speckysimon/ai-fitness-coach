@@ -10,6 +10,7 @@ const Methodology = () => {
     autoMatching: false,
     trainingAlignment: false,
     tss: false,
+    raceTSS: false,
     ftp: false,
     zones: false,
     np: false,
@@ -59,6 +60,9 @@ const Methodology = () => {
         </h1>
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
           Understanding the calculations and research behind your training metrics
+        </p>
+        <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 mt-2 font-medium">
+          These estimates power the Monthly Racing Load and Season Sanity Check in the Season Planner.
         </p>
         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
           Click any section to expand or collapse
@@ -232,30 +236,92 @@ const Methodology = () => {
         </div>
 
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg">
-          <h4 className="font-semibold text-sm sm:text-base mb-2">🎯 Taper Guidelines</h4>
+          <h4 className="font-semibold text-sm sm:text-base mb-2">🎯 Race-Duration-Contextualized Taper Analysis</h4>
           <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-            Research-backed taper ratios for optimal race-day freshness:
+            Not all races need the same taper. Our system adjusts optimal taper ratios based on race duration, 
+            accounting for the difference between central fatigue (long events) and peripheral fatigue (short events).
           </p>
-          <div className="space-y-2 text-sm dark:text-gray-300">
-            <div className="flex items-center justify-between">
-              <span><strong>40-50%:</strong> Aggressive taper (hard training blocks)</span>
-              <span className="px-2 py-1 bg-green-200 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded text-xs">OPTIMAL</span>
+          
+          <div className="space-y-4">
+            {/* Short Races */}
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-semibold text-sm">Short Races (&lt; 45 min)</h5>
+                <span className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">Taper: Low Importance</span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                Criteriums, short TTs, sprints - Limited by peripheral fatigue (glycogen), which recovers quickly
+              </p>
+              <div className="flex items-center justify-between text-sm">
+                <span><strong>Optimal Ratio:</strong> 70-100%</span>
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded text-xs">MAINTAIN SHARPNESS</span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 italic">
+                Research: "For shorter or higher intensity events, a taper lasting a week or less is likely to be more appropriate" - High North Performance
+              </p>
             </div>
-            <div className="flex items-center justify-between">
-              <span><strong>50-60%:</strong> Standard taper (most athletes)</span>
-              <span className="px-2 py-1 bg-green-200 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded text-xs">OPTIMAL</span>
+
+            {/* Medium Races */}
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-semibold text-sm">Medium Races (45-90 min)</h5>
+                <span className="px-2 py-1 bg-blue-200 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded text-xs">Taper: Moderate Importance</span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                Road races, longer crits - Mixed fatigue profile
+              </p>
+              <div className="flex items-center justify-between text-sm">
+                <span><strong>Optimal Ratio:</strong> 60-85%</span>
+                <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded text-xs">SOME TAPER HELPFUL</span>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span><strong>60-70%:</strong> Light taper (moderate training)</span>
-              <span className="px-2 py-1 bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded text-xs">ACCEPTABLE</span>
+
+            {/* Long Races */}
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-orange-200 dark:border-orange-700">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-semibold text-sm">Long Races (1.5-3 hours)</h5>
+                <span className="px-2 py-1 bg-orange-200 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 rounded text-xs">Taper: High Importance</span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                Gran fondos, stage races - Central fatigue significant, longer recovery beneficial
+              </p>
+              <div className="flex items-center justify-between text-sm">
+                <span><strong>Optimal Ratio:</strong> 50-70%</span>
+                <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded text-xs">SIGNIFICANT TAPER</span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 italic">
+                Research: "For longer endurance events, athletes will often benefit from a slightly longer taper of perhaps 12 days" - High North Performance
+              </p>
             </div>
-            <div className="flex items-center justify-between">
-              <span><strong>70%+:</strong> Insufficient taper</span>
-              <span className="px-2 py-1 bg-red-200 dark:bg-red-900/40 text-red-800 dark:text-red-300 rounded text-xs">CARRYING FATIGUE</span>
+
+            {/* Ultra Races */}
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-red-200 dark:border-red-700">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-semibold text-sm">Ultra Races (3+ hours)</h5>
+                <span className="px-2 py-1 bg-red-200 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded text-xs">Taper: Critical</span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                Sportives, ultra-endurance - Maximum central fatigue, full taper essential for glycogen restoration
+              </p>
+              <div className="flex items-center justify-between text-sm">
+                <span><strong>Optimal Ratio:</strong> 40-60%</span>
+                <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded text-xs">FULL TAPER ESSENTIAL</span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 italic">
+                Research: Li et al. (2023) meta-analysis - 41-60% volume reduction optimal for endurance events (SMD = -0.77, P &lt; 0.05)
+              </p>
             </div>
-            <div className="flex items-center justify-between">
-              <span><strong>&lt;40%:</strong> Excessive taper</span>
-              <span className="px-2 py-1 bg-orange-200 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300 rounded text-xs">DETRAINING RISK</span>
+
+            {/* Key Insight */}
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg border border-yellow-300 dark:border-yellow-700">
+              <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span>💡</span> Why Race Duration Matters
+              </h5>
+              <p className="text-xs text-gray-700 dark:text-gray-300">
+                <strong>Central Fatigue</strong> (long events): Affects the central nervous system, takes longer to recover. 
+                <strong className="ml-2">Peripheral Fatigue</strong> (short events): Muscle-level fatigue (glycogen depletion), recovers quickly.
+                A 40-minute crit doesn't need the same taper as a 4-hour sportive!
+              </p>
             </div>
           </div>
         </div>
@@ -340,98 +406,185 @@ const Methodology = () => {
       >
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">What is Rider Type Classification?</h3>
-          <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            Our AI-powered system analyzes your power curve, activity patterns, and terrain preferences
-            to automatically classify you into one of six rider types. This helps you understand your
-            natural strengths and optimize your training focus.
+          <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 mb-3">
+            Rider Type Classification is a descriptive analysis of how a rider typically produces their best power across different effort durations and terrain contexts. By examining power output patterns and riding behaviour, RiderLabs identifies the rider types that most closely match the data.
+          </p>
+          <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 mb-3">
+            This classification is designed to help riders:
+          </p>
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-4 mb-3">
+            <li>understand their natural strengths and tendencies</li>
+            <li>recognise areas of relative development</li>
+            <li>make more informed decisions about events, pacing, and focus</li>
+          </ul>
+          <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 italic">
+            Rider type classification is informational only. It does not directly alter FTP, heart-rate zones, or training plans.
           </p>
         </div>
 
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2 sm:mb-3">The Six Rider Types</h4>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+            RiderLabs classifies riders into six commonly recognised road cycling archetypes:
+          </p>
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <span className="text-2xl">⚡</span>
               <div>
                 <div className="font-semibold text-gray-900 dark:text-gray-100">Sprinter</div>
-                <div className="text-sm text-gray-700 dark:text-gray-300">Explosive power in short efforts (5-30s), excels in final sprints</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">⛰️</span>
-              <div>
-                <div className="font-semibold text-gray-900 dark:text-gray-100">Climber</div>
-                <div className="text-sm text-gray-700 dark:text-gray-300">High power-to-weight ratio, thrives on steep gradients and long climbs</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">🚴</span>
-              <div>
-                <div className="font-semibold text-gray-900 dark:text-gray-100">Rouleur</div>
-                <div className="text-sm text-gray-700 dark:text-gray-300">Consistent power output, strong on flat and rolling terrain</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">⏱️</span>
-              <div>
-                <div className="font-semibold text-gray-900 dark:text-gray-100">Time Trialist</div>
-                <div className="text-sm text-gray-700 dark:text-gray-300">Sustained high power (20-60min), excellent aerodynamic efficiency</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">Explosive power in very short efforts (typically 5–30 seconds), excelling in final sprints.</div>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-2xl">💥</span>
               <div>
                 <div className="font-semibold text-gray-900 dark:text-gray-100">Puncheur</div>
-                <div className="text-sm text-gray-700 dark:text-gray-300">Strong on short, steep climbs (1-5min) and punchy efforts</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">Strong in short, intense efforts (approximately 1–5 minutes), often on rolling terrain or short climbs requiring repeated accelerations.</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⛰️</span>
+              <div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100">Climber</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">High power-to-weight ratio over sustained efforts, performing well on longer climbs and steep gradients.</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⏱️</span>
+              <div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100">Time Trialist</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">Strong sustained power over longer durations (approximately 20–60 minutes), with the ability to maintain a steady, high output.</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🚴</span>
+              <div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100">Rouleur</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">Consistent, durable power output on flat and rolling terrain, often effective in breakaways and long efforts.</div>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-2xl">🏆</span>
               <div>
                 <div className="font-semibold text-gray-900 dark:text-gray-100">All-Rounder</div>
-                <div className="text-sm text-gray-700 dark:text-gray-300">Balanced abilities across all terrains and durations</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">Balanced abilities across multiple durations and terrains, without a single dominant specialisation.</div>
               </div>
+            </div>
+          </div>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mt-3 italic">
+            Many riders exhibit characteristics of more than one type.
+          </p>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+          <h4 className="font-semibold text-sm sm:text-base mb-2">Data Used for Classification</h4>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+            RiderLabs uses the following inputs:
+          </p>
+          <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+            <div>
+              <strong>1. Power Curve Analysis</strong>
+              <p className="ml-4 mt-1">Your best power outputs are analysed across multiple effort durations, typically ranging from very short efforts (seconds) to sustained efforts (up to 60 minutes). These values are derived from rolling "maximum mean power" calculations taken from training and racing activities.</p>
+            </div>
+            <div>
+              <strong>2. Power-to-Weight Normalisation</strong>
+              <p className="ml-4 mt-1">To allow fair comparison across riders of different sizes, power values are primarily evaluated relative to body mass (W/kg). Raw power (watts) may be considered where relevant to specific rider types.</p>
+            </div>
+            <div>
+              <strong>3. Activity Patterns and Terrain Context</strong>
+              <p className="ml-4 mt-1">Riding behaviour is analysed to understand how power is applied in real conditions, including:</p>
+              <ul className="ml-8 mt-1 list-disc list-inside">
+                <li>frequency of high-intensity efforts</li>
+                <li>steadiness versus variability during hard riding</li>
+                <li>terrain and elevation characteristics of activities</li>
+              </ul>
+            </div>
+            <div>
+              <strong>4. Recency and Consistency</strong>
+              <p className="ml-4 mt-1">Recent performance and the consistency of observed patterns are taken into account to ensure classifications reflect current riding characteristics rather than isolated efforts.</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-          <h4 className="font-semibold text-sm sm:text-base mb-2">How Classification Works</h4>
-          <ol className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-decimal list-inside">
-            <li><strong>Power Curve Analysis:</strong> Examines your best power across 8 durations (5s to 60min)</li>
-            <li><strong>Terrain Preference:</strong> Analyzes elevation gain patterns in your activities</li>
-            <li><strong>Power-to-Weight:</strong> Evaluates climbing ability relative to body weight</li>
-            <li><strong>Consistency Metrics:</strong> Assesses power variability and sustained efforts</li>
-            <li><strong>Confidence Score:</strong> Provides 0-100% confidence in classification</li>
-          </ol>
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+          <h4 className="font-semibold text-sm sm:text-base mb-2">How Rider Types Are Determined</h4>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            Each rider type is associated with a characteristic combination of:
+          </p>
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-4 mb-3">
+            <li>strength at specific effort durations</li>
+            <li>patterns of power application (e.g. steady versus repeated surges)</li>
+            <li>sustained versus short-duration performance</li>
+          </ul>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            Rather than relying on a single metric, RiderLabs evaluates multiple signals together to determine which rider types best match the available data.
+          </p>
+          <p className="text-sm text-gray-700 dark:text-gray-300 italic">
+            It is common for riders to align with more than one type.
+          </p>
+        </div>
+
+        <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
+          <h4 className="font-semibold text-sm sm:text-base mb-2">Confidence Score</h4>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            Each rider type classification is accompanied by a confidence score (0–100%).
+          </p>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            The confidence score reflects:
+          </p>
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-4 mb-3">
+            <li>the amount of relevant data available</li>
+            <li>how recent the data is</li>
+            <li>how consistently the observed patterns appear across multiple activities</li>
+            <li>the agreement between different analytical signals</li>
+          </ul>
+          <p className="text-sm text-gray-700 dark:text-gray-300 italic">
+            A higher confidence score indicates stronger evidence supporting the classification, not a higher level of ability.
+          </p>
+        </div>
+
+        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+          <h4 className="font-semibold text-sm sm:text-base mb-2">Important Notes and Limitations</h4>
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-4">
+            <li>Rider type classification describes current tendencies, not fixed traits.</li>
+            <li>Changes in training focus, racing style, or terrain can influence classification over time.</li>
+            <li>Indoor and outdoor riding conditions may affect power data and are accounted for where possible.</li>
+            <li>Classification does not predict race results or replace coaching judgement.</li>
+          </ul>
         </div>
 
         <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
           <h4 className="font-semibold text-sm sm:text-base mb-2">💡 Why This Matters</h4>
-          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
-            <li><strong>Self-Awareness:</strong> Understand your natural athletic strengths</li>
-            <li><strong>Training Focus:</strong> Optimize workouts for your rider type</li>
-            <li><strong>Race Strategy:</strong> Choose events that suit your profile</li>
-            <li><strong>Motivation:</strong> Embrace your unique identity as an athlete</li>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            Understanding rider type can support:
+          </p>
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-4">
+            <li><strong>Self-awareness</strong> — recognising natural strengths and development areas</li>
+            <li><strong>Training insight</strong> — aligning workouts with goals and demands</li>
+            <li><strong>Race selection and strategy</strong> — choosing events and tactics that suit your profile</li>
+            <li><strong>Motivation</strong> — contextualising performance within a broader athletic picture</li>
           </ul>
         </div>
 
         <div className="border-l-4 border-indigo-500 pl-4">
-          <h4 className="font-semibold text-sm sm:text-base mb-2">📚 Academic Sources</h4>
+          <h4 className="font-semibold text-sm sm:text-base mb-2">📚 References and Further Reading</h4>
           <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
             <li>
-              <strong>Pinot, J., & Grappe, F.</strong> (2011). "The record power profile to assess performance
-              in elite cyclists." <em>International Journal of Sports Medicine, 32</em>(11), 839-844.
+              <strong>Pinot, J., & Grappe, F.</strong> (2011). The record power profile to assess performance in elite cyclists. <em>International Journal of Sports Medicine, 32</em>(11), 839–844.
             </li>
             <li>
-              <strong>Quod, M. J., et al.</strong> (2010). "The power profile predicts road race performance."
-              <em>International Journal of Sports Medicine, 31</em>(6), 397-401.
+              <strong>Quod, M., et al.</strong> (2010). The power profile predicts road race performance. <em>International Journal of Sports Medicine, 31</em>(6), 397–401.
             </li>
             <li>
-              <strong>Lucia, A., et al.</strong> (2001). "Physiological differences between professional and elite
-              road cyclists." <em>International Journal of Sports Medicine, 22</em>(5), 321-326.
+              <strong>Lucia, A., et al.</strong> (2001). Physiological differences between professional and elite road cyclists. <em>International Journal of Sports Medicine, 22</em>(5), 321–326.
+            </li>
+            <li>
+              <strong>Allen, H., & Coggan, A.</strong> Training and Racing with a Power Meter.
             </li>
           </ul>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mt-3 italic">
+            Rider Type Classification is intended to inform and support your understanding of performance — not to define or limit it.
+          </p>
         </div>
       </CollapsibleCard>
 
@@ -943,6 +1096,129 @@ const Methodology = () => {
       </CollapsibleCard>
 
       <CollapsibleCard
+        id="raceTSS"
+        title="Race TSS Estimation (Season Planner)"
+        icon={Trophy}
+        description="Predicting race training stress from distance, elevation, and race type"
+      >
+        <div>
+          <h3 className="font-semibold text-base sm:text-lg mb-2">What is Race TSS Estimation?</h3>
+          <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
+            Race TSS Estimation predicts the physiological stress of an upcoming race based on its characteristics.
+            This helps athletes plan their season, schedule recovery, and understand the relative demands of different events.
+          </p>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+          <h4 className="font-semibold text-sm sm:text-base mb-2">Calculation Formula</h4>
+          <div className="font-mono text-sm bg-white dark:bg-gray-800 p-3 rounded border border-blue-200 dark:border-blue-700">
+            TSS = Duration (hours) × Intensity Factor² × 100 × Climbing Bonus
+            <br />
+            <span className="text-gray-600 dark:text-gray-400">where Duration = Distance / Adjusted Speed</span>
+          </div>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+            <strong>Example:</strong> A 100km road race with 1500m elevation:
+            <br />
+            Duration ≈ 2.86 hours (at ~35 km/h adjusted for climbing)
+            <br />
+            TSS = 2.86 × 0.85² × 100 × 1.15 = <strong>~238 TSS</strong>
+          </p>
+        </div>
+
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
+          <h4 className="font-semibold text-sm sm:text-base mb-2">Intensity Factors by Race Type</h4>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+            Different race types have characteristic intensity profiles based on typical race dynamics:
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="bg-white dark:bg-gray-800 p-2 rounded border border-indigo-200 dark:border-indigo-700">
+              <strong>Time Trial:</strong> IF 1.05
+              <p className="text-xs text-gray-500">Maximal sustained effort</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-2 rounded border border-indigo-200 dark:border-indigo-700">
+              <strong>Track:</strong> IF 0.98
+              <p className="text-xs text-gray-500">High intensity, short duration</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-2 rounded border border-indigo-200 dark:border-indigo-700">
+              <strong>Criterium:</strong> IF 0.95
+              <p className="text-xs text-gray-500">Repeated surges, high average</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-2 rounded border border-indigo-200 dark:border-indigo-700">
+              <strong>Cyclocross:</strong> IF 0.92
+              <p className="text-xs text-gray-500">Technical, variable intensity</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-2 rounded border border-indigo-200 dark:border-indigo-700">
+              <strong>Stage Race:</strong> IF 0.88
+              <p className="text-xs text-gray-500">Tactical, sustained effort</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-2 rounded border border-indigo-200 dark:border-indigo-700">
+              <strong>Road Race:</strong> IF 0.85
+              <p className="text-xs text-gray-500">Variable, tactical racing</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-2 rounded border border-indigo-200 dark:border-indigo-700">
+              <strong>Gravel:</strong> IF 0.80
+              <p className="text-xs text-gray-500">Endurance, terrain variation</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-2 rounded border border-indigo-200 dark:border-indigo-700">
+              <strong>Gran Fondo:</strong> IF 0.75
+              <p className="text-xs text-gray-500">Paced, endurance focus</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
+          <h4 className="font-semibold text-sm sm:text-base mb-2">Elevation Adjustment</h4>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            Climbing adds significant physiological stress beyond what duration alone suggests:
+          </p>
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside">
+            <li><strong>Speed Reduction:</strong> ~2% slower per 100m/10km of climbing (capped at 30%)</li>
+            <li><strong>TSS Bonus:</strong> +10% TSS per 1000m of elevation gain</li>
+          </ul>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 italic">
+            A mountainous 100km race with 3000m climbing will have ~30% higher TSS than a flat 100km race.
+          </p>
+        </div>
+
+        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+          <h4 className="font-semibold text-sm sm:text-base mb-2">TSS Categories for Planning</h4>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-4 h-4 rounded bg-green-500"></span>
+              <span><strong>&lt;100 TSS:</strong> Low - Recovery-friendly, minimal impact on training</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-4 h-4 rounded bg-yellow-500"></span>
+              <span><strong>100-200 TSS:</strong> Moderate - Standard training load, 1-2 days recovery</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-4 h-4 rounded bg-orange-500"></span>
+              <span><strong>200-300 TSS:</strong> High - Significant stress, 2-4 days recovery needed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-4 h-4 rounded bg-red-500"></span>
+              <span><strong>&gt;300 TSS:</strong> Very High - Major event, plan 4-7 days recovery</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-l-4 border-blue-500 pl-4">
+          <h4 className="font-semibold text-sm sm:text-base mb-2">📚 Academic Sources</h4>
+          <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+            <li>
+              <strong>Coggan, A. R.</strong> (2003). "Training and Racing Using a Power Meter."
+            </li>
+            <li>
+              <strong>Allen, H., & Coggan, A.</strong> (2010). <em>Training and Racing with a Power Meter</em> (2nd ed.). VeloPress.
+            </li>
+            <li>
+              <strong>Sanders, D., & Heijboer, M.</strong> (2019). "Physical demands and power profile of different stage types within a cycling grand tour." <em>European Journal of Sport Science, 19</em>(5), 686-694.
+            </li>
+          </ul>
+        </div>
+      </CollapsibleCard>
+
+      <CollapsibleCard
         id="ftp"
         title="Functional Threshold Power (FTP)"
         icon={Zap}
@@ -951,24 +1227,84 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">What is FTP?</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            FTP is the highest average power you can sustain for approximately one hour.
-            It represents your lactate threshold and is the cornerstone metric for power-based training.
+            FTP is a practical training benchmark representing the highest power a rider can sustain for approximately one hour under steady conditions. It is not a laboratory value, but a functional estimate used to anchor training zones, pacing, and load management.
           </p>
         </div>
 
         <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-          <h4 className="font-semibold text-sm sm:text-base mb-2">Auto-Detection Method</h4>
-          <ol className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-decimal list-inside">
-            <li>Analyzes activities from the last 6 weeks with power data</li>
-            <li>Identifies your best 20-60 minute sustained efforts</li>
-            <li>Applies standard FTP test protocols:
-              <ul className="ml-6 mt-1 list-disc list-inside">
-                <li><strong>20-minute test:</strong> FTP = 95% of average power</li>
-                <li><strong>60-minute effort:</strong> FTP = 100% of average power</li>
-              </ul>
-            </li>
-            <li>Updates automatically as you complete new workouts</li>
-          </ol>
+          <h4 className="font-semibold text-sm sm:text-base mb-2">FTP Auto-Detection Methodology</h4>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+            FTP is estimated from real riding data, prioritising sustained, steady efforts rather than short tests or maximal spikes.
+          </p>
+          
+          <div className="mb-3">
+            <h5 className="font-semibold text-sm mb-1">Data Window</h5>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+              <li>Default analysis window: last 42 days</li>
+              <li>Older efforts are progressively down-weighted</li>
+              <li>Recent efforts are prioritised, but older high-quality efforts are not discarded outright</li>
+            </ul>
+          </div>
+
+          <div className="mb-3">
+            <h5 className="font-semibold text-sm mb-1">Eligible Efforts</h5>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">Efforts must meet all of the following criteria:</p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+              <li>Duration: 20–60 minutes</li>
+              <li>Power data present and continuous</li>
+              <li>Steady pacing (low power variability, minimal coasting)</li>
+              <li>Representative riding conditions (not dominated by downhill, freewheeling, or interruptions)</li>
+              <li>Interval workouts and highly stochastic efforts may be excluded or down-weighted</li>
+            </ul>
+          </div>
+
+          <div className="mb-3">
+            <h5 className="font-semibold text-sm mb-1">FTP Estimation Logic</h5>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">Each qualifying effort is evaluated independently:</p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+              <li><strong>60-minute effort:</strong> FTP estimate = 100% of average power</li>
+              <li><strong>30–59 minute effort:</strong> FTP estimate = 97–100% of average power, depending on duration</li>
+              <li><strong>20–29 minute effort:</strong> FTP estimate = 95% of average power</li>
+            </ul>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+              Each effort produces its own FTP estimate. The final FTP value is calculated as the median of the strongest qualifying estimates, with preference given to:
+            </p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2 mt-1">
+              <li>Longer durations</li>
+              <li>More recent efforts</li>
+              <li>Lower variability (steadier pacing)</li>
+            </ul>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+              This approach improves robustness and avoids over-reliance on a single effort.
+            </p>
+          </div>
+
+          <div className="mb-3">
+            <h5 className="font-semibold text-sm mb-1">Confidence Assessment</h5>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">FTP confidence is based on:</p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+              <li>Number of qualifying efforts</li>
+              <li>Consistency between estimates (low variance)</li>
+              <li>Presence of at least one effort ≥40 minutes</li>
+              <li>Recency of the strongest effort</li>
+            </ul>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+              If confidence is low, FTP may still be shown, but clearly marked as low confidence, with guidance provided to improve accuracy.
+            </p>
+          </div>
+
+          <div>
+            <h5 className="font-semibold text-sm mb-1">Manual Override</h5>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">Riders may manually set FTP at any time using:</p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+              <li>A recent formal test</li>
+              <li>Coach-prescribed value</li>
+              <li>Known race or time trial benchmark</li>
+            </ul>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+              Manual values always take priority until changed.
+            </p>
+          </div>
         </div>
       </CollapsibleCard>
 
@@ -981,26 +1317,84 @@ const Methodology = () => {
         <div>
           <h3 className="font-semibold text-base sm:text-lg mb-2">What is FTHR?</h3>
           <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
-            FTHR is the highest average heart rate you can sustain for approximately one hour.
-            It represents your lactate threshold heart rate and is used to set heart rate training zones
-            for athletes who train without a power meter.
+            FTHR is a training reference heart rate representing the highest average heart rate a rider can sustain during a prolonged, steady hard effort. It is a practical anchor for heart-rate-based training zones, not a direct physiological measurement.
           </p>
         </div>
 
         <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-          <h4 className="font-semibold text-sm sm:text-base mb-2">Auto-Detection Method</h4>
-          <ol className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-decimal list-inside">
-            <li>Analyzes activities from the last 6 weeks with heart rate data</li>
-            <li>Identifies your best 20-60 minute sustained efforts</li>
-            <li>Applies standard FTHR test protocols:
-              <ul className="ml-6 mt-1 list-disc list-inside">
-                <li><strong>20-30 minute test:</strong> FTHR = 95% of average HR</li>
-                <li><strong>30-60 minute effort:</strong> FTHR = 100% of average HR</li>
-              </ul>
-            </li>
-            <li>Filters for steady-state efforts (excludes interval workouts)</li>
-            <li>Updates automatically as you complete new workouts</li>
-          </ol>
+          <h4 className="font-semibold text-sm sm:text-base mb-2">FTHR Auto-Detection Methodology</h4>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+            FTHR is derived only from sustained, steady efforts where heart rate response is stable and meaningful.
+          </p>
+          
+          <div className="mb-3">
+            <h5 className="font-semibold text-sm mb-1">Data Window</h5>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+              <li>Default analysis window: last 42 days</li>
+              <li>Older efforts are down-weighted, not discarded</li>
+              <li>No estimation is made without sufficient qualifying data</li>
+            </ul>
+          </div>
+
+          <div className="mb-3">
+            <h5 className="font-semibold text-sm mb-1">Eligible Efforts</h5>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">Efforts must meet all of the following criteria:</p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+              <li>Duration: 30–60 minutes</li>
+              <li>Continuous heart rate data</li>
+              <li>Steady effort profile (no large power surges or recoveries)</li>
+              <li>Limited heart-rate drift (HR remains broadly stable over the effort)</li>
+              <li>Short efforts (&lt;30 min), interval sessions, or highly variable rides are excluded</li>
+            </ul>
+          </div>
+
+          <div className="mb-3">
+            <h5 className="font-semibold text-sm mb-1">FTHR Estimation Logic</h5>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+              For qualifying efforts, FTHR is taken directly as the average heart rate of the best steady effort.
+            </p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+              <li>No duration-based multipliers are applied</li>
+              <li>Heart rate is not scaled or inferred from shorter efforts</li>
+            </ul>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+              If multiple qualifying efforts exist, the final FTHR is calculated as:
+            </p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2 mt-1">
+              <li>The median average HR of the strongest steady efforts, weighted toward longer and more recent efforts</li>
+            </ul>
+          </div>
+
+          <div className="mb-3">
+            <h5 className="font-semibold text-sm mb-1">Confidence Assessment</h5>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">FTHR confidence depends on:</p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+              <li>Presence of at least one ≥40-minute steady effort</li>
+              <li>Consistency between efforts</li>
+              <li>Stability of heart rate during the effort (low drift)</li>
+            </ul>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+              If insufficient data exists:
+            </p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2 mt-1">
+              <li>FTHR is marked as "Not established"</li>
+              <li>No estimated value is shown</li>
+              <li>This avoids presenting misleading numbers</li>
+            </ul>
+          </div>
+
+          <div>
+            <h5 className="font-semibold text-sm mb-1">Manual Override</h5>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">Riders may manually set FTHR using:</p>
+            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside ml-2">
+              <li>A known threshold test</li>
+              <li>Coach-guided assessment</li>
+              <li>Established historical value</li>
+            </ul>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+              Manual FTHR always overrides automatic detection.
+            </p>
+          </div>
         </div>
 
         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mt-3">
@@ -1221,7 +1615,10 @@ const Methodology = () => {
         </CardContent>
       </Card>
 
-      <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-6 border-t dark:border-gray-700">
+      <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-6 border-t dark:border-gray-700 space-y-3">
+        <p className="italic">
+          Estimates are intended for planning and comparison, not exact prediction.
+        </p>
         <p>
           This methodology is continuously updated based on the latest sports science research.
           <br />

@@ -1,8 +1,10 @@
 # 🔬 RiderLabs
 
-**Where Performance is Engineered**
+**Engineering race-day performance through deterministic, stream-backed analysis.**
 
-Data-driven cycling performance platform powered by AI. Analyzes your training history from Strava, generates personalized training plans, and provides race-day strategies with post-race analysis — creating a complete learning loop that makes you faster.
+RiderLabs is a race-aligned performance intelligence engine. It turns raw training data into race-context performance intelligence — identifying limiters and guiding the next training block with deterministic logic.
+
+Not a dashboard. Not a load tracker. Not a generic AI plan generator. Two questions: *Why did this race go the way it did?* and *What do I change next block because of that?*
 
 ![RiderLabs](https://img.shields.io/badge/version-2.10.2-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)

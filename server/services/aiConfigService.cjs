@@ -194,18 +194,24 @@ class AIConfigService {
    */
   storeApiKey({ keyName, provider, apiKey, clientId, clientSecret, redirectUri }) {
     return new Promise((resolve, reject) => {
+      console.log('🔐 storeApiKey called:', { provider, keyName, hasApiKey: !!apiKey, hasClientId: !!clientId, hasClientSecret: !!clientSecret, hasRedirectUri: !!redirectUri });
+      
       // For OAuth providers, encrypt the client secret
       // For simple API keys, encrypt the API key
       const encryptedValue = clientSecret ? this.encryptKey(clientSecret) : (apiKey ? this.encryptKey(apiKey) : null);
 
       if (!encryptedValue) {
+        console.error('❌ No encrypted value - missing apiKey or clientSecret');
         return reject(new Error('Either apiKey or clientSecret must be provided'));
       }
+
+      console.log('✅ Encrypted value created, length:', encryptedValue.length);
 
       // Store encrypted value in api_key column (required NOT NULL)
       // For OAuth: store encrypted clientSecret in both api_key and client_secret
       // For simple keys: store encrypted apiKey in api_key column
       try {
+        console.log('💾 Attempting database INSERT OR REPLACE for provider:', provider);
         const result = adminDb.run(
           `INSERT OR REPLACE INTO api_keys (provider, api_key, client_id, client_secret, redirect_uri) 
            VALUES (?, ?, ?, ?, ?)`,
@@ -218,8 +224,15 @@ class AIConfigService {
           ]
         );
         
+        console.log('✅ Database write completed:', { lastInsertRowid: result.lastInsertRowid, changes: result.changes });
+        
+        // Verify the write
+        const verify = adminDb.get('SELECT provider, client_id, redirect_uri FROM api_keys WHERE provider = ?', [provider]);
+        console.log('🔍 Verification query result:', verify);
+        
         resolve({ id: result.lastInsertRowid, keyName, provider });
       } catch (err) {
+        console.error('❌ Database write error:', err);
         reject(err);
       }
     });
@@ -301,7 +314,7 @@ class AIConfigService {
     return new Promise((resolve, reject) => {
       try {
         const keys = adminDb.all(
-          `SELECT id, provider, is_active, created_at, updated_at 
+          `SELECT id, provider, client_id, redirect_uri, is_active, created_at, updated_at 
            FROM api_keys ORDER BY provider`
         );
         

@@ -1,6 +1,7 @@
 // API routes for manual activity management
 import express from 'express';
 import manualActivityService from '../services/manualActivityService.js';
+import { invalidateCache } from '../services/activityCacheService.js';
 
 const router = express.Router();
 
@@ -59,6 +60,9 @@ router.post('/', async (req, res) => {
     }
     
     const activity = await manualActivityService.createActivity(userId, activityData);
+    
+    // Invalidate activity cache so new activity shows immediately
+    invalidateCache(userId);
     
     res.status(201).json({
       success: true,
@@ -186,6 +190,9 @@ router.put('/:id', async (req, res) => {
       });
     }
     
+    // Invalidate activity cache so updates show immediately
+    invalidateCache(userId);
+    
     res.json({
       success: true,
       activity,
@@ -217,6 +224,9 @@ router.delete('/:id', async (req, res) => {
         error: 'Manual activity not found' 
       });
     }
+    
+    // Invalidate activity cache so deletion shows immediately
+    invalidateCache(userId);
     
     res.json({
       success: true,

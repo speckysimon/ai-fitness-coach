@@ -1,0 +1,14 @@
+name,date,location,distance,elevation,url,registrationDeadline,entryFee,raceType,status,priority,isTeamRace,notes
+3G Kupa,22/03/2026,"Tótvázsony, Hungary",120,1800,https://akesz.hu/,15/03/2026,€30,road_race,confirmed,A,false,Early-season road race; rolling terrain
+Kerékvár–Békás Időfutam,29/03/2026,"Tahitótfalu, Hungary",20,150,https://akesz.hu/,22/03/2026,time_trial,confirmed,B,false,Flat to rolling ITT
+Tarjáni Időfutam,12/04/2026,"Tarján, Hungary",25,300,https://akesz.hu/,05/04/2026,time_trial,confirmed,A,false,Key spring TT target
+Kínok Kínja,26/04/2026,"Esztergom, Hungary",120,2400,https://akesz.hu/,19/04/2026,road_race,confirmed,A,false,"3×40 km; 11 km Dobogókő climb + short steep climb each lap"
+Sereď Marathon,24/05/2026,"Sereď, Slovakia",130,2000,https://www.seredmaraton.sk/,10/05/2026,road_race,confirmed,A,false,Main endurance A-race
+KOM100 / PIKO-BIKE 12h,28/06/2026,"Komárno, Slovakia",0,0,https://100kom.com/,01/06/2026,endurance,provisional,B,false,"12-hour social endurance ride (date TBC, placeholder set to 28/06/2026)"
+Local CTT 10 mile TT,05/07/2026,"Northamptonshire, UK",16,100,https://www.cyclingtimetrials.org.uk/,01/07/2026,time_trial,provisional,B,false,Provisional; pick a local CTT open/club event (date/route TBC)
+Local CTT 25 mile TT,12/07/2026,"Northamptonshire, UK",40,200,https://www.cyclingtimetrials.org.uk/,08/07/2026,time_trial,provisional,B,false,Provisional; pick a local CTT open/club event (date/route TBC)
+Brigetio Road Race,02/08/2026,"Péliföldszentkereszt, Hungary",100,1500,https://akesz.hu/,27/07/2026,road_race,confirmed,B,false,Mid-summer road race
+Pilis Kupa,30/08/2026,"Esztergom–Dobogókő, Hungary",15,800,https://akesz.hu/,23/08/2026,time_trial,confirmed,A,false,Hilly TT; ~11 km sustained climb
+Pilis Kupa – 2. forduló,27/09/2026,"Esztergom–Dobogókő, Hungary",15,800,https://akesz.hu/,20/09/2026,time_trial,confirmed,A,false,Second hilly TT round
+Turul Kupa,04/10/2026,"Tatabánya, Hungary",100,1500,https://akesz.hu/,27/09/2026,road_race,confirmed,B,false,Hilltop finish
+Brigetio Időfutam,11/10/2026,"Komárom, Hungary",17,100,https://akesz.hu/,04/10/2026,time_trial,confirmed,A,false,Season finale TT (~16–17 km)

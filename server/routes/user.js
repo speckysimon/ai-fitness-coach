@@ -1,7 +1,51 @@
 import express from 'express';
-import { getDb } from '../db.js';
+import { getDb, userDb, sessionDb } from '../db.js';
 
 const router = express.Router();
+
+// ========================================
+// USER PROFILE ENDPOINTS
+// ========================================
+
+// Update user profile (name, age, height, weight, gender)
+router.put('/profile', async (req, res) => {
+  try {
+    // Extract session token from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized - No token provided' });
+    }
+
+    const sessionToken = authHeader.substring(7); // Remove 'Bearer ' prefix
+    
+    // Validate session and get user
+    const session = sessionDb.findByToken(sessionToken);
+    if (!session) {
+      return res.status(401).json({ error: 'Unauthorized - Invalid or expired session' });
+    }
+
+    const userId = session.user_id;
+    const { name, age, height, weight, gender } = req.body;
+    
+    // Update user profile using existing helper
+    userDb.updateProfile(userId, { name, age, height, weight, gender });
+    
+    // Fetch updated user data
+    const updatedUser = userDb.findById(userId);
+    
+    // Remove sensitive data
+    delete updatedUser.password;
+    
+    res.json({ 
+      success: true, 
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Error updating user profile:', error.message);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
 
 // ========================================
 // USER PREFERENCES CRUD ENDPOINTS

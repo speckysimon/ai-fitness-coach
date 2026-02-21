@@ -11,7 +11,7 @@
 **Tagline:** "Where Performance is Engineered"  
 **Logo Icon:** 🔬 (microscope - represents lab/science)  
 **Domain:** riderlabs.io (purchased!)  
-**Positioning:** Data-driven cycling performance platform powered by AI
+**Positioning:** Race-aligned performance intelligence engine — deterministic, stream-backed analysis
 
 ---
 

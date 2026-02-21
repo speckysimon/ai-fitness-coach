@@ -20,7 +20,7 @@ async function loadApiKeys() {
     
     const sqlite3 = require('sqlite3').verbose();
     const path = require('path');
-    const dbPath = path.join(__dirname, '../database.sqlite');
+    const dbPath = path.join(__dirname, '../fitness-coach-admin.db');
     const database = new sqlite3.Database(dbPath);
     
     // Clear cache

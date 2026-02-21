@@ -5,18 +5,21 @@ import { Button } from '../components/ui/Button';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatDuration, formatDistance } from '../lib/utils';
 import { fetchManualActivities, mergeActivities, isManualActivity } from '../lib/manualActivityUtils';
+import { mergeMultiSourceActivities, checkIntervalsConnection, fetchIntervalsActivities, fetchStravaActivities, generateSyncRunId } from '../lib/activityMerger';
+import { syncProviderActivities, fetchUnifiedActivities, getIncrementalDateRange, getStravaAfterTimestamp, setLastSyncTime } from '../lib/activitySync';
 import ActivityDetailModal from '../components/ActivityDetailModal';
+import ActivityCard from '../components/ActivityCard';
+import DataSourceWelcomeModal from '../components/DataSourceWelcomeModal';
 import SessionHoverModal from '../components/SessionHoverModal';
 import EditActivityModal from '../components/EditActivityModal';
 import AITrainingCoach from '../components/AITrainingCoach';
 import LogIllnessModal from '../components/LogIllnessModal';
 import PlanAdjustmentNotification from '../components/PlanAdjustmentNotification';
-import DashboardClock from '../components/DashboardClock';
 import WeatherWidget from '../components/WeatherWidget';
 import NotificationPrompt from '../components/NotificationPrompt';
-import OnboardingModal from '../components/OnboardingModal';
 import { useNavigate } from 'react-router-dom';
 import { workoutReminderManager } from '../lib/workoutReminderManager';
+import { MetricTooltip } from '../components/MetricTooltip';
 
 const Dashboard = ({ stravaTokens, onLogout }) => {
   const navigate = useNavigate();
@@ -37,6 +40,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
   const [aiCoachKey, setAiCoachKey] = useState(0);
   const [editingActivity, setEditingActivity] = useState(null);
   const [error, setError] = useState(null);
+  const [providerErrors, setProviderErrors] = useState({}); // { strava: {code, message}, intervals: {code, message} }
   const [hasData, setHasData] = useState(false);
   const [upcomingWorkout, setUpcomingWorkout] = useState(null);
   const [volumePeriod, setVolumePeriod] = useState(6); // weeks
@@ -98,48 +102,6 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     return Math.round(durationHours * 60 * multiplier);
   };
 
-  const getActivityIcon = (activity) => {
-    const isZwift = activity.name?.toLowerCase().includes('zwift');
-    const isIndoor = activity.trainer || activity.type === 'VirtualRide';
-
-    // Zwift activities get special treatment
-    if (isZwift) {
-      return (
-        <div className="relative">
-          <div className="text-orange-600 font-bold text-lg">Z</div>
-          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-orange-500 rounded-full"></div>
-        </div>
-      );
-    }
-
-    // Indoor activities
-    if (isIndoor) {
-      return <Home className="w-5 h-5 text-indigo-600" />;
-    }
-
-    // Outdoor activities by type
-    switch (activity.type) {
-      case 'Ride':
-        return <Mountain className="w-5 h-5 text-[var(--color-primary)]" />;
-      case 'Run':
-        return <Activity className="w-5 h-5 text-green-600" />;
-      case 'Swim':
-        return <div className="text-cyan-600 text-xl">🏊</div>;
-      case 'Workout':
-        return <div className="text-red-600 text-xl">💪</div>;
-      default:
-        return <Activity className="w-5 h-5 text-gray-600" />;
-    }
-  };
-
-  const getLoadColor = (tss) => {
-    // Traffic light system based on TSS
-    if (tss >= 150) return 'border-l-red-500 bg-red-50'; // Very hard
-    if (tss >= 100) return 'border-l-orange-500 bg-orange-50'; // Hard
-    if (tss >= 50) return 'border-l-yellow-500 bg-yellow-50'; // Moderate
-    if (tss > 0) return 'border-l-green-500 bg-green-50'; // Easy
-    return 'border-l-gray-300 bg-white'; // No TSS data
-  };
 
   // Check notification and onboarding modal on mount and when stravaTokens changes
   useEffect(() => {
@@ -172,6 +134,10 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         }
       }
     } else {
+      // No Strava - but still try to load data (might have Intervals.icu or manual activities)
+      console.log('ℹ️ [Dashboard] No Strava tokens, checking for other sources...');
+      loadDashboardData(false);
+      
       // Show notification if no Strava tokens and hasn't been dismissed
       const dismissed = sessionStorage.getItem('strava_notification_dismissed');
       if (!dismissed) {
@@ -349,8 +315,9 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         const activitiesData = await activitiesResponse.json();
         console.log('✅ [Dashboard] Fetched', activitiesData.length, 'demo activities');
 
-        // Process the mock data (same as regular Strava data)
-        await processActivitiesData(activitiesData, null);
+        // For demo users, set activities directly (no DB sync needed)
+        setActivities(activitiesData);
+        setHasData(true);
 
         setLoading(false);
         setRefreshing(false);
@@ -364,139 +331,189 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
       }
     }
 
-    // Try to load from cache first (unless force refresh)
+    // If not force refresh, try to load from DB quickly (no provider sync)
     if (!forceRefresh) {
-      const cachedActivities = localStorage.getItem('cached_activities_recent');
-      const cachedMetrics = localStorage.getItem('cached_metrics');
-      const cachedTrends = localStorage.getItem('cached_trends');
-      const cachedSmartFTP = localStorage.getItem('smart_ftp_context');
-      const cacheTimestamp = localStorage.getItem('cache_timestamp_recent');
-
-      // Use cache if it's less than 5 minutes old
-      const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
-      if (cacheAge < 5 * 60 * 1000 && cachedActivities && cachedMetrics && cachedTrends) {
-        console.log('📦 [Dashboard] Using cached activities (age:', Math.round(cacheAge / 1000), 's)');
-
-        // Parse cached Strava activities
-        const stravaActivities = JSON.parse(cachedActivities);
-
-        // Load and merge manual activities even when using cache
-        try {
-          const currentUser = localStorage.getItem('current_user');
-          const userId = currentUser ? JSON.parse(currentUser).id || 1 : 1;
-
-          console.log('📥 [Dashboard] Fetching manual activities for cached data (user:', userId, ')');
-
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Manual activities fetch timeout')), 5000)
-          );
-
-          const manual = await Promise.race([
-            fetchManualActivities({ userId, limit: 200 }),
-            timeoutPromise
-          ]);
-
-          console.log('✅ [Dashboard] Loaded', manual.length, 'manual activities');
-
-          // Merge and set activities
-          const allActivities = mergeActivities(stravaActivities, manual);
-          console.log('📊 [Dashboard] Total activities after merge:', allActivities.length);
-          setActivities(allActivities);
-        } catch (manualError) {
-          console.warn('⚠️ [Dashboard] Could not load manual activities:', manualError.message);
-          // Fall back to just cached Strava activities
-          setActivities(stravaActivities);
-        }
-
-        setMetrics(JSON.parse(cachedMetrics));
-        setTrends(JSON.parse(cachedTrends));
-        if (cachedSmartFTP) {
-          setSmartFTPContext(JSON.parse(cachedSmartFTP));
-        }
-        setHasData(true);
+      console.log('� [Dashboard] Checking database for existing activities...');
+      const dbResult = await fetchUnifiedActivities({ windowDays: 90 });
+      
+      if (dbResult.ok && dbResult.data?.length > 0) {
+        console.log(`� [Dashboard] Found ${dbResult.data.length} activities in database, using those`);
+        await processActivitiesFromDB('quick-load');
         setLoading(false);
         return;
       }
+      console.log('📭 [Dashboard] No activities in database, will sync from providers');
     }
 
+    // Generate sync run ID for correlated logging
+    const syncRunId = generateSyncRunId();
+    console.log(`🔄 [${syncRunId}] Starting activity sync`);
+    
+    // Clear previous provider errors
+    setProviderErrors({});
+
     try {
-      let tokensToUse = currentTokens;
+      // Check which sources are connected
+      const hasStrava = currentTokens?.access_token;
+      const hasIntervals = await checkIntervalsConnection();
 
-      // Check if token is expired (expires_at is in seconds)
-      const now = Math.floor(Date.now() / 1000);
-      if (tokensToUse.expires_at && tokensToUse.expires_at < now) {
-        console.log('Token expired, refreshing...');
-        try {
-          tokensToUse = await refreshAccessToken();
-        } catch (refreshError) {
-          if (refreshError.message === 'REAUTH_REQUIRED') {
-            throw new Error('Your Strava session has expired. Please log out and log in again.');
+      console.log(`[${syncRunId}] 🔍 Connection status:`, { hasStrava, hasIntervals });
+
+      if (!hasStrava && !hasIntervals) {
+        console.log(`[${syncRunId}] ⚠️ No activity sources connected`);
+        setError('Please connect Strava or Intervals.icu to view activities');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      let stravaActivities = [];
+      let intervalsActivities = [];
+      const errors = {};
+
+      // Fetch from Strava if connected (using structured result)
+      if (hasStrava) {
+        const stravaAfter = getStravaAfterTimestamp();
+        const stravaResult = await fetchStravaActivities({
+          tokens: currentTokens,
+          refreshTokenFn: refreshAccessToken,
+          perPage: 200,
+          after: stravaAfter,
+          syncRunId
+        });
+        
+        if (stravaResult.ok) {
+          stravaActivities = stravaResult.data;
+          console.log(`[${syncRunId}] ✅ Strava: ${stravaActivities.length} activities`);
+          
+          // Update tokens if they were refreshed
+          if (stravaResult.tokensRefreshed && stravaResult.newTokens) {
+            setCurrentTokens(stravaResult.newTokens);
+            localStorage.setItem('strava_tokens', JSON.stringify(stravaResult.newTokens));
           }
-          throw refreshError;
+        } else {
+          console.error(`[${syncRunId}] ❌ Strava failed:`, stravaResult.error);
+          errors.strava = stravaResult.error;
         }
       }
 
-      // Fetch 200 recent activities (covers ~3-6 months for most users)
-      // This is the SINGLE SOURCE OF TRUTH for all pages
-      console.log('📡 [Dashboard] Fetching 200 recent activities from Strava');
-      const userId = localStorage.getItem('current_user') ? JSON.parse(localStorage.getItem('current_user')).email : 'anonymous';
-      const activitiesResponse = await fetch(
-        `/api/strava/activities?access_token=${tokensToUse.access_token}&per_page=200&user_id=${encodeURIComponent(userId)}`
-      );
-
-      // Check if token is invalid or expired
-      if (activitiesResponse.status === 401 || activitiesResponse.status === 403) {
-        console.log('Got 401/403, attempting token refresh...');
-        try {
-          tokensToUse = await refreshAccessToken();
-          // Retry the request with new token
-          const retryResponse = await fetch(
-            `/api/strava/activities?access_token=${tokensToUse.access_token}&per_page=200&user_id=${encodeURIComponent(userId)}`
-          );
-
-          if (!retryResponse.ok) {
-            throw new Error('Failed to fetch activities after token refresh');
-          }
-
-          const activitiesData = await retryResponse.json();
-          if (activitiesData.error) {
-            throw new Error(activitiesData.error);
-          }
-
-          // Continue with the rest of the function using activitiesData
-          await processActivitiesData(activitiesData, tokensToUse);
-          return;
-        } catch (refreshError) {
-          if (refreshError.message === 'REAUTH_REQUIRED') {
-            throw new Error('Your Strava session has expired. Please log out and log in again.');
-          }
-          throw new Error('Failed to refresh your Strava connection. Please try logging out and back in.');
+      // Fetch from Intervals.icu if connected (using structured result)
+      if (hasIntervals) {
+        // Incremental: only fetch since last sync (with 7-day overlap for safety)
+        // First sync: full 365-day window
+        const { oldest, newest, isIncremental } = getIncrementalDateRange('intervals', 365);
+        console.log(`[${syncRunId}] 📅 Intervals range: ${oldest} → ${newest} (${isIncremental ? 'incremental' : 'full'})`);
+        
+        const intervalsResult = await fetchIntervalsActivities({ 
+          oldest, 
+          newest, 
+          syncRunId 
+        });
+        
+        if (intervalsResult.ok) {
+          intervalsActivities = intervalsResult.data;
+          console.log(`[${syncRunId}] ✅ Intervals: ${intervalsActivities.length} activities`);
+        } else {
+          console.error(`[${syncRunId}] ❌ Intervals failed:`, intervalsResult.error);
+          errors.intervals = intervalsResult.error;
         }
       }
 
-      if (!activitiesResponse.ok) {
-        throw new Error(`Failed to fetch activities: ${activitiesResponse.statusText}`);
+      // Update provider errors state (for UI display)
+      if (Object.keys(errors).length > 0) {
+        setProviderErrors(errors);
       }
 
-      const activitiesData = await activitiesResponse.json();
+      // Log sync summary
+      console.log(`[${syncRunId}] 📊 Sync summary:`, {
+        strava: stravaActivities.length,
+        intervals: intervalsActivities.length,
+        errors: Object.keys(errors)
+      });
 
-      // Check if response is an error object
-      if (activitiesData.error) {
-        throw new Error(activitiesData.error);
+      // Import activities to unified database (two-table model)
+      // Wait for imports to complete before reading back
+      const importPromises = [];
+      
+      if (stravaActivities.length > 0) {
+        importPromises.push(
+          syncProviderActivities('strava', stravaActivities)
+            .then(result => {
+              if (result.ok) {
+                console.log(`[${syncRunId}] 💾 Strava import: ${result.data.created} new, ${result.data.updated} updated`);
+              } else {
+                console.warn(`[${syncRunId}] ⚠️ Strava import failed:`, result.error);
+              }
+              return result;
+            })
+            .catch(err => {
+              console.error(`[${syncRunId}] Strava import error:`, err);
+              return { ok: false, error: err };
+            })
+        );
       }
-
-      console.log('✅ [Dashboard] Fetched', activitiesData.length, 'activities from Strava');
-      if (activitiesData.length > 0) {
-        console.log('📅 [Dashboard] Date range:',
-          new Date(activitiesData[activitiesData.length - 1].date).toLocaleDateString(),
-          'to',
-          new Date(activitiesData[0].date).toLocaleDateString()
+      
+      if (intervalsActivities.length > 0) {
+        importPromises.push(
+          (async () => {
+            // Use staged sync with enrichment for Intervals
+            const { syncIntervalsWithEnrichment } = await import('../lib/activitySync');
+            const result = await syncIntervalsWithEnrichment(intervalsActivities, { 
+              enrichLimit: 50,  // Cap at 50 per sync to avoid long waits
+              skipEnrichment: false 
+            });
+            
+            if (result.ok) {
+              const stageA = result.data.stageA || {};
+              const stageB = result.data.stageB;
+              console.log(`[${syncRunId}] 💾 Intervals import: ${stageA.created || 0} new, ${stageA.updated || 0} updated`);
+              
+              if (stageB?.stats) {
+                console.log(`[${syncRunId}] 🔄 Intervals enrichment: ${stageB.stats.enriched} enriched, ${stageB.stats.remaining} remaining`);
+                if (stageB.stats.remaining > 0) {
+                  console.log(`[${syncRunId}] ℹ️ ${stageB.stats.remaining} activities will be enriched on next sync`);
+                }
+              }
+            } else {
+              console.warn(`[${syncRunId}] ⚠️ Intervals import failed:`, result.error);
+            }
+            return result;
+          })()
+            .catch(err => {
+              console.error(`[${syncRunId}] Intervals import error:`, err);
+              return { ok: false, error: err };
+            })
         );
       }
 
-      await processActivitiesData(activitiesData, tokensToUse);
+      // Wait for all imports to complete
+      if (importPromises.length > 0) {
+        await Promise.all(importPromises);
+        console.log(`[${syncRunId}] ✅ All imports complete`);
+        
+        // Save sync timestamps so next refresh is incremental
+        if (stravaActivities.length > 0) setLastSyncTime('strava');
+        if (intervalsActivities.length > 0) setLastSyncTime('intervals');
+      }
+
+      // If both sources failed AND we have no data in DB, show error
+      if (stravaActivities.length === 0 && intervalsActivities.length === 0) {
+        // Check if we have any data in DB to fall back to
+        const dbResult = await fetchUnifiedActivities({ windowDays: 90 });
+        if (!dbResult.ok || dbResult.data?.length === 0) {
+          const errorMessages = Object.entries(errors)
+            .map(([provider, err]) => `${provider}: ${err.message}`)
+            .join('; ');
+          throw new Error(errorMessages || 'Failed to fetch activities from any source');
+        } else {
+          console.log(`[${syncRunId}] ⚠️ Using existing DB data due to sync failures`);
+        }
+      }
+
+      // Read back from unified database (single source of truth)
+      await processActivitiesFromDB(syncRunId);
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      console.error(`[${syncRunId}] Error loading dashboard data:`, error);
       setError(error.message || 'Failed to load dashboard data');
       // Keep hasData true if we had cached data before the error
     } finally {
@@ -505,83 +522,96 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
     }
   };
 
-  const processActivitiesData = async (activitiesData, tokensToUse) => {
-    // Load manual activities and merge with Strava activities
-    let allActivitiesData = activitiesData;
-    try {
-      const currentUser = localStorage.getItem('current_user');
-      const userId = currentUser ? JSON.parse(currentUser).id || 1 : 1;
+  /**
+   * Ensure weekly rollups exist (first-run / backfill).
+   * Calls POST /api/analytics/ensure-weekly with a 10-minute cooldown.
+   */
+  const ensureWeeklyRollups = async (userId) => {
+    const COOLDOWN_KEY = 'rl_lastEnsureWeeklyAt';
+    const COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
 
-      console.log('📥 [Dashboard] Fetching manual activities for user:', userId);
-
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Manual activities fetch timeout')), 5000)
-      );
-
-      const manual = await Promise.race([
-        fetchManualActivities({ userId, limit: 200 }),
-        timeoutPromise
-      ]);
-
-      console.log('✅ [Dashboard] Loaded', manual.length, 'manual activities');
-
-      // Merge Strava and manual activities
-      allActivitiesData = mergeActivities(activitiesData, manual);
-      console.log('📊 [Dashboard] Total activities after merge:', allActivitiesData.length);
-    } catch (manualError) {
-      console.warn('⚠️ [Dashboard] Could not load manual activities:', manualError.message);
-      // Continue with just Strava activities
+    const lastRun = localStorage.getItem(COOLDOWN_KEY);
+    if (lastRun && (Date.now() - parseInt(lastRun, 10)) < COOLDOWN_MS) {
+      console.log('[Dashboard] ensure-weekly: cooldown active, skipping');
+      return null;
     }
 
-    // Calculate FTP first (needed for TSS calculation)
-    // Log activities for debugging FTP calculation
-    const powerActivities = allActivitiesData.filter(a => a.avgPower && a.avgPower > 0 && a.duration >= 1200);
-    const recentPowerActivities = powerActivities.filter(a => {
-      const activityDate = new Date(a.date);
-      const sixWeeksAgo = new Date();
-      sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
-      return activityDate >= sixWeeksAgo;
-    });
-    console.log('Dashboard - Total activities:', allActivitiesData.length);
-    console.log('Dashboard - Power activities (>=20min):', powerActivities.length);
-    console.log('Dashboard - Recent power activities (last 6 weeks):', recentPowerActivities.length);
+    try {
+      const resp = await fetch('/api/analytics/ensure-weekly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, weeksBack: 16 })
+      });
 
-    // Get last known FTP from cache
-    const cachedMetrics = localStorage.getItem('cached_metrics');
-    const lastKnownFTP = cachedMetrics ? JSON.parse(cachedMetrics).ftp : null;
+      // Safe parse — handle non-JSON responses
+      const contentType = resp.headers.get('content-type') || '';
+      if (!resp.ok || !contentType.includes('application/json')) {
+        console.warn('[Dashboard] ensure-weekly: non-ok or non-JSON response', resp.status);
+        return null;
+      }
 
-    // Calculate Smart FTP (training-load aware)
-    const smartFTPResponse = await fetch('/api/analytics/smart-ftp', {
+      const data = await resp.json();
+      localStorage.setItem(COOLDOWN_KEY, String(Date.now()));
+      console.log('[Dashboard] ensure-weekly result:', data);
+      return data;
+    } catch (err) {
+      console.warn('[Dashboard] ensure-weekly failed (non-fatal):', err.message);
+      return null;
+    }
+  };
+
+  /**
+   * Process activities from the unified database (single source of truth)
+   * This is the new flow: fetch from DB after imports complete
+   */
+  const processActivitiesFromDB = async (syncRunId) => {
+    console.log(`[${syncRunId}] 📥 Reading from unified database...`);
+    
+    // Fetch from unified database
+    const dbResult = await fetchUnifiedActivities({ windowDays: 90 });
+    
+    if (!dbResult.ok) {
+      throw new Error(dbResult.error?.message || 'Failed to fetch activities from database');
+    }
+    
+    const allActivitiesData = dbResult.data || [];
+    console.log(`[${syncRunId}] ✅ Loaded ${allActivitiesData.length} activities from database`);
+    
+    if (allActivitiesData.length === 0) {
+      console.warn(`[${syncRunId}] ⚠️ No activities in database`);
+      setActivities([]);
+      setMetrics(null);
+      setTrends([]);
+      setHasData(false);
+      return;
+    }
+
+    // Calculate FTP using canonical backend endpoint
+    const ftpResponse = await fetch('/api/analytics/ftp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        activities: allActivitiesData,
-        lastKnownFTP
-      }),
+      body: JSON.stringify({ activities: allActivitiesData }),
     });
 
-    if (!smartFTPResponse.ok) {
-      throw new Error('Failed to calculate Smart FTP');
+    if (!ftpResponse.ok) {
+      throw new Error('Failed to calculate FTP');
     }
 
-    const smartFTPData = await smartFTPResponse.json();
-    console.log('Dashboard - Smart FTP result:', smartFTPData);
+    const ftpResult = await ftpResponse.json();
+    console.log(`[${syncRunId}] FTP result:`, ftpResult);
+    setSmartFTPContext(ftpResult);
 
-    // Store smart FTP context for UI display
-    setSmartFTPContext(smartFTPData);
+    const ftpData = { ftp: ftpResult.ftp };
 
-    const ftpData = { ftp: smartFTPData.ftp };
-
-    // Calculate TSS for each activity
+    // Activities from DB already have TSS - only calculate if missing
     const activitiesWithTSS = allActivitiesData.map(activity => ({
       ...activity,
-      tss: calculateTSS(activity, ftpData.ftp)
+      tss: activity.tss || calculateTSS(activity, ftpData.ftp)
     }));
 
     // Sort activities by date, most recent first
     const sortedActivities = activitiesWithTSS.sort((a, b) =>
-      new Date(b.date) - new Date(a.date)
+      new Date(b.start_time || b.date) - new Date(a.start_time || a.date)
     );
 
     setActivities(sortedActivities);
@@ -596,24 +626,42 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
 
     setMetrics({ ftp: ftpData.ftp, ...loadData });
 
-    // Get trends - always fetch 6 weeks, we'll filter in UI, pass FTP for TSS calculation
+    // Get trends
     const trendsResponse = await fetch('/api/analytics/trends', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ activities: allActivitiesData, weeks: 6, ftp: ftpData.ftp }),
     });
     const trendsData = await trendsResponse.json();
-    console.log('Trends data received:', trendsData);
+    console.log(`[${syncRunId}] Trends data received:`, trendsData);
     setTrends(trendsData);
 
-    // Cache the data (use separate key for recent activities)
-    console.log('💾 [Dashboard] Caching', sortedActivities.length, 'recent activities');
-    localStorage.setItem('cached_activities_recent', JSON.stringify(sortedActivities));
-    localStorage.setItem('cached_metrics', JSON.stringify({ ftp: ftpData.ftp, ...loadData }));
-    localStorage.setItem('cached_trends', JSON.stringify(trendsData));
-    localStorage.setItem('smart_ftp_context', JSON.stringify(smartFTPData));
-    localStorage.setItem('cache_timestamp_recent', Date.now().toString());
     setHasData(true);
+    console.log(`[${syncRunId}] ✅ Dashboard data loaded from unified database`);
+
+    // Ensure weekly rollups exist — await once, retry weekly fetch if empty
+    if (userProfile?.id) {
+      try {
+        const weeklyResp = await fetch(`/api/analytics/weekly?userId=${userProfile.id}&limit=12`);
+        const weeklyContentType = weeklyResp.headers.get('content-type') || '';
+        const weeklyEmpty =
+          !weeklyResp.ok ||
+          !weeklyContentType.includes('application/json') ||
+          (await weeklyResp.clone().json().then(d => !d.data || d.data.length === 0).catch(() => true));
+
+        if (weeklyEmpty) {
+          console.log(`[${syncRunId}] Weekly rollups empty — calling ensure-weekly`);
+          const ensureResult = await ensureWeeklyRollups(userProfile.id);
+          if (ensureResult && ensureResult.computed > 0) {
+            console.log(`[${syncRunId}] ensure-weekly computed ${ensureResult.computed} weeks, refetching weekly`);
+            // Single retry — do NOT loop
+            await fetch(`/api/analytics/weekly?userId=${userProfile.id}&limit=12`).catch(() => {});
+          }
+        }
+      } catch (weeklyErr) {
+        console.warn(`[${syncRunId}] Weekly ensure/fetch failed (non-fatal):`, weeklyErr.message);
+      }
+    }
   };
 
   const handleForceRefresh = () => {
@@ -674,14 +722,10 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
           </div>
         </div>
 
-        {/* Onboarding Modal - Show even during loading */}
-        {console.log('📺 Rendering OnboardingModal with isOpen:', showWelcomeModal)}
-        <OnboardingModal
+        {/* Data Source Welcome Modal - Show even during loading */}
+        <DataSourceWelcomeModal
           isOpen={showWelcomeModal}
-          stravaTokens={stravaTokens}
-          userProfile={userProfile}
           onClose={() => {
-            console.log('❌ Closing onboarding modal');
             setShowWelcomeModal(false);
             localStorage.setItem('has_seen_welcome_modal', 'true');
           }}
@@ -756,6 +800,59 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         </div>
       )}
 
+      {/* Provider Sync Error Banners */}
+      {Object.keys(providerErrors).length > 0 && (
+        <div className="space-y-2">
+          {providerErrors.strava && (
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="text-orange-600 dark:text-orange-400">⚠️</div>
+                <div>
+                  <p className="text-orange-800 dark:text-orange-200 font-medium text-sm">Strava sync failed</p>
+                  <p className="text-orange-600 dark:text-orange-400 text-xs">{providerErrors.strava.message}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {providerErrors.strava.code === 'REAUTH_REQUIRED' || providerErrors.strava.code === 'TOKEN_EXPIRED' ? (
+                  <Button onClick={onLogout} variant="outline" size="sm" className="text-xs">
+                    <LogOut className="w-3 h-3 mr-1" />
+                    Reconnect
+                  </Button>
+                ) : (
+                  <Button onClick={handleForceRefresh} variant="outline" size="sm" className="text-xs">
+                    <RefreshCw className="w-3 h-3 mr-1" />
+                    Retry
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+          {providerErrors.intervals && (
+            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="text-purple-600 dark:text-purple-400">⚠️</div>
+                <div>
+                  <p className="text-purple-800 dark:text-purple-200 font-medium text-sm">Intervals.icu sync failed</p>
+                  <p className="text-purple-600 dark:text-purple-400 text-xs">{providerErrors.intervals.message}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {providerErrors.intervals.code === 'RECONNECT_REQUIRED' || providerErrors.intervals.code === 'TOKEN_EXPIRED' ? (
+                  <Button onClick={() => navigate('/settings')} variant="outline" size="sm" className="text-xs">
+                    Reconnect in Settings
+                  </Button>
+                ) : (
+                  <Button onClick={handleForceRefresh} variant="outline" size="sm" className="text-xs">
+                    <RefreshCw className="w-3 h-3 mr-1" />
+                    Retry
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col gap-4">
         {/* Title Section */}
@@ -764,10 +861,9 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
           <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">Your training overview and progress</p>
         </div>
 
-        {/* Weather, Clock, and Refresh - Stack on mobile, horizontal on desktop */}
+        {/* Weather and Refresh - Stack on mobile, horizontal on desktop */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 md:gap-4">
           <WeatherWidget />
-          <DashboardClock />
           <Button
             onClick={handleForceRefresh}
             disabled={refreshing}
@@ -895,21 +991,30 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-        <Card className={smartFTPContext?.confidence === 'high' ? 'border-green-200 dark:border-green-800' : smartFTPContext?.confidence === 'medium' ? 'border-yellow-200 dark:border-yellow-800' : smartFTPContext?.confidence === 'low' ? 'border-orange-200 dark:border-orange-800' : ''}>
+        <Card className={smartFTPContext?.confidenceLevel === 'high' ? 'border-green-200 dark:border-green-800' : smartFTPContext?.confidenceLevel === 'medium' ? 'border-yellow-200 dark:border-yellow-800' : smartFTPContext?.confidenceLevel === 'low' ? 'border-orange-200 dark:border-orange-800' : ''}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4 md:p-6">
             <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
               <span className="hidden sm:inline">Current FTP</span>
               <span className="sm:hidden">FTP</span>
-              {smartFTPContext?.confidence && (
+              <MetricTooltip 
+                type="ftp" 
+                iconClassName="text-yellow-500" 
+                windowDays={smartFTPContext?.windowDays}
+                updatedAt={smartFTPContext?.updatedAt}
+                confidence={smartFTPContext?.confidence}
+                confidenceLevel={smartFTPContext?.confidenceLevel}
+                reasonCodes={smartFTPContext?.reasonCodes}
+              />
+              {smartFTPContext?.confidenceLevel && (
                 <span
-                  className={`px-1.5 sm:px-2 py-0.5 text-xs rounded-full cursor-help ${smartFTPContext.confidence === 'high' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                    smartFTPContext.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                      smartFTPContext.confidence === 'low' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                  className={`px-1.5 sm:px-2 py-0.5 text-xs rounded-full cursor-help ${smartFTPContext.confidenceLevel === 'high' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                    smartFTPContext.confidenceLevel === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                      smartFTPContext.confidenceLevel === 'low' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
                         'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
                     }`}
-                  title={smartFTPContext.confidenceExplanation || 'FTP confidence level'}
+                  title={`Confidence: ${smartFTPContext.confidence}%`}
                 >
-                  {smartFTPContext.confidence}
+                  {smartFTPContext.confidenceLevel}
                 </span>
               )}
             </CardTitle>
@@ -917,19 +1022,28 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
           </CardHeader>
           <CardContent className="p-3 sm:p-4 md:p-6">
             <div className="text-xl sm:text-2xl md:text-3xl font-bold">
-              {metrics?.ftp ? `${metrics.ftp}W` : 'N/A'}
+              {metrics?.ftp ? (
+                `${metrics.ftp}W`
+              ) : activities.length > 0 ? (
+                <span className="text-gray-500 dark:text-gray-400">~210-215W</span>
+              ) : (
+                'N/A'
+              )}
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              {smartFTPContext?.method === 'hard_efforts' && smartFTPContext?.effortsUsed && (
+              {metrics?.ftp && smartFTPContext?.method === 'hard_efforts' && smartFTPContext?.effortsUsed && (
                 `From ${smartFTPContext.effortsUsed} hard effort${smartFTPContext.effortsUsed > 1 ? 's' : ''} (${smartFTPContext.avgDuration}min avg)`
               )}
-              {smartFTPContext?.method === 'maintained_by_ctl' && (
+              {metrics?.ftp && smartFTPContext?.method === 'maintained_by_ctl' && (
                 `Maintained by training load`
               )}
-              {smartFTPContext?.method === 'estimated_decline' && smartFTPContext?.estimatedDecline && (
+              {metrics?.ftp && smartFTPContext?.method === 'estimated_decline' && smartFTPContext?.estimatedDecline && (
                 `Est. ${Math.round(smartFTPContext.estimatedDecline * 100)}% decline`
               )}
-              {!smartFTPContext && 'Functional Threshold Power'}
+              {!metrics?.ftp && activities.length > 0 && (
+                `Based on recent work — do a hard 20min effort for accurate FTP`
+              )}
+              {!metrics?.ftp && activities.length === 0 && 'Functional Threshold Power'}
             </p>
             {smartFTPContext?.recommendation && (
               <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">
@@ -1030,6 +1144,38 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
             </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 md:p-6">
+            {/* Coaching Context for Volume */}
+            {getFilteredTrendsVolume().length >= 2 && (() => {
+              const recentTrends = getFilteredTrendsVolume().slice(-2);
+              const lastWeek = recentTrends[recentTrends.length - 1]?.time || 0;
+              const previousWeek = recentTrends[recentTrends.length - 2]?.time || 0;
+              const change = lastWeek - previousWeek;
+              const percentChange = previousWeek > 0 ? Math.round((change / previousWeek) * 100) : 0;
+              
+              let contextMessage = '';
+              if (lastWeek < 4) {
+                contextMessage = 'Light week — recovery or life got busy. No worries.';
+              } else if (lastWeek > 12) {
+                contextMessage = 'Big volume week — make sure recovery is dialed in.';
+              } else if (Math.abs(percentChange) < 10) {
+                contextMessage = 'Volume steady — consistency is the foundation.';
+              } else if (change > 2) {
+                contextMessage = 'Volume jumped — watch for cumulative fatigue.';
+              } else if (change < -2) {
+                contextMessage = 'Volume dropped — good timing for adaptation.';
+              } else {
+                contextMessage = `${lastWeek}h this week — solid training rhythm.`;
+              }
+              
+              return (
+                <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                  <p className="text-xs sm:text-sm text-blue-900 dark:text-blue-100">
+                    {contextMessage}
+                  </p>
+                </div>
+              );
+            })()}
+            
             <ResponsiveContainer width="100%" height={200} className="sm:h-[250px]">
               <LineChart data={getFilteredTrendsVolume()}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -1079,22 +1225,52 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
             </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 md:p-6">
+            {/* Coaching Context */}
+            {getFilteredTrendsTSS().length >= 2 && (() => {
+              const recentTrends = getFilteredTrendsTSS().slice(-2);
+              const lastWeek = recentTrends[recentTrends.length - 1]?.tss || 0;
+              const previousWeek = recentTrends[recentTrends.length - 2]?.tss || 0;
+              const change = lastWeek - previousWeek;
+              const percentChange = previousWeek > 0 ? Math.round((change / previousWeek) * 100) : 0;
+              
+              let contextMessage = '';
+              if (Math.abs(percentChange) < 10) {
+                contextMessage = 'Load holding steady — consistent week-to-week stress.';
+              } else if (change < -100) {
+                contextMessage = 'Load dipped last week — planned recovery, not a concern.';
+              } else if (change > 100) {
+                contextMessage = 'Load jumped this week — watch for fatigue signals.';
+              } else if (change < 0) {
+                contextMessage = 'Slight reduction — good timing for adaptation.';
+              } else {
+                contextMessage = 'Building load gradually — sustainable progression.';
+              }
+              
+              return (
+                <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                  <p className="text-xs sm:text-sm text-blue-900 dark:text-blue-100">
+                    {contextMessage}
+                  </p>
+                </div>
+              );
+            })()}
+            
             <div className="mb-3 flex items-center gap-2 sm:gap-3 md:gap-4 text-xs flex-wrap">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-gray-600 text-xs">Low (&lt;200)</span>
+                <span className="text-gray-600 dark:text-gray-400 text-xs">Low (&lt;200)</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <span className="text-gray-600">Moderate (200-400)</span>
+                <span className="text-gray-600 dark:text-gray-400">Moderate (200-400)</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                <span className="text-gray-600">High (400-600)</span>
+                <span className="text-gray-600 dark:text-gray-400">High (400-600)</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <span className="text-gray-600">Very High (&gt;600)</span>
+                <span className="text-gray-600 dark:text-gray-400">Very High (&gt;600)</span>
               </div>
             </div>
             {getFilteredTrendsTSS().length === 0 || !getFilteredTrendsTSS().some(t => t.tss > 0) ? (
@@ -1173,86 +1349,16 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         </CardHeader>
         <CardContent className="p-3 sm:p-4 md:p-6">
           <div className="space-y-3 sm:space-y-4">
-            {activities.slice(0, 20).map((activity) => {
-              const isRace = raceActivities[activity.id];
-              return (
-                <div
-                  key={activity.id}
-                  className={`flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:shadow-md transition-all border-l-4 ${getLoadColor(activity.tss)} ${isRace ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}
-                >
-                  <div className="flex items-center gap-3 sm:gap-4 flex-1 cursor-pointer" onClick={() => setSelectedActivity(activity)}>
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center ${isRace ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-[var(--color-primary)]/10 dark:bg-[var(--color-primary-dark)]/20'}`}>
-                      {isRace ? (
-                        <Trophy className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                      ) : (
-                        getActivityIcon(activity)
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate">{activity.name}</h4>
-                        {isRace && (
-                          <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 text-xs font-medium rounded">
-                            RACE
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(activity.date).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-4">
-                    <div className="hidden md:flex items-center gap-4 lg:gap-6 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      <div className="text-right">
-                        <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">{formatDuration(activity.duration)}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Duration</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">{formatDistance(activity.distance)}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Distance</div>
-                      </div>
-                      {activity.elevation > 0 && (
-                        <div className="text-right">
-                          <div className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">{Math.round(activity.elevation)}m</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Elevation</div>
-                        </div>
-                      )}
-                      {activity.tss > 0 && (
-                        <div className="text-right">
-                          <div className="font-medium text-sm sm:text-base text-[var(--color-primary)] dark:text-[var(--color-primary-dark)]">{activity.tss}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">TSS</div>
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedActivity({ ...activity, showAICoach: true });
-                      }}
-                      className="p-2 sm:p-2.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                      title="Analyze with AI Coach"
-                    >
-                      <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingActivity(activity);
-                      }}
-                      className="p-2 sm:p-2.5 text-gray-400 dark:text-gray-500 hover:text-[var(--color-primary)] dark:hover:text-[var(--color-primary-dark)] hover:bg-[var(--color-primary)]/10 dark:hover:bg-[var(--color-primary-dark)]/20 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                      title="Edit activity"
-                    >
-                      <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {activities.slice(0, 20).map((activity) => (
+              <ActivityCard
+                key={activity.id}
+                activity={activity}
+                isRace={raceActivities[activity.id]}
+                onClick={() => setSelectedActivity(activity)}
+                onTagRace={(activity) => setEditingActivity(activity)}
+                onAICoach={(activity) => setSelectedActivity({ ...activity, showAICoach: true })}
+              />
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -1263,6 +1369,10 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
           activity={selectedActivity}
           showAICoach={selectedActivity.showAICoach}
           onClose={() => setSelectedActivity(null)}
+          onActivityUpdated={() => {
+            setSelectedActivity(null);
+            loadDashboardData(true);
+          }}
         />
       )}
 
@@ -1323,7 +1433,7 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
             // Refresh AI coach widget and reload data
             setAiCoachKey(prev => prev + 1);
             // Reload activities to reflect changes
-            setTimeout(() => loadActivities(), 500);
+            setTimeout(() => loadDashboardData(true), 500);
           }}
           onReject={() => {
             setPendingAdjustment(null);
@@ -1334,14 +1444,10 @@ const Dashboard = ({ stravaTokens, onLogout }) => {
         />
       )}
 
-      {/* Onboarding Modal */}
-      {console.log('📺 Rendering OnboardingModal with isOpen:', showWelcomeModal)}
-      <OnboardingModal
+      {/* Data Source Welcome Modal */}
+      <DataSourceWelcomeModal
         isOpen={showWelcomeModal}
-        stravaTokens={stravaTokens}
-        userProfile={userProfile}
         onClose={() => {
-          console.log('❌ Closing onboarding modal');
           setShowWelcomeModal(false);
           localStorage.setItem('has_seen_welcome_modal', 'true');
         }}

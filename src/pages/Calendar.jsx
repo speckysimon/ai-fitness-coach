@@ -6,6 +6,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import ActivityDetailModal from '../components/ActivityDetailModal';
 import SessionHoverModal from '../components/SessionHoverModal';
 import logger from '../lib/logger';
+import { fetchUnifiedActivities } from '../lib/activitySync';
 
 const Calendar = ({ stravaTokens, googleTokens }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -51,34 +52,28 @@ const Calendar = ({ stravaTokens, googleTokens }) => {
   const loadCalendarData = async () => {
     setLoading(true);
     try {
-      // Try to use cached activities first
-      const cachedActivities = localStorage.getItem('cached_activities_recent');
+      logger.info('[Calendar] Fetching activities from unified database...');
       
-      if (cachedActivities) {
-        const allActivities = JSON.parse(cachedActivities);
+      // Fetch from unified database (90 days covers current month + context)
+      const result = await fetchUnifiedActivities({ windowDays: 90 });
+      
+      if (!result.ok) {
+        logger.error('[Calendar] Failed to fetch from database:', result.error);
+        setActivities([]);
+      } else {
+        const allActivities = result.data || [];
+        logger.info(`[Calendar] Loaded ${allActivities.length} activities from database`);
+        
         // Filter for current month
         const monthStart = startOfMonth(currentMonth);
         const monthEnd = endOfMonth(currentMonth);
         
         const monthActivities = allActivities.filter(a => {
-          const activityDate = new Date(a.date);
+          const activityDate = new Date(a.start_time || a.date);
           return activityDate >= monthStart && activityDate <= monthEnd;
         });
         
         setActivities(monthActivities);
-      } else if (stravaTokens) {
-        // Fallback: fetch from API if no cache
-        const monthStart = startOfMonth(currentMonth);
-        const monthEnd = endOfMonth(currentMonth);
-        
-        const after = Math.floor(monthStart.getTime() / 1000);
-        const before = Math.floor(monthEnd.getTime() / 1000);
-
-        const response = await fetch(
-          `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${after}&before=${before}&per_page=100`
-        );
-        const data = await response.json();
-        setActivities(data);
       }
 
       // Load planned sessions from local storage (in production, this would come from a database)

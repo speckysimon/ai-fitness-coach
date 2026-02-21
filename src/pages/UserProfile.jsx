@@ -35,25 +35,51 @@ const UserProfile = ({ userProfile, onProfileUpdate }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    const updatedProfile = {
-      ...userProfile,
-      name: formData.name,
-      age: formData.age ? parseInt(formData.age) : null,
-      height: formData.height ? parseFloat(formData.height) : null,
-      weight: formData.weight ? parseFloat(formData.weight) : null,
-      gender: formData.gender || null,
-      updatedAt: new Date().toISOString(),
-    };
+  const handleSave = async () => {
+    try {
+      const updatedProfile = {
+        ...userProfile,
+        name: formData.name,
+        age: formData.age ? parseInt(formData.age) : null,
+        height: formData.height ? parseFloat(formData.height) : null,
+        weight: formData.weight ? parseFloat(formData.weight) : null,
+        gender: formData.gender || null,
+        updatedAt: new Date().toISOString(),
+      };
 
-    // Save to localStorage
-    localStorage.setItem('current_user', JSON.stringify(updatedProfile));
-    localStorage.setItem(`user_profile_${userProfile.email}`, JSON.stringify(updatedProfile));
+      // Save to database via API
+      const sessionToken = localStorage.getItem('session_token');
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`
+        },
+        body: JSON.stringify({
+          name: updatedProfile.name,
+          age: updatedProfile.age,
+          height: updatedProfile.height,
+          weight: updatedProfile.weight,
+          gender: updatedProfile.gender
+        })
+      });
 
-    onProfileUpdate(updatedProfile);
-    setIsEditing(false);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+      if (!response.ok) {
+        throw new Error('Failed to save profile to database');
+      }
+
+      // Also save to localStorage as cache
+      localStorage.setItem('current_user', JSON.stringify(updatedProfile));
+      localStorage.setItem(`user_profile_${userProfile.email}`, JSON.stringify(updatedProfile));
+
+      onProfileUpdate(updatedProfile);
+      setIsEditing(false);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Failed to save profile. Please try again.');
+    }
   };
 
   const handleCancel = () => {

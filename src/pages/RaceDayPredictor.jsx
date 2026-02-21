@@ -19,45 +19,52 @@ const RaceDayPredictor = ({ stravaTokens }) => {
   const [generatingPlan, setGeneratingPlan] = useState(false);
 
   useEffect(() => {
-    if (stravaTokens) {
-      loadFormData();
-    }
-  }, [stravaTokens]);
+    // Load from Dashboard cache (already includes Strava + Intervals + Manual)
+    loadFormData();
+  }, []);
 
   const loadFormData = async () => {
     setLoading(true);
     try {
-      // Load activities from cache or API
-      let allActivities = [];
+      // Load activities from Dashboard cache (already includes Strava + Intervals + Manual)
       const cachedActivities = localStorage.getItem('cached_activities_recent');
+      
+      if (!cachedActivities) {
+        logger.warn('[Race Day Predictor] No cached activities. Please visit Dashboard first.');
+        setLoading(false);
+        return;
+      }
 
-      if (cachedActivities) {
-        allActivities = JSON.parse(cachedActivities);
-      } else {
-        // Fetch last 3 months of activities (more manageable than full year)
-        const threeMonthsAgo = new Date();
-        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-        const after = Math.floor(threeMonthsAgo.getTime() / 1000);
+      const allActivities = JSON.parse(cachedActivities);
+      logger.info('[Race Day Predictor] Using cached activities:', allActivities.length);
 
-        const response = await fetch(
-          `/api/strava/activities?access_token=${stravaTokens.access_token}&after=${after}&per_page=200`
-        );
-        allActivities = await response.json();
-        // Don't cache here - let Dashboard handle caching
+      if (allActivities.length === 0) {
+        logger.warn('[Race Day Predictor] No activities found');
+        setLoading(false);
+        return;
       }
 
       setActivities(allActivities);
 
-      // Get FTP from cache
-      const cachedMetrics = localStorage.getItem('cached_metrics');
+      // Get FTP from backend
       let currentFtp = null;
-      if (cachedMetrics) {
-        const metrics = JSON.parse(cachedMetrics);
-        currentFtp = metrics.ftp;
-        setFtp(currentFtp);
+      try {
+        const ftpResponse = await fetch('/api/analytics/ftp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activities: allActivities }),
+        });
+        
+        if (ftpResponse.ok) {
+          const ftpData = await ftpResponse.json();
+          currentFtp = ftpData.ftp;
+          setFtp(currentFtp);
+        }
+      } catch (error) {
+        logger.error('Error fetching FTP:', error);
       }
 
-      // Calculate form for today
+      // Calculate form for selected date
       const form = calculateRaceDayForm(allActivities, currentFtp, new Date(selectedRaceDate));
       setFormData(form);
 
@@ -206,6 +213,35 @@ const RaceDayPredictor = ({ stravaTokens }) => {
     );
   }
 
+  if (!loading && activities.length < 10) {
+    return (
+      <div className="space-y-6 sm:space-y-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
+            <Target className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
+            Race Day Form Predictor
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Predict your race readiness based on training load and recovery</p>
+        </div>
+
+        <Card>
+          <CardContent className="pt-12 pb-12">
+            <div className="text-center">
+              <Target className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Not Enough Data Yet</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                We need at least 10 activities to predict your race day form.
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Keep training and check back soon! Current activities: {activities.length}/10
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!formData || formData.status === 'insufficient_data') {
     return (
       <div className="space-y-8">
@@ -242,23 +278,35 @@ const RaceDayPredictor = ({ stravaTokens }) => {
           <Target className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
           Race Day Form Predictor
         </h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Predict your race readiness based on training load and recovery</p>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
+          Predict your race readiness based on training load and recovery
+        </p>
       </div>
 
+      {/* Date context and prediction info */}
+      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              <p className="font-semibold mb-1">Prediction Details:</p>
+              <ul className="space-y-1 text-gray-600 dark:text-gray-400">
+                <li>• Based on {activities.length} activities through today</li>
+                <li>• Assumes no training between now and race day</li>
+                <li>• Fatigue naturally decreases with rest (this is good!)</li>
+                <li>• For more accurate predictions, add planned workouts to your training plan</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
-        <CardContent className="pt-12 pb-12">
-          <div className="text-center">
-            <Target className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Not Enough Data Yet</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              We need at least 10 activities to predict your race day form.
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Keep training and check back soon! Current activities: {activities.length}/10
-            </p>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between gap-4">
             <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Select Race Date
               </label>
               <input

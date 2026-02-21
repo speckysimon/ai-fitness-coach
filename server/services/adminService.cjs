@@ -2,7 +2,7 @@
  * Admin Service
  * Handles admin user management, authentication, and activity logging
  * Uses better-sqlite3 via adminDb helper (migrated from sqlite3)
- * Fixed: Now correctly uses database.sqlite instead of fitness-coach.db
+ * Fixed: Now correctly uses fitness-coach-admin.db instead of fitness-coach.db
  */
 
 const bcrypt = require('bcryptjs');

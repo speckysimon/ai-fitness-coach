@@ -27,6 +27,39 @@ const Settings = ({ stravaTokens, googleTokens, userProfile, onLogout, onStravaA
   const [showStravaWelcomeModal, setShowStravaWelcomeModal] = useState(false);
   const [intervalsConnected, setIntervalsConnected] = useState(false);
   const [intervalsStatus, setIntervalsStatus] = useState(null);
+  const [apiHealth, setApiHealth] = useState({ checked: false, reachable: null, data: null, error: null });
+  const [intervalsAuthReachable, setIntervalsAuthReachable] = useState(null);
+  const [stravaAuthReachable, setStravaAuthReachable] = useState(null);
+
+  // Check API health + endpoint reachability on mount
+  useEffect(() => {
+    const checkApiHealth = async () => {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        setApiHealth({ checked: true, reachable: true, data, error: null });
+      } catch (err) {
+        setApiHealth({ checked: true, reachable: false, data: null, error: err.message });
+      }
+    };
+
+    const checkEndpoints = async () => {
+      const sessionToken = localStorage.getItem('session_token');
+      // Intervals auth endpoint
+      try {
+        const res = await fetch('/api/intervals/auth');
+        setIntervalsAuthReachable(res.status !== 502 && res.status !== 0);
+      } catch { setIntervalsAuthReachable(false); }
+      // Strava auth endpoint
+      try {
+        const res = await fetch('/api/strava/auth');
+        setStravaAuthReachable(res.status !== 502 && res.status !== 0);
+      } catch { setStravaAuthReachable(false); }
+    };
+
+    checkApiHealth();
+    checkEndpoints();
+  }, []);
 
   // Check Intervals.icu connection status on mount
   useEffect(() => {
@@ -378,6 +411,10 @@ const Settings = ({ stravaTokens, googleTokens, userProfile, onLogout, onStravaA
         }
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       if (data.success) {
         setIntervalsConnected(false);
@@ -385,11 +422,15 @@ const Settings = ({ stravaTokens, googleTokens, userProfile, onLogout, onStravaA
         alert('Intervals.icu disconnected successfully');
         window.location.reload();
       } else {
-        alert('Failed to disconnect Intervals.icu');
+        throw new Error(data.error || 'Unknown error');
       }
     } catch (err) {
       console.error('Disconnect error:', err);
-      alert('Failed to disconnect Intervals.icu');
+      // Update UI state anyway and reload to sync with backend
+      setIntervalsConnected(false);
+      setIntervalsStatus(null);
+      alert(`Disconnect error: ${err.message}. Refreshing to sync state...`);
+      window.location.reload();
     } finally {
       setConnecting(false);
     }
@@ -564,6 +605,28 @@ const Settings = ({ stravaTokens, googleTokens, userProfile, onLogout, onStravaA
           </div>
         </CardContent>
       </Card>
+
+      {/* API Diagnostics */}
+      {apiHealth.checked && (
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm border ${
+          apiHealth.reachable
+            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
+            : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+        }`}>
+          <span className="font-medium">API Status:</span>
+          <span>{apiHealth.reachable ? '\u2705 Reachable' : '\u274C Unreachable'}</span>
+          {apiHealth.data && (
+            <span className="text-xs opacity-75">v{apiHealth.data.version} &middot; {apiHealth.data.checks?.mainDatabase}</span>
+          )}
+          {!apiHealth.reachable && (
+            <span className="text-xs">Backend server not running. Start with <code className="bg-red-100 dark:bg-red-800 px-1 rounded">npm run server</code></span>
+          )}
+          <span className="ml-auto flex gap-3 text-xs">
+            <span>Strava: {stravaAuthReachable === null ? '...' : stravaAuthReachable ? '\u2705' : '\u274C'}</span>
+            <span>Intervals: {intervalsAuthReachable === null ? '...' : intervalsAuthReachable ? '\u2705' : '\u274C'}</span>
+          </span>
+        </div>
+      )}
 
       {/* Timezone & Data Management - Side by Side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">

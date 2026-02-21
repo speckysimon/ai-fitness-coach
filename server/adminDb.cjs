@@ -1,6 +1,6 @@
 /**
  * Admin Database Connection (better-sqlite3)
- * Centralized connection for admin database (database.sqlite)
+ * Centralized connection for admin database (fitness-coach-admin.db)
  * Mirrors the pattern from server/db.js but for admin operations
  */
 
@@ -8,18 +8,19 @@ const Database = require('better-sqlite3');
 const path = require('path');
 
 // Admin database path (configurable via environment variable)
-const dbPath = process.env.ADMIN_DATABASE_PATH || path.join(__dirname, 'database.sqlite');
+const dbPath = process.env.ADMIN_DATABASE_PATH || path.join(__dirname, 'fitness-coach-admin.db');
 
 console.log(`📂 Admin Database path: ${dbPath}`);
 
 // Create database connection
 const db = new Database(dbPath);
 
-// Enable foreign keys and WAL mode for better concurrency
+// Enable foreign keys and use DELETE mode for reliable persistence
 db.pragma('foreign_keys = ON');
-db.pragma('journal_mode = WAL');
+db.pragma('journal_mode = DELETE');
+db.pragma('synchronous = FULL');
 
-console.log('✅ Admin database connection established (better-sqlite3)');
+console.log('✅ Admin database connection established (better-sqlite3, DELETE mode)');
 
 /**
  * Get the database instance

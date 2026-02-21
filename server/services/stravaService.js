@@ -119,20 +119,44 @@ class StravaService {
   }
 
   async getActivities(accessToken, params = {}, userId = null) {
-    await this.rateLimitDelay(userId);
+    const perPage = params.per_page || 200;
+    const allActivities = [];
+    let page = params.page || 1;
+    const maxPages = 10; // Safety cap: 10 pages × 200 = 2,000 activities max
     
     try {
-      const response = await axios.get(`${this.baseUrl}/athlete/activities`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        params: {
-          page: params.page || 1,
-          per_page: params.per_page || 200, // Default to 200 to fetch more activities
-          before: params.before,
-          after: params.after,
-        },
-      });
+      while (page <= maxPages) {
+        await this.rateLimitDelay(userId);
+        
+        console.log(`[Strava] Fetching page ${page} (per_page=${perPage})`);
+        const response = await axios.get(`${this.baseUrl}/athlete/activities`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          params: {
+            page,
+            per_page: perPage,
+            before: params.before,
+            after: params.after,
+          },
+        });
 
-      return response.data.map(activity => this.normalizeActivity(activity));
+        const pageData = response.data;
+        if (!pageData || pageData.length === 0) {
+          console.log(`[Strava] Page ${page} empty — done. Total: ${allActivities.length} activities`);
+          break;
+        }
+        
+        allActivities.push(...pageData);
+        console.log(`[Strava] Page ${page}: ${pageData.length} activities (running total: ${allActivities.length})`);
+        
+        // If we got fewer than perPage, we've reached the end
+        if (pageData.length < perPage) {
+          break;
+        }
+        
+        page++;
+      }
+
+      return allActivities.map(activity => this.normalizeActivity(activity));
     } catch (error) {
       console.error('Strava API error:', error.response?.data || error.message);
       throw error;

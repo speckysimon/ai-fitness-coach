@@ -199,7 +199,7 @@ class SmartMetricsService {
       
       // High power relative to duration
       const power = a.normalizedPower || a.avgPower;
-      return power > 200; // Minimum threshold for hard effort
+      return power > 150; // Minimum threshold for hard effort (lowered from 200W for realistic FTP range)
     });
   }
   

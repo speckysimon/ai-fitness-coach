@@ -4,21 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/Button';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import logger from '../lib/logger';
-import {
-  calculatePowerCurve,
-  classifyRiderType,
-  calculateZoneDistribution,
-  generateSmartInsights,
-  calculateEfficiencyMetrics
-} from '../lib/riderAnalytics';
 import { getCoachPersona, getUserCoach } from '../lib/coachPersonas';
+import { MetricTooltip } from '../components/MetricTooltip';
+import { fetchUnifiedActivities } from '../lib/activitySync';
 
 const RiderProfile = ({ stravaTokens }) => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ftp, setFtp] = useState(null);
+  const [ftpContext, setFtpContext] = useState(null); // Full FTP context from backend
   const [manualFTP, setManualFTP] = useState('');
   const [fthr, setFthr] = useState(null);
+  const [fthrContext, setFthrContext] = useState(null); // Full FTHR context from backend
   const [manualFTHR, setManualFTHR] = useState('');
   const [hrZones, setHrZones] = useState(null);
   const [userProfile, setUserProfile] = useState({ weight: 0, height: 0 });
@@ -51,27 +48,20 @@ const RiderProfile = ({ stravaTokens }) => {
     }
   }, []);
 
-  // Load FTP and FTHR from cached metrics
+  // Load manual overrides and preferences from localStorage
+  // NOTE: Cache is for SPEED only, not truth. Backend null overrides cached values.
   useEffect(() => {
-    // Check for manual FTP first
+    // Load manual FTP override (user-set value takes precedence)
     const savedManualFTP = localStorage.getItem('manual_ftp');
     if (savedManualFTP) {
       setManualFTP(savedManualFTP);
       setFtp(parseInt(savedManualFTP));
-    } else {
-      // Otherwise load from cached metrics
-      const cachedMetrics = localStorage.getItem('cached_metrics');
-      if (cachedMetrics) {
-        try {
-          const metrics = JSON.parse(cachedMetrics);
-          setFtp(metrics.ftp || null);
-        } catch (error) {
-          logger.error('Error loading cached metrics:', error);
-        }
-      }
     }
+    // NOTE: We do NOT load FTP from cached_metrics here.
+    // FTP will be fetched fresh from backend when activities load.
+    // Cache is for speed, not truth.
 
-    // Load manual FTHR from localStorage
+    // Load manual FTHR override
     const savedManualFTHR = localStorage.getItem('manual_fthr');
     if (savedManualFTHR) {
       setManualFTHR(savedManualFTHR);
@@ -98,90 +88,126 @@ const RiderProfile = ({ stravaTokens }) => {
   }, [activities, manualFTHR, zoneModel, maxHR]);
 
   useEffect(() => {
-    if (stravaTokens) {
-      loadProfileData();
-    } else {
-      // No Strava tokens, stop loading
-      setLoading(false);
-    }
-  }, [stravaTokens]);
+    // Load from Dashboard cache (already includes Strava + Intervals + Manual)
+    loadProfileData();
+  }, []);
 
   const loadProfileData = async () => {
     setLoading(true);
     try {
-      // Check if we need to clear cache due to backend date filtering fix
-      const insightsCacheVersion = localStorage.getItem('insights_cache_version');
-      if (insightsCacheVersion !== '1.1') {
-        console.log('🗑️ [Rider Profile] Clearing cache due to backend date filtering fix');
-        localStorage.removeItem('cached_activities_recent');
-        localStorage.removeItem('cache_timestamp_recent');
-        localStorage.setItem('insights_cache_version', '1.1');
+      // Reload user profile to get latest weight/height
+      const savedProfile = localStorage.getItem('current_user');
+      if (savedProfile) {
+        try {
+          const profile = JSON.parse(savedProfile);
+          setUserProfile({
+            weight: profile.weight || 0,
+            height: profile.height || 0
+          });
+        } catch (error) {
+          logger.error('Error loading user profile:', error);
+        }
+      }
+      
+      logger.info('[Rider Profile] Fetching activities from unified database...');
+      
+      // Fetch from unified database
+      const result = await fetchUnifiedActivities({ windowDays: 90 });
+      
+      if (!result.ok) {
+        logger.error('[Rider Profile] Failed to fetch from database:', result.error);
+        setLoading(false);
+        return;
       }
 
-      let allActivities = [];
-      const cachedActivities = localStorage.getItem('cached_activities_recent');
-
-      if (cachedActivities) {
-        allActivities = JSON.parse(cachedActivities);
-        console.log('📦 [Rider Profile] Using cached activities:', allActivities.length, 'total');
-        // Log recent activity dates for debugging
-        const recentDates = allActivities.slice(0, 10).map(a => new Date(a.date).toLocaleDateString());
-        console.log('📅 [Rider Profile] Most recent 10 activity dates:', recentDates);
-      } else {
-        // No cache available - user needs to visit Dashboard first to populate cache
-        console.warn('⚠️ [Rider Profile] No cached activities found. Please visit Dashboard first to load your activities.');
+      const allActivities = result.data || [];
+      logger.info('[Rider Profile] Loaded activities from database:', allActivities.length);
+      
+      if (allActivities.length === 0) {
+        logger.warn('[Rider Profile] No activities found');
         setLoading(false);
         return;
       }
 
       setActivities(allActivities);
 
-      // Get FTP for classification - check manual override first, then cached metrics
-      let currentFtp = null;
+      // Fetch FTP from backend (single source of truth)
       const manualFtpValue = localStorage.getItem('manual_ftp');
-      if (manualFtpValue) {
-        currentFtp = parseInt(manualFtpValue);
-      } else {
-        const cachedMetrics = localStorage.getItem('cached_metrics');
-        if (cachedMetrics) {
-          const metrics = JSON.parse(cachedMetrics);
-          currentFtp = metrics.ftp;
+      let currentFtp = null;
+      
+      try {
+        const ftpResponse = await fetch('/api/analytics/ftp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            activities: allActivities,
+            manualFTP: manualFtpValue ? parseInt(manualFtpValue) : null
+          }),
+        });
+        
+        if (ftpResponse.ok) {
+          const ftpContextData = await ftpResponse.json();
+          currentFtp = ftpContextData.ftp;
+          setFtpContext(ftpContextData);
         }
+      } catch (error) {
+        logger.error('Error fetching FTP from backend:', error);
       }
 
-      // Calculate power curve for full season
-      const curve = calculatePowerCurve(allActivities);
-      setPowerCurve(curve);
+      setFtp(currentFtp);
 
-      // Classify rider type for full season
-      const profile = classifyRiderType(allActivities, curve, currentFtp);
-      setRiderProfile(profile);
-
-      // Calculate recent profile (last 3 months)
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      const recentActivities = allActivities.filter(a => new Date(a.date) >= threeMonthsAgo);
-
-      if (recentActivities.length >= 10) {
-        const recentCurve = calculatePowerCurve(recentActivities);
-        const recentProfileData = classifyRiderType(recentActivities, recentCurve, currentFtp);
-        setRecentProfile(recentProfileData);
+      // Fetch power curve from backend (42d current window)
+      try {
+        const powerCurveResponse = await fetch('/api/analytics/power-curve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activities: allActivities, windowDays: 42 }),
+        });
+        
+        if (powerCurveResponse.ok) {
+          const curveData = await powerCurveResponse.json();
+          setPowerCurve(curveData.powerCurve);
+        }
+      } catch (error) {
+        logger.error('Error fetching power curve from backend:', error);
       }
 
-      const zones = calculateZoneDistribution(allActivities, currentFtp);
-      setZoneDistribution(zones);
+      // Fetch rider type from backend (42d current window)
+      try {
+        const riderTypeResponse = await fetch('/api/analytics/rider-type', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activities: allActivities, ftp: currentFtp, windowDays: 42 }),
+        });
+        
+        if (riderTypeResponse.ok) {
+          const profileData = await riderTypeResponse.json();
+          setRiderProfile(profileData);
+        }
+      } catch (error) {
+        logger.error('Error fetching rider type from backend:', error);
+      }
 
-      // Generate AI-powered smart insights from backend
+      // Fetch baseline rider type from backend (180d baseline window)
+      try {
+        const baselineResponse = await fetch('/api/analytics/rider-type', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activities: allActivities, ftp: currentFtp, windowDays: 180 }),
+        });
+        
+        if (baselineResponse.ok) {
+          const baselineData = await baselineResponse.json();
+          setRecentProfile(baselineData);
+        }
+      } catch (error) {
+        logger.error('Error fetching baseline rider type from backend:', error);
+      }
+
+      // Fetch AI-powered smart insights from backend
       try {
         const coachId = getUserCoach();
         const coach = getCoachPersona(coachId);
-
-        console.log('🧠 [Rider Profile] Sending', allActivities.length, 'activities to Smart Insights API');
-        console.log('📅 [Rider Profile] Date range:',
-          allActivities.length > 0 ? new Date(allActivities[allActivities.length - 1].date).toLocaleDateString() : 'none',
-          'to',
-          allActivities.length > 0 ? new Date(allActivities[0].date).toLocaleDateString() : 'none'
-        );
 
         const insightsResponse = await fetch('/api/analytics/smart-insights', {
           method: 'POST',
@@ -189,7 +215,7 @@ const RiderProfile = ({ stravaTokens }) => {
           body: JSON.stringify({
             activities: allActivities,
             ftp: currentFtp,
-            riderType: profile,
+            riderType: null,
             coachPersona: coach
           })
         });
@@ -197,23 +223,10 @@ const RiderProfile = ({ stravaTokens }) => {
         if (insightsResponse.ok) {
           const aiInsights = await insightsResponse.json();
           setInsights(aiInsights);
-          logger.info('✅ Loaded AI smart insights');
-        } else {
-          // Fallback to client-side insights
-          const smartInsights = generateSmartInsights(allActivities, currentFtp, profile);
-          setInsights(smartInsights);
-          logger.warn('⚠️ Using fallback insights');
         }
       } catch (error) {
         logger.error('Error loading AI insights:', error);
-        // Fallback to client-side insights
-        const smartInsights = generateSmartInsights(allActivities, currentFtp, profile);
-        setInsights(smartInsights);
       }
-
-      // Calculate efficiency metrics
-      const efficiency = calculateEfficiencyMetrics(allActivities, currentFtp);
-      setEfficiencyMetrics(efficiency);
 
     } catch (error) {
       logger.error('Error loading profile data:', error);
@@ -241,7 +254,9 @@ const RiderProfile = ({ stravaTokens }) => {
       if (response.ok) {
         const data = await response.json();
         setFthr(data.fthr);
+        setFthrContext(data); // Store full context for tooltips
         setHrZones(data.zones);
+        console.log('📊 [Rider Profile] FTHR context from backend:', data);
       }
     } catch (error) {
       logger.error('Error calculating FTHR:', error);
@@ -365,7 +380,19 @@ const RiderProfile = ({ stravaTokens }) => {
     );
   }
 
-  if (!stravaTokens) {
+  // Check if we have any activities (from any source)
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading rider profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (activities.length === 0) {
     return (
       <div className="space-y-8">
         <div>
@@ -380,9 +407,9 @@ const RiderProfile = ({ stravaTokens }) => {
           <CardContent className="pt-12 pb-12">
             <div className="text-center">
               <AlertTriangle className="w-16 h-16 text-orange-400 dark:text-orange-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Connect Strava to Continue</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No Activities Found</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                To view your rider profile and performance metrics, please connect your Strava account.
+                Please visit the Dashboard first to load your activities from Strava, Intervals.icu, or add manual activities.
               </p>
               <a
                 href="/settings"
@@ -455,9 +482,18 @@ const RiderProfile = ({ stravaTokens }) => {
               <div className="flex items-center gap-2 mb-2">
                 <Zap className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                 <span className="text-xs font-semibold text-yellow-900 dark:text-yellow-100 uppercase tracking-wide">FTP</span>
+                <MetricTooltip 
+                  type="ftp" 
+                  iconClassName="text-yellow-600 dark:text-yellow-400"
+                  windowDays={ftpContext?.windowDays}
+                  updatedAt={ftpContext?.updatedAt}
+                  confidence={ftpContext?.confidence}
+                  confidenceLevel={ftpContext?.confidenceLevel}
+                  reasonCodes={ftpContext?.reasonCodes}
+                />
               </div>
               <div className="text-3xl font-bold text-yellow-900 dark:text-yellow-100">
-                {ftp ? `${ftp}W` : 'N/A'}
+                {ftp ? `${ftp}W` : 'Insufficient data'}
               </div>
               <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">Functional Threshold Power</p>
             </div>
@@ -467,9 +503,18 @@ const RiderProfile = ({ stravaTokens }) => {
               <div className="flex items-center gap-2 mb-2">
                 <Heart className="w-4 h-4 text-red-600 dark:text-red-400" />
                 <span className="text-xs font-semibold text-red-900 dark:text-red-100 uppercase tracking-wide">FTHR</span>
+                <MetricTooltip 
+                  type="fthr" 
+                  iconClassName="text-red-600 dark:text-red-400"
+                  windowDays={fthrContext?.windowDays}
+                  updatedAt={fthrContext?.updatedAt}
+                  confidence={fthrContext?.confidence}
+                  confidenceLevel={fthrContext?.confidenceLevel}
+                  reasonCodes={fthrContext?.reasonCodes}
+                />
               </div>
               <div className="text-3xl font-bold text-red-900 dark:text-red-100">
-                {fthr ? `${fthr} BPM` : 'N/A'}
+                {fthr ? `${fthr} BPM` : 'Not established'}
               </div>
               <p className="text-xs text-red-700 dark:text-red-300 mt-1">Functional Threshold HR</p>
             </div>
@@ -479,6 +524,7 @@ const RiderProfile = ({ stravaTokens }) => {
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span className="text-xs font-semibold text-blue-900 dark:text-blue-100 uppercase tracking-wide">W/kg</span>
+                <MetricTooltip type="wkg" iconClassName="text-blue-600 dark:text-blue-400" />
               </div>
               <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
                 {ftp && userProfile.weight > 0 ? (ftp / userProfile.weight).toFixed(2) : 'N/A'}
@@ -491,6 +537,7 @@ const RiderProfile = ({ stravaTokens }) => {
               <div className="flex items-center gap-2 mb-2">
                 <ActivityIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
                 <span className="text-xs font-semibold text-green-900 dark:text-green-100 uppercase tracking-wide">BMI</span>
+                <MetricTooltip type="bmi" iconClassName="text-green-600 dark:text-green-400" />
               </div>
               <div className="text-3xl font-bold text-green-900 dark:text-green-100">
                 {userProfile.weight > 0 && userProfile.height > 0
@@ -685,16 +732,21 @@ const RiderProfile = ({ stravaTokens }) => {
               <div className="flex items-center gap-3 mb-4">
                 <div className="text-5xl">{getRiderTypeIcon(riderProfile.type)}</div>
                 <div className="flex-1">
-                  <h3 className="text-2xl font-bold mb-1 flex items-center gap-2">
-                    {riderProfile.type}
-                    <button
-                      onClick={() => setShowProfileModal(true)}
-                      className="hover:opacity-80 transition-opacity"
-                      title="View detailed analysis"
-                    >
-                      <Info className="w-5 h-5 text-white/80" />
-                    </button>
-                  </h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-2xl font-bold flex items-center gap-2">
+                      {riderProfile.type}
+                      <button
+                        onClick={() => setShowProfileModal(true)}
+                        className="hover:opacity-80 transition-opacity"
+                        title="View detailed analysis"
+                      >
+                        <Info className="w-5 h-5 text-white/80" />
+                      </button>
+                    </h3>
+                    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                      Current ({riderProfile.windowDays || 42}d)
+                    </span>
+                  </div>
                   <p className="text-white/90 text-sm">{riderProfile.description}</p>
                 </div>
                 <button

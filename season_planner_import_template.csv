@@ -1,0 +1,9 @@
+name,date,location,distance,elevation,url,registrationDeadline,entryFee,raceType,status,priority,isTeamRace,notes
+Tour de France Stage,2026-07-15,France,180,3500,https://letour.fr,2026-06-01,€150,stage_race,confirmed,A,true,Mountain stage with team support required
+Local Criterium Series,2026-04-20,Downtown Circuit,45,150,https://localcrit.com,2026-04-10,€25,criterium,provisional,B,false,Fast flat technical course
+Spring Classic Monument,2026-05-10,Belgium,250,2000,https://springclassic.be,2026-04-15,€100,road_race,confirmed,A,true,Cobbled sections - team tactics crucial
+Time Trial Championship,2026-07-05,City Center,40,200,https://ttchamp.com,2026-06-20,€50,time_trial,provisional,B,false,Flat individual TT course
+Gran Fondo Alps,2026-08-12,Swiss Alps,120,2800,https://granfondoalps.com,2026-07-01,€85,gran_fondo,confirmed,A,false,Challenging mountain sportive
+Gravel Adventure Race,2026-09-18,Countryside,95,1600,https://gravelrace.com,2026-09-01,€60,gravel,provisional,C,false,Mixed terrain gravel event
+Cyclocross Series Round 1,2026-10-05,Park Circuit,5,50,https://cxseries.com,2026-09-25,€30,cyclocross,provisional,B,false,Technical CX course
+Track Omnium,2026-06-22,Velodrome,0,0,https://trackomnium.com,2026-06-10,€40,track,confirmed,C,false,Indoor track racing

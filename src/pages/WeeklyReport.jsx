@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Zap, AlertTriangle, Calendar, Trophy, Target, Info, Activity as ActivityIcon, MessageCircle, Send, Loader2 } from 'lucide-react';
+import { BarChart3, TrendingUp, Zap, AlertTriangle, Calendar, Trophy, Target, Info, Activity as ActivityIcon, MessageCircle, Send, Loader2, ShieldCheck, XCircle, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import logger from '../lib/logger';
-import {
-  calculateZoneDistribution,
-  generateSmartInsights,
-  calculateEfficiencyMetrics
-} from '../lib/riderAnalytics';
 import { getCoachPersona, getUserCoach } from '../lib/coachPersonas';
+import { fetchUnifiedActivities } from '../lib/activitySync';
 
 const WeeklyReport = ({ stravaTokens }) => {
   const [activities, setActivities] = useState([]);
@@ -22,40 +18,72 @@ const WeeklyReport = ({ stravaTokens }) => {
   const [question, setQuestion] = useState('');
   const [coachAnswer, setCoachAnswer] = useState(null);
   const [askingCoach, setAskingCoach] = useState(false);
+  const [trainingQuality, setTrainingQuality] = useState(null);
+  const [tqLoading, setTqLoading] = useState(true);
 
   useEffect(() => {
-    if (stravaTokens) {
-      loadWeeklyData();
-    } else {
-      setLoading(false);
+    loadWeeklyData();
+    loadTrainingQuality();
+  }, []);
+
+  const loadTrainingQuality = async () => {
+    setTqLoading(true);
+    try {
+      const token = localStorage.getItem('session_token');
+      if (!token) return;
+      const res = await fetch('/api/training-quality/week', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTrainingQuality(data);
+      }
+    } catch (err) {
+      logger.error('[WeeklyReport] Training quality fetch error:', err);
+    } finally {
+      setTqLoading(false);
     }
-  }, [stravaTokens]);
+  };
 
   const loadWeeklyData = async () => {
     setLoading(true);
     try {
-      // Load cached activities
-      const cachedActivities = localStorage.getItem('cached_activities_recent');
-      if (!cachedActivities) {
-        console.warn('⚠️ [Weekly Report] No cached activities found. Please visit Dashboard first.');
+      logger.info('[Weekly Report] Fetching activities from unified database...');
+      
+      // Fetch from unified database
+      const result = await fetchUnifiedActivities({ windowDays: 90 });
+      
+      if (!result.ok) {
+        logger.error('[Weekly Report] Failed to fetch from database:', result.error);
         setLoading(false);
         return;
       }
 
-      const allActivities = JSON.parse(cachedActivities);
+      const allActivities = result.data || [];
+      logger.info('[Weekly Report] Loaded activities from database:', allActivities.length);
+      
       setActivities(allActivities);
 
-      // Get FTP
+      // Get FTP from backend
       let currentFtp = null;
       const manualFtpValue = localStorage.getItem('manual_ftp');
-      if (manualFtpValue) {
-        currentFtp = parseInt(manualFtpValue);
-      } else {
-        const cachedMetrics = localStorage.getItem('cached_metrics');
-        if (cachedMetrics) {
-          const metrics = JSON.parse(cachedMetrics);
-          currentFtp = metrics.ftp;
+      
+      try {
+        const ftpResponse = await fetch('/api/analytics/ftp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            activities: allActivities,
+            manualFTP: manualFtpValue ? parseInt(manualFtpValue) : null
+          }),
+        });
+        
+        if (ftpResponse.ok) {
+          const ftpData = await ftpResponse.json();
+          currentFtp = ftpData.ftp;
         }
+      } catch (error) {
+        logger.error('Error fetching FTP:', error);
       }
       setFtp(currentFtp);
 
@@ -77,11 +105,7 @@ const WeeklyReport = ({ stravaTokens }) => {
       const prevMetrics = calculateWeekMetrics(previous7Days);
       setLastWeekMetrics(prevMetrics);
 
-      // Calculate zone distribution for last 7 days
-      const zones = calculateZoneDistribution(last7Days, currentFtp);
-      setZoneDistribution(zones);
-
-      // Generate AI insights for last 7 days
+      // Generate AI insights for last 7 days (no client-side fallback)
       try {
         const coachId = getUserCoach();
         const coach = getCoachPersona(coachId);
@@ -92,7 +116,7 @@ const WeeklyReport = ({ stravaTokens }) => {
           body: JSON.stringify({
             activities: last7Days,
             ftp: currentFtp,
-            riderType: null, // Not needed for weekly insights
+            riderType: null,
             coachPersona: coach
           })
         });
@@ -100,22 +124,10 @@ const WeeklyReport = ({ stravaTokens }) => {
         if (insightsResponse.ok) {
           const aiInsights = await insightsResponse.json();
           setInsights(aiInsights);
-        } else {
-          const smartInsights = generateSmartInsights(last7Days, currentFtp, null);
-          setInsights(smartInsights);
         }
       } catch (error) {
         logger.error('Error loading AI insights:', error);
-        const smartInsights = generateSmartInsights(last7Days, currentFtp, null);
-        setInsights(smartInsights);
       }
-
-      // Calculate efficiency metrics for last 4 weeks
-      const fourWeeksAgo = new Date();
-      fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
-      const last4Weeks = allActivities.filter(a => new Date(a.date) >= fourWeeksAgo);
-      const efficiency = calculateEfficiencyMetrics(last4Weeks, currentFtp);
-      setEfficiencyMetrics(efficiency);
 
     } catch (error) {
       logger.error('Error loading weekly data:', error);
@@ -217,7 +229,7 @@ const WeeklyReport = ({ stravaTokens }) => {
     );
   }
 
-  if (!stravaTokens) {
+  if (activities.length === 0 && !loading) {
     return (
       <div className="space-y-8">
         <div>
@@ -232,9 +244,9 @@ const WeeklyReport = ({ stravaTokens }) => {
           <CardContent className="pt-12 pb-12">
             <div className="text-center">
               <AlertTriangle className="w-16 h-16 text-orange-400 dark:text-orange-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Connect Strava to Continue</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No Activities Found</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                To view your weekly report, please connect your Strava account.
+                Please visit the Dashboard first to load your activities from Strava, Intervals.icu, or add manual activities.
               </p>
               <a
                 href="/settings"
@@ -342,6 +354,9 @@ const WeeklyReport = ({ stravaTokens }) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Training Quality Card */}
+      <TrainingQualityCard data={trainingQuality} loading={tqLoading} />
 
       {/* Weekly Insights & Ask Your Coach - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -625,5 +640,224 @@ const WeeklyReport = ({ stravaTokens }) => {
     </div>
   );
 };
+
+// ─── Training Quality Card ────────────────────────────────────────────────────
+
+const OVERALL_CONFIG = {
+  Green: {
+    border: 'border-green-300 dark:border-green-700',
+    bg:     'bg-green-50 dark:bg-green-950/20',
+    badge:  'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200',
+    icon:   CheckCircle2,
+    color:  'text-green-600 dark:text-green-400',
+  },
+  Amber: {
+    border: 'border-yellow-300 dark:border-yellow-700',
+    bg:     'bg-yellow-50 dark:bg-yellow-950/20',
+    badge:  'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200',
+    icon:   AlertCircle,
+    color:  'text-yellow-600 dark:text-yellow-400',
+  },
+  Red: {
+    border: 'border-red-300 dark:border-red-700',
+    bg:     'bg-red-50 dark:bg-red-950/20',
+    badge:  'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200',
+    icon:   XCircle,
+    color:  'text-red-600 dark:text-red-400',
+  },
+};
+
+const LIMITER_LABELS = {
+  ACCELERATION_REPEATABILITY: 'Acceleration Repeatability',
+  THRESHOLD_UNDER_STRESS:     'Threshold Under Stress',
+  LATE_RACE_RESILIENCE:       'Late Race Resilience',
+  VO2_CAPACITY_CEILING:       'VO2 Capacity Ceiling',
+  EXPOSURE_SENSITIVITY:       'Exposure Sensitivity',
+};
+
+const SOURCE_CONFIG = {
+  LIMITER_ENGINE:  { label: 'Limiter Engine',  badge: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200' },
+  SEASON_PLANNER:  { label: 'Season Planner',  badge: 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200' },
+  DEFAULT:         { label: 'Default',          badge: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300' },
+  OVERRIDE:        { label: 'Override',         badge: 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200' },
+};
+
+function ScoreBar({ label, score, colorClass }) {
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{label}</span>
+        <span className={`text-sm font-bold ${colorClass}`}>{score}</span>
+      </div>
+      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            score >= 75 ? 'bg-green-500' : score >= 55 ? 'bg-yellow-500' : 'bg-red-500'
+          }`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TrainingQualityCard({ data, loading }) {
+  if (loading) {
+    return (
+      <Card className="border-2 border-gray-200 dark:border-gray-700">
+        <CardContent className="p-4 sm:p-6 flex items-center gap-3">
+          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+          <span className="text-sm text-gray-500 dark:text-gray-400">Computing training quality…</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data || !data.scores) return null;
+
+  const { scores, block_focus, hit, missing, warnings, reasons, summary, iso_week } = data;
+  const overall = scores.overall || 'Amber';
+  const cfg = OVERALL_CONFIG[overall] || OVERALL_CONFIG.Amber;
+  const OverallIcon = cfg.icon;
+
+  const primaryLabel   = block_focus?.primary_limiter   ? LIMITER_LABELS[block_focus.primary_limiter]   || block_focus.primary_limiter   : null;
+  const secondaryLabel = block_focus?.secondary_limiter ? LIMITER_LABELS[block_focus.secondary_limiter] || block_focus.secondary_limiter : null;
+  const source         = block_focus?.source || 'DEFAULT';
+  const sourceCfg      = SOURCE_CONFIG[source] || SOURCE_CONFIG.DEFAULT;
+  const anchorRace     = block_focus?.anchor_race || null;
+
+  // Top 2 reasons (prefer missing/warnings over hits)
+  const topReasons = (reasons || []).filter(r => r.startsWith('✗') || r.startsWith('⚠')).slice(0, 2);
+
+  return (
+    <Card className={`border-2 ${cfg.border}`}>
+      <CardHeader className="p-4 sm:p-6 pb-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <CardTitle className="text-base sm:text-lg">Training Quality</CardTitle>
+            {iso_week && (
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">{iso_week}</span>
+            )}
+          </div>
+          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold ${cfg.badge}`}>
+            <OverallIcon className="w-4 h-4" />
+            {overall}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sourceCfg.badge}`}>
+            {sourceCfg.label}
+          </span>
+          {primaryLabel && (
+            <CardDescription className="text-xs sm:text-sm">
+              <span className="font-medium text-gray-800 dark:text-gray-200">{primaryLabel}</span>
+              {secondaryLabel && <> + <span className="font-medium text-gray-700 dark:text-gray-300">{secondaryLabel}</span></>}
+            </CardDescription>
+          )}
+          {!primaryLabel && (
+            <CardDescription className="text-xs sm:text-sm text-yellow-600 dark:text-yellow-400">
+              No focus set
+            </CardDescription>
+          )}
+        </div>
+        {anchorRace && (
+          <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
+            Next anchor: <span className="font-medium">{anchorRace.name}</span> ({anchorRace.date})
+          </p>
+        )}
+        {source !== 'LIMITER_ENGINE' && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">
+            This focus is based on your {source === 'SEASON_PLANNER' ? 'upcoming race' : 'default build plan'}. It will automatically update after your first race debrief.
+          </p>
+        )}
+      </CardHeader>
+
+      <CardContent className="p-4 sm:p-6 pt-3 space-y-4">
+        {/* Score bars */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <ScoreBar
+            label="Alignment Score"
+            score={scores.alignment_score}
+            colorClass={scores.alignment_score >= 75 ? 'text-green-600 dark:text-green-400' : scores.alignment_score >= 55 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}
+          />
+          <ScoreBar
+            label="Execution Score"
+            score={scores.execution_score}
+            colorClass={scores.execution_score >= 70 ? 'text-green-600 dark:text-green-400' : scores.execution_score >= 55 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}
+          />
+        </div>
+
+        {/* Hit / Missing stimulus */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {hit && hit.filter(h => h.source === 'primary').length > 0 && (
+            <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="text-xs font-semibold text-green-700 dark:text-green-300 mb-1.5 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Stimulus Hit
+              </div>
+              <ul className="space-y-1">
+                {hit.filter(h => h.source === 'primary').map((h, i) => (
+                  <li key={i} className="text-xs text-green-800 dark:text-green-200">• {h.description}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {missing && missing.filter(m => m.source === 'primary').length > 0 && (
+            <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="text-xs font-semibold text-red-700 dark:text-red-300 mb-1.5 flex items-center gap-1">
+                <XCircle className="w-3.5 h-3.5" /> Missing Stimulus
+              </div>
+              <ul className="space-y-1">
+                {missing.filter(m => m.source === 'primary').map((m, i) => (
+                  <li key={i} className="text-xs text-red-800 dark:text-red-200">• {m.description}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Top reasons */}
+        {topReasons.length > 0 && (
+          <div className="space-y-1">
+            {topReasons.map((r, i) => (
+              <p key={i} className="text-xs text-gray-600 dark:text-gray-400">{r}</p>
+            ))}
+          </div>
+        )}
+
+        {/* Warnings */}
+        {warnings && warnings.filter(w => !w.includes('_')).length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {warnings.filter(w => !w.includes('_')).slice(0, 3).map((w, i) => (
+              <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800">
+                <AlertTriangle className="w-3 h-3" />{w}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Summary stats */}
+        {summary && (
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1 border-t border-gray-200 dark:border-gray-700">
+            {[
+              { label: 'Sessions', value: summary.total_activities },
+              { label: 'Intensity', value: `${summary.intensity_days}d` },
+              { label: 'Threshold', value: summary.threshold_minutes != null ? `${Math.round(summary.threshold_minutes)}m` : '—' },
+              { label: 'VO2', value: summary.vo2_minutes != null ? `${Math.round(summary.vo2_minutes)}m` : '—' },
+              { label: 'Long Ride', value: summary.long_ride_present ? `${summary.long_ride_minutes}m` : '—' },
+              { label: 'Data', value: `${Math.round((summary.data_quality || 0) * 100)}%` },
+            ].map(({ label, value }) => (
+              <div key={label} className="text-center">
+                <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
+                <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default WeeklyReport;

@@ -7,129 +7,347 @@
 
 class FTHRService {
   /**
-   * Calculate FTHR from recent activities
-   * Uses a 6-week rolling window for best accuracy
-   * 
-   * @param {Array} activities - Array of activity objects with HR data
-   * @returns {Object} - { fthr, confidence, method, zones, recentActivities }
+   * Calculate FTHR using the canonical bible methodology
+   * - 42-day analysis window
+   * - Effort qualification: 30-60 min, ≥95% HR samples, CV ≤ 0.10, HR drift ≤ 5 bpm
+   * - NO multipliers - use raw avg HR directly
+   * - Minimum requirement: ≥1 effort ≥40 min or return null
+   * - Final FTHR = median of top 3 weighted efforts
+   * - Confidence scoring (0-100)
    */
   calculateFTHR(activities, manualFTHR = null) {
-    // If user has manually set FTHR, use that
+    // If user has manually set FTHR, use that (manual always wins)
     if (manualFTHR && manualFTHR > 0) {
       return {
         fthr: manualFTHR,
-        confidence: 'manual',
+        confidence: 100,
+        confidenceLevel: 'manual',
         method: 'user_provided',
         zones: this.calculateHRZones(manualFTHR),
         recentActivities: 0,
-        hardEffortsFound: 0
+        qualifyingEfforts: 0
       };
     }
 
     if (!activities || activities.length === 0) {
       return {
         fthr: null,
-        confidence: 'none',
+        confidence: 0,
+        confidenceLevel: 'none',
         method: 'insufficient_data',
         zones: null,
-        recentActivities: 0
+        recentActivities: 0,
+        reasonCodes: ['NO_ACTIVITIES'],
+        windowDays: 42,
+        updatedAt: new Date().toISOString()
       };
     }
 
-    // Filter activities from last 12 weeks with HR data (expanded from 6 weeks)
-    // Research shows FTHR doesn't decline significantly in 12 weeks
-    const twelveWeeksAgo = new Date();
-    twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84);
+    console.log('[FTHR Bible] Starting with', activities.length, 'activities');
+
+    // 1. Filter to 42-day window with HR data
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 42);
 
     const recentActivitiesWithHR = activities.filter(activity => {
       const activityDate = new Date(activity.date);
       return (
-        activityDate >= twelveWeeksAgo &&
+        activityDate >= cutoffDate &&
         activity.avgHeartRate &&
-        activity.avgHeartRate > 0 &&
-        activity.duration >= 1200 // At least 20 minutes
+        activity.avgHeartRate > 0
       );
     });
+
+    console.log('[FTHR Bible] Activities in 42-day window with HR:', recentActivitiesWithHR.length);
 
     if (recentActivitiesWithHR.length === 0) {
       return {
         fthr: null,
-        confidence: 'none',
+        confidence: 0,
+        confidenceLevel: 'none',
         method: 'no_hr_data',
         zones: null,
-        recentActivities: 0
+        recentActivities: 0,
+        reasonCodes: ['NO_HR_ACTIVITIES_IN_WINDOW'],
+        windowDays: 42,
+        updatedAt: new Date().toISOString()
       };
     }
 
-    // Method 1: Look for hard efforts (race or hard training)
-    // Expanded criteria: 82%+ of max HR, 20-60 min duration
-    // Research: threshold efforts typically 82-95% of max HR
-    const hardEfforts = recentActivitiesWithHR.filter(activity => {
-      const estimatedMaxHR = this.estimateMaxHR(activity);
-      const hrIntensity = activity.avgHeartRate / estimatedMaxHR;
-      return (
-        hrIntensity > 0.82 && // Lowered from 0.85 to catch more threshold efforts
-        activity.duration >= 1200 && // 20+ minutes
-        activity.duration <= 3600 // Up to 60 minutes (sustained efforts)
-      );
+    // 2. Extract candidate efforts (30-60 min with steady effort)
+    const candidates = [];
+    const now = new Date();
+
+    for (const activity of recentActivitiesWithHR) {
+      const durationMin = activity.duration / 60;
+      
+      // Duration must be 30-60 minutes (NOT 20 - bible requirement)
+      if (durationMin < 30 || durationMin > 60) continue;
+      
+      const avgHR = activity.avgHeartRate;
+      if (!avgHR || avgHR < 100) continue; // Minimum HR threshold
+      
+      // Calculate days ago for recency weighting
+      const activityDate = new Date(activity.date);
+      const daysAgo = Math.floor((now - activityDate) / (1000 * 60 * 60 * 24));
+      
+      // Power CV as steady effort proxy - null means unknown
+      const powerCV = activity.powerCV !== undefined ? activity.powerCV : null;
+      
+      // If CV is known and too high, skip (not steady effort)
+      if (powerCV !== null && powerCV > 0.10) {
+        console.log('[FTHR Bible] Skipping activity (power CV too high):', activity.name);
+        continue;
+      }
+      
+      // HR drift check: difference between first and second half should be ≤5 bpm
+      // CRITICAL: If we can't measure drift, we can't verify steadiness
+      let hrDrift = null; // null = unmeasurable
+      let driftMeasurable = false;
+      
+      if (activity.hrFirstHalf && activity.hrSecondHalf) {
+        // Best case: we have actual half/half HR means
+        hrDrift = Math.abs(activity.hrSecondHalf - activity.hrFirstHalf);
+        driftMeasurable = true;
+      } else if (activity.maxHeartRate && activity.avgHeartRate) {
+        // Acceptable proxy: estimate from max-avg spread
+        hrDrift = (activity.maxHeartRate - activity.avgHeartRate) * 0.3;
+        driftMeasurable = true;
+      }
+      
+      // If drift is unmeasurable, FAIL the steadiness check (accuracy beats completeness)
+      if (!driftMeasurable) {
+        console.log('[FTHR Bible] Skipping activity (HR drift unmeasurable):', activity.name);
+        continue;
+      }
+      
+      // If drift is too high, skip
+      if (hrDrift > 5) {
+        console.log('[FTHR Bible] Skipping activity (HR drift too high):', activity.name, 'drift:', hrDrift.toFixed(1));
+        continue;
+      }
+      
+      // 3. FTHR estimate = raw avg HR (NO MULTIPLIERS - bible requirement)
+      const fthrEstimate = Math.round(avgHR);
+      
+      // 4. Calculate effort weight (for ranking only)
+      const recencyWeight = Math.exp(-daysAgo / 21);
+      const durationWeight = Math.min(durationMin / 60, 1.0);
+      const driftWeight = Math.max(0, Math.min(1, 1 - (hrDrift / 5)));
+      // If CV unknown, reduce weight (can't fully verify steadiness)
+      const cvPenalty = powerCV === null ? 0.7 : 1.0;
+      const totalWeight = recencyWeight * durationWeight * driftWeight * cvPenalty;
+      
+      candidates.push({
+        activity,
+        fthrEstimate,
+        durationMin: Math.round(durationMin),
+        daysAgo,
+        hrDrift: Math.round(hrDrift * 10) / 10,
+        powerCV,
+        weight: totalWeight,
+        avgHR: Math.round(avgHR)
+      });
+    }
+
+    console.log('[FTHR Bible] Qualifying efforts:', candidates.length);
+
+    // Collect reason codes for why efforts were rejected
+    const reasonCodes = [];
+    
+    // Check what's missing
+    const activitiesIn30to60 = recentActivitiesWithHR.filter(a => {
+      const durationMin = a.duration / 60;
+      return durationMin >= 30 && durationMin <= 60;
     });
-
-    let fthr = null;
-    let method = 'none';
-    let confidence = 'none';
-
-    if (hardEfforts.length >= 3) {
-      // Take the top 3 highest average HR efforts
-      const topEfforts = hardEfforts
-        .sort((a, b) => b.avgHeartRate - a.avgHeartRate)
-        .slice(0, 3);
-      
-      const avgTopHR = topEfforts.reduce((sum, a) => sum + a.avgHeartRate, 0) / topEfforts.length;
-      const avgDuration = topEfforts.reduce((sum, a) => sum + a.duration, 0) / topEfforts.length;
-      
-      // Research-backed duration adjustments (Coggan methodology)
-      if (avgDuration >= 3000) {  // 50-60 min efforts
-        fthr = Math.round(avgTopHR * 1.00);  // Already at threshold
-      } else if (avgDuration >= 2400) {  // 40-50 min
-        fthr = Math.round(avgTopHR * 0.99);
-      } else if (avgDuration >= 1800) {  // 30-40 min
-        fthr = Math.round(avgTopHR * 0.98);
-      } else {  // 20-30 min (standard 20-min test)
-        fthr = Math.round(avgTopHR * 0.95);  // Coggan 20-min test standard
+    
+    if (activitiesIn30to60.length === 0) {
+      reasonCodes.push('NO_HR_EFFORTS_30_60');
+    }
+    
+    // Check if we had activities but they failed drift check
+    if (activitiesIn30to60.length > 0 && candidates.length === 0) {
+      reasonCodes.push('NO_DRIFT_DATA');
+    }
+    
+    // 5. MINIMUM REQUIREMENT: At least 1 effort ≥40 min
+    const hasLongEffort = candidates.some(e => e.durationMin >= 40);
+    
+    if (!hasLongEffort) {
+      if (candidates.length > 0) {
+        reasonCodes.push('NO_HR_EFFORT_40_PLUS');
       }
       
-      method = 'hard_efforts';
-      confidence = 'high';
-    } 
-    else if (hardEfforts.length > 0) {
-      // Use available hard efforts but lower confidence
-      const avgHR = hardEfforts.reduce((sum, a) => sum + a.avgHeartRate, 0) / hardEfforts.length;
-      fthr = Math.round(avgHR * 0.95);  // Conservative for limited data
-      method = 'limited_hard_efforts';
-      confidence = 'medium';
-    }
-    else {
-      // Method 2: Estimate from max HR in recent activities
-      const maxHRObserved = Math.max(...recentActivitiesWithHR.map(a => a.maxHeartRate || a.avgHeartRate));
-      
-      if (maxHRObserved > 0) {
-        // Research-backed: 90% of max HR for trained cyclists (Karvonen, Friel, TrainingPeaks)
-        fthr = Math.round(maxHRObserved * 0.90);  // Updated from 0.87
-        method = 'max_hr_estimate';
-        confidence = 'low';
-      }
+      console.log('[FTHR Bible] No effort ≥40 min found - returning null, reasons:', reasonCodes);
+      return {
+        fthr: null,
+        confidence: 0,
+        confidenceLevel: 'insufficient',
+        method: 'no_long_effort',
+        message: 'FTHR requires at least one steady effort of 40+ minutes. No estimation made.',
+        zones: null,
+        recentActivities: recentActivitiesWithHR.length,
+        qualifyingEfforts: candidates.length,
+        reasonCodes: reasonCodes.length > 0 ? reasonCodes : ['NO_QUALIFYING_EFFORTS'],
+        windowDays: 42,
+        updatedAt: new Date().toISOString()
+      };
     }
 
-    // Calculate HR zones if we have FTHR
-    const zones = fthr ? this.calculateHRZones(fthr) : null;
+    // 6. Sort by weight and take top 3
+    candidates.sort((a, b) => b.weight - a.weight);
+    const topEfforts = candidates.slice(0, Math.min(3, candidates.length));
 
+    console.log('[FTHR Bible] Top efforts:', topEfforts.map(e => ({
+      date: e.activity.date,
+      fthr: e.fthrEstimate,
+      duration: e.durationMin,
+      drift: e.hrDrift,
+      weight: e.weight.toFixed(3)
+    })));
+
+    // 7. Calculate final FTHR as median of top efforts
+    const fthrValues = topEfforts.map(e => e.fthrEstimate).sort((a, b) => a - b);
+    let fthr;
+    if (fthrValues.length === 1) {
+      fthr = fthrValues[0];
+    } else if (fthrValues.length === 2) {
+      fthr = Math.round((fthrValues[0] + fthrValues[1]) / 2);
+    } else {
+      fthr = fthrValues[1]; // Median of 3
+    }
+
+    // 8. Calculate confidence score (0-100)
+    let confidence = 0;
+    
+    // +50: ≥1 effort ≥40 min
+    if (hasLongEffort) confidence += 50;
+    
+    // +20: ≥2 qualifying efforts
+    if (candidates.length >= 2) confidence += 20;
+    
+    // +15: hr_drift ≤3 bpm on best effort
+    if (topEfforts[0].hrDrift <= 3) confidence += 15;
+    
+    // +10: best effort ≤14 days old
+    if (topEfforts[0].daysAgo <= 14) confidence += 10;
+    
+    // +5: ≥1 effort ≥50 min
+    if (candidates.some(e => e.durationMin >= 50)) confidence += 5;
+    
+    // -10: any top effort has unknown power CV (can't fully verify steadiness)
+    if (topEfforts.some(e => e.powerCV === null)) {
+      confidence -= 10;
+      console.log('[FTHR Bible] Confidence penalty: unknown power CV on top efforts');
+    }
+    
+    confidence = Math.max(0, Math.min(100, confidence));
+
+    // Determine confidence level
+    let confidenceLevel;
+    if (confidence >= 50) {
+      confidenceLevel = 'high';
+    } else {
+      confidenceLevel = 'low';
+    }
+
+    console.log('[FTHR Bible] Final FTHR:', fthr, 'Confidence:', confidence, '(' + confidenceLevel + ')');
+
+    // Calculate HR zones
+    const zones = this.calculateHRZones(fthr);
+
+    // Build reason codes for confidence issues
+    const finalReasonCodes = [];
+    if (topEfforts.some(e => e.powerCV === null)) {
+      finalReasonCodes.push('UNKNOWN_CV_ON_TOP_EFFORTS');
+    }
+    if (!candidates.some(e => e.durationMin >= 50)) {
+      finalReasonCodes.push('NO_EFFORT_50_PLUS');
+    }
+    if (candidates.length < 2) {
+      finalReasonCodes.push('SINGLE_EFFORT_ONLY');
+    }
+    
     return {
       fthr,
       confidence,
-      method,
+      confidenceLevel,
+      method: 'bible_calculation',
       zones,
       recentActivities: recentActivitiesWithHR.length,
-      hardEffortsFound: hardEfforts.length
+      qualifyingEfforts: candidates.length,
+      effortsUsed: topEfforts.length,
+      reasonCodes: finalReasonCodes,
+      windowDays: 42,
+      updatedAt: new Date().toISOString(),
+      topEfforts: topEfforts.map(e => ({
+        date: e.activity.date,
+        name: e.activity.name,
+        fthrEstimate: e.fthrEstimate,
+        durationMin: e.durationMin,
+        daysAgo: e.daysAgo,
+        hrDrift: e.hrDrift,
+        cvKnown: e.powerCV !== null
+      }))
+    };
+  }
+
+  /**
+   * Calculate FTHR history - weekly snapshots using canonical calculation
+   * Returns null for weeks with insufficient data (bible requirement)
+   * @param {Array} activities - All activities
+   * @param {Number} weeks - Number of weeks to calculate (default 24)
+   * @returns {Object} - { history: [...], currentFTHR: {...} }
+   */
+  calculateFTHRHistory(activities, weeks = 24) {
+    console.log('[FTHR History] Calculating', weeks, 'weeks of history');
+    
+    const history = [];
+    const now = new Date();
+    
+    // Calculate FTHR for each week going back
+    for (let i = 0; i < weeks; i++) {
+      const weekEnd = new Date(now);
+      weekEnd.setDate(weekEnd.getDate() - (i * 7));
+      
+      const weekStart = new Date(weekEnd);
+      weekStart.setDate(weekStart.getDate() - 7);
+      
+      // Filter activities up to this week's end date
+      const activitiesUpToWeek = activities.filter(a => {
+        const activityDate = new Date(a.date);
+        return activityDate <= weekEnd;
+      });
+      
+      // Calculate FTHR as if we were at that week
+      // Temporarily adjust the 42-day window to end at weekEnd
+      const cutoffDate = new Date(weekEnd);
+      cutoffDate.setDate(cutoffDate.getDate() - 42);
+      
+      const windowActivities = activitiesUpToWeek.filter(a => {
+        const activityDate = new Date(a.date);
+        return activityDate >= cutoffDate && activityDate <= weekEnd;
+      });
+      
+      // Use the main calculation but with filtered activities
+      const result = this.calculateFTHR(windowActivities);
+      
+      history.unshift({
+        weekStart: weekStart.toISOString().split('T')[0],
+        weekEnd: weekEnd.toISOString().split('T')[0],
+        fthr: result.fthr, // Will be null if insufficient data (bible requirement)
+        confidence: result.confidence,
+        confidenceLevel: result.confidenceLevel,
+        effortsUsed: result.effortsUsed || 0
+      });
+    }
+    
+    // Current FTHR (most recent calculation)
+    const currentResult = this.calculateFTHR(activities);
+    
+    return {
+      history,
+      currentFTHR: currentResult
     };
   }
 

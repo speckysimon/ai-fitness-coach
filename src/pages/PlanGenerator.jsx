@@ -43,6 +43,8 @@ import {
   getCompletionStatus
 } from '../lib/activityMatching';
 import { fetchManualActivities, mergeActivities } from '../lib/manualActivityUtils';
+import { fetchUnifiedActivities } from '../lib/activitySync';
+import { formatDuration, formatDistance } from '../lib/utils';
 import confetti from 'canvas-confetti';
 import { planService } from '../services/planService';
 import { migrationService } from '../services/migrationService';
@@ -512,119 +514,47 @@ const PlanGenerator = ({ stravaTokens, googleTokens, userProfile }) => {
 
   const loadActivities = async () => {
     try {
-      let stravaActivities = [];
+      logger.info('[Plan Generator] Fetching activities from unified database...');
+      
+      // Fetch from unified database (90 days for plan context)
+      const result = await fetchUnifiedActivities({ windowDays: 90 });
+      
+      if (!result.ok) {
+        logger.error('[Plan Generator] Failed to fetch from database:', result.error);
+        setActivities([]);
+        return;
+      }
+      
+      const allActivities = result.data || [];
+      setActivities(allActivities);
+      logger.info(`[Plan Generator] Loaded ${allActivities.length} activities from database`);
 
-      // Load Strava activities if connected
-      if (stravaTokens) {
-        let tokensToUse = { ...stravaTokens };
-
-        // Check if token is expired and refresh if needed
-        const nowSeconds = Math.floor(Date.now() / 1000);
-        if (tokensToUse.expires_at && tokensToUse.expires_at < nowSeconds) {
-          try {
-            tokensToUse = await refreshAccessToken();
-          } catch (refreshError) {
-            if (refreshError.message === 'REAUTH_REQUIRED') {
-              alert('Your Strava session has expired. Please reconnect Strava in Settings.');
-              // Continue to load manual activities even if Strava fails
-            } else {
-              throw refreshError;
-            }
-          }
-        }
-
-        const sixWeeksAgo = Math.floor(Date.now() / 1000) - (6 * 7 * 24 * 60 * 60);
-        const response = await fetch(
-          `/api/strava/activities?access_token=${tokensToUse.access_token}&after=${sixWeeksAgo}&per_page=100`
-        );
-
-        // Handle 401/403 errors by refreshing token and retrying
-        if (response.status === 401 || response.status === 403) {
-          try {
-            const newTokens = await refreshAccessToken();
-
-            // Wait a moment for token to propagate
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // Retry the request with new token
-            const retryResponse = await fetch(
-              `/api/strava/activities?access_token=${newTokens.access_token}&after=${sixWeeksAgo}&per_page=100`
-            );
-
-            if (retryResponse.ok) {
-              const data = await retryResponse.json();
-              stravaActivities = data;
-
-              // Calculate FTP for power targets
-              const ftpResponse = await fetch('/api/analytics/ftp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ activities: data }),
-              });
-              const ftpData = await ftpResponse.json();
-              setFtp(ftpData.ftp);
-
-              // Calculate FTHR and HR zones
-              const fthrResponse = await fetch('/api/analytics/fthr', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ activities: data }),
-              });
-              const fthrData = await fthrResponse.json();
-              setFthr(fthrData.fthr);
-              setHrZones(fthrData.zones);
-              return;
-            } else {
-              const errorText = await retryResponse.text();
-              logger.error('Retry failed:', retryResponse.status, errorText);
-            }
-          } catch (refreshError) {
-            logger.error('Token refresh error:', refreshError);
-          }
-        }
-
-        // Try to parse response even if status isn't perfect
-        if (response.ok) {
-          const data = await response.json();
-          stravaActivities = data;
-
-          // Calculate FTP for power targets
+      // Calculate FTP and FTHR from all activities
+      if (allActivities.length > 0) {
+        try {
           const ftpResponse = await fetch('/api/analytics/ftp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ activities: data }),
+            body: JSON.stringify({ activities: allActivities }),
           });
           const ftpData = await ftpResponse.json();
           setFtp(ftpData.ftp);
 
-          // Calculate FTHR and HR zones
           const fthrResponse = await fetch('/api/analytics/fthr', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ activities: data }),
+            body: JSON.stringify({ activities: allActivities }),
           });
           const fthrData = await fthrResponse.json();
           setFthr(fthrData.fthr);
           setHrZones(fthrData.zones);
-        } else {
-          logger.error('Failed to fetch activities:', response.status);
+        } catch (analyticsError) {
+          logger.error('Failed to calculate FTP/FTHR:', analyticsError);
           setFtp(null);
           setFthr(null);
           setHrZones(null);
         }
-      } // Close Strava loading block
-
-      // Load manual activities (always, regardless of Strava connection)
-      const manualActivities = await fetchManualActivities({
-        userId: userProfile?.id,
-        limit: 100
-      });
-
-      // Merge Strava and manual activities
-      const allActivities = mergeActivities(stravaActivities, manualActivities);
-      setActivities(allActivities);
-
-      logger.info(`Loaded ${stravaActivities.length} Strava + ${manualActivities.length} manual = ${allActivities.length} total activities`);
+      }
 
     } catch (error) {
       logger.error('Error loading activities:', error);
